@@ -71,27 +71,30 @@ export async function callCohereAPI(
   const lastMessage = messages[messages.length - 1]?.content || '';
 
   try {
-    const response = await fetch('https://api.cohere.ai/v1/chat', {
+    const response = await fetch('https://api.cohere.com/v2/chat', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${COHERE_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'command-r-plus',
-        message: lastMessage,
-        chat_history: chatHistory,
-        preamble: systemPrompt,
+        model: 'command-r-plus-08-2024',
+        messages: messages.map(msg => ({
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: msg.content
+        })),
         temperature: 0.7
       })
     });
 
     if (!response.ok) {
-      throw new Error('Cohere API request failed');
+      const errorData = await response.json();
+      console.error('Cohere API error response:', errorData);
+      throw new Error(errorData.message || 'Cohere API request failed');
     }
 
     const data = await response.json();
-    return data.text || 'No response generated';
+    return data.message?.content?.[0]?.text || 'No response generated';
   } catch (error) {
     console.error('Cohere API error:', error);
     throw error;
