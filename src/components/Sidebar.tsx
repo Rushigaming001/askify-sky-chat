@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChat } from '@/contexts/ChatContext';
@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo.png';
 
 export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
-  const { chats, currentChat, createNewChat, selectChat, deleteChat, renameChat } = useChat();
+  const { chats, currentChat, createNewChat, selectChat, deleteChat, renameChat, togglePinChat } = useChat();
   const { user, logout, updateUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -39,6 +39,11 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
 
   const handleShare = () => {
     toast({ title: 'Share feature', description: 'Share link copied to clipboard!' });
+  };
+
+  const handlePin = (chatId: string) => {
+    togglePinChat(chatId);
+    toast({ title: 'Chat pinned status updated' });
   };
 
   const handleLogout = () => {
@@ -87,13 +92,20 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
 
         <ScrollArea className="flex-1 px-2">
           <div className="space-y-1">
-            {chats.map((chat) => (
+            {chats
+              .sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.createdAt - a.createdAt;
+              })
+              .map((chat) => (
               <div
                 key={chat.id}
                 className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-accent transition-colors ${
                   currentChat?.id === chat.id ? 'bg-accent' : ''
                 }`}
               >
+                {chat.pinned && <Pin className="h-3 w-3 text-primary flex-shrink-0" />}
                 <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <span
                   className="flex-1 truncate text-sm"
@@ -136,6 +148,10 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
                         </div>
                       </DialogContent>
                     </Dialog>
+                    <DropdownMenuItem onSelect={() => handlePin(chat.id)}>
+                      <Pin className="h-4 w-4 mr-2" />
+                      {chat.pinned ? 'Unpin' : 'Pin'}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />
                       Share

@@ -29,7 +29,7 @@ export async function callGeminiAPI(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentGeminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${currentGeminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
