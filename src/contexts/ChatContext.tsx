@@ -15,6 +15,7 @@ export interface Chat {
   createdAt: number;
   model: 'gemini' | 'cohere';
   mode: 'normal' | 'deepthink' | 'search';
+  pinned?: boolean;
 }
 
 interface ChatContextType {
@@ -24,6 +25,7 @@ interface ChatContextType {
   selectChat: (chatId: string) => void;
   deleteChat: (chatId: string) => void;
   renameChat: (chatId: string, newTitle: string) => void;
+  togglePinChat: (chatId: string) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   updateChatSettings: (model: 'gemini' | 'cohere', mode: 'normal' | 'deepthink' | 'search') => void;
 }
@@ -89,6 +91,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const togglePinChat = (chatId: string) => {
+    setChats(chats.map(c => c.id === chatId ? { ...c, pinned: !c.pinned } : c));
+    if (currentChat?.id === chatId) {
+      setCurrentChat({ ...currentChat, pinned: !currentChat.pinned });
+    }
+  };
+
   const addMessage = (message: Omit<Message, 'id' | 'timestamp'>) => {
     if (!currentChat) return;
 
@@ -131,6 +140,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       selectChat,
       deleteChat,
       renameChat,
+      togglePinChat,
       addMessage,
       updateChatSettings
     }}>
