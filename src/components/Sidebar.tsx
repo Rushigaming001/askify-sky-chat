@@ -152,7 +152,17 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
         </ScrollArea>
 
         <div className="border-t border-border p-2 space-y-1">
-          <Button variant="ghost" className="w-full justify-start" size="sm">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => {
+              toast({ 
+                title: 'Mobile App Coming Soon!', 
+                description: 'Download links will be available shortly.' 
+              });
+            }}
+          >
             <Download className="h-4 w-4 mr-2" />
             Download Mobile App
           </Button>
@@ -193,7 +203,12 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             </DialogContent>
           </Dialog>
 
-          <Button variant="ghost" className="w-full justify-start" size="sm">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => window.location.href = 'mailto:opgamer012321@gmail.com'}
+          >
             <Mail className="h-4 w-4 mr-2" />
             Contact Us
           </Button>
