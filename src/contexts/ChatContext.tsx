@@ -107,22 +107,27 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       timestamp: Date.now()
     };
 
-    const updatedMessages = [...currentChat.messages, newMessage];
-    
-    // Auto-rename chat based on first user message
-    let updatedTitle = currentChat.title;
-    if (currentChat.messages.length === 0 && message.role === 'user') {
-      updatedTitle = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
-    }
+    setChats(prevChats => {
+      const targetChat = prevChats.find(c => c.id === currentChat.id);
+      if (!targetChat) return prevChats;
 
-    const updatedChat = {
-      ...currentChat,
-      messages: updatedMessages,
-      title: updatedTitle
-    };
+      const updatedMessages = [...targetChat.messages, newMessage];
+      
+      // Auto-rename chat based on first user message
+      let updatedTitle = targetChat.title;
+      if (targetChat.messages.length === 0 && message.role === 'user') {
+        updatedTitle = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
+      }
 
-    setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
-    setCurrentChat(updatedChat);
+      const updatedChat = {
+        ...targetChat,
+        messages: updatedMessages,
+        title: updatedTitle
+      };
+
+      setCurrentChat(updatedChat);
+      return prevChats.map(c => c.id === currentChat.id ? updatedChat : c);
+    });
   };
 
   const updateChatSettings = (model: 'gemini' | 'cohere', mode: 'normal' | 'deepthink' | 'search') => {
