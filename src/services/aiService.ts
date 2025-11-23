@@ -29,7 +29,7 @@ export async function callGeminiAPI(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${currentGeminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentGeminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,9 +38,15 @@ export async function callGeminiAPI(
     );
 
     if (!response.ok) {
-      // Try alternate key
-      currentGeminiKey = currentGeminiKey === GEMINI_API_KEY_1 ? GEMINI_API_KEY_2 : GEMINI_API_KEY_1;
-      throw new Error('API request failed');
+      const errorData = await response.json();
+      console.error('Gemini API error response:', errorData);
+      
+      // Try alternate key on auth errors
+      if (response.status === 401 || response.status === 403) {
+        currentGeminiKey = currentGeminiKey === GEMINI_API_KEY_1 ? GEMINI_API_KEY_2 : GEMINI_API_KEY_1;
+      }
+      
+      throw new Error(errorData.error?.message || 'API request failed');
     }
 
     const data = await response.json();
