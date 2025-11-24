@@ -7,7 +7,7 @@ import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { callGeminiAPI, callCohereAPI } from '@/services/aiService';
+import { callAI } from '@/services/chatService';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import logo from '@/assets/logo.png';
@@ -52,13 +52,7 @@ const Chat = () => {
         { role: 'user', content }
       ];
 
-      let response = '';
-      if (selectedModel === 'gemini') {
-        response = await callGeminiAPI(messages, currentChat.mode);
-      } else {
-        response = await callCohereAPI(messages, currentChat.mode);
-      }
-
+      const response = await callAI(messages, selectedModel, currentChat.mode);
       addMessage({ role: 'assistant', content: response });
     } catch (error) {
       console.error('Error calling AI:', error);
