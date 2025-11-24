@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function callAI(
   messages: { role: string; content: string }[],
-  model: 'gemini' | 'cohere',
+  model: 'gemini' | 'gpt' | 'askify',
   mode: 'normal' | 'deepthink' | 'search'
 ): Promise<string> {
   try {
