@@ -19,7 +19,12 @@ serve(async (req) => {
     }
 
     // Map user's model selection to Lovable AI models
-    const aiModel = model === 'cohere' ? 'google/gemini-2.5-flash' : 'google/gemini-2.5-flash';
+    let aiModel = 'google/gemini-2.5-flash';
+    if (model === 'gpt') {
+      aiModel = 'openai/gpt-5';
+    } else if (model === 'askify') {
+      aiModel = 'google/gemini-2.5-pro'; // Askify uses the premium Gemini model
+    }
     
     // Build system prompt based on mode
     let systemPrompt = `You are Askify, an advanced AI assistant created by Mr. Rudra Yenurkar. 

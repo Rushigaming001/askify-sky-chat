@@ -19,7 +19,7 @@ const Chat = () => {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'gemini' | 'cohere'>('gemini');
+  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify'>('gemini');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ const Chat = () => {
     }
   };
 
-  const handleModelChange = (model: 'gemini' | 'cohere') => {
+  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify') => {
     setSelectedModel(model);
     if (currentChat) {
       updateChatSettings(model, currentChat.mode);
@@ -90,13 +90,14 @@ const Chat = () => {
       <div className="flex-1 flex flex-col">
         <header className="border-b border-border p-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex-1" />
-          <Select value={selectedModel} onValueChange={(v: 'gemini' | 'cohere') => handleModelChange(v)}>
+          <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify') => handleModelChange(v)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="gemini">Gemini Pro</SelectItem>
-              <SelectItem value="cohere">Cohere Command R+</SelectItem>
+              <SelectItem value="gpt">GPT-5</SelectItem>
+              <SelectItem value="askify">Askify</SelectItem>
             </SelectContent>
           </Select>
         </header>
