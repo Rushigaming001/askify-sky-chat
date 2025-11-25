@@ -22,6 +22,12 @@ serve(async (req) => {
     let aiModel = 'google/gemini-2.5-flash';
     if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
+    } else if (model === 'gpt-mini') {
+      aiModel = 'openai/gpt-5-mini';
+    } else if (model === 'gpt-nano') {
+      aiModel = 'openai/gpt-5-nano';
+    } else if (model === 'gemini-3') {
+      aiModel = 'google/gemini-3-pro-preview';
     } else if (model === 'askify') {
       aiModel = 'google/gemini-2.5-pro'; // Askify uses the premium Gemini model
     }
