@@ -283,9 +283,9 @@ export default function AdminPanel() {
 
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="models">Model Access Control</TabsTrigger>
-            <TabsTrigger value="usage">Usage & Traffic</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="models">Models</TabsTrigger>
+            <TabsTrigger value="usage">Usage</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
