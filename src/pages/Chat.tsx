@@ -95,7 +95,7 @@ const Chat = () => {
             </h1>
           </div>
           <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[200px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -104,7 +104,9 @@ const Chat = () => {
               <SelectItem value="gpt-mini">GPT-5 Mini</SelectItem>
               <SelectItem value="gpt-nano">GPT-5 Nano</SelectItem>
               <SelectItem value="gemini-3">Gemini 3 Pro</SelectItem>
-              <SelectItem value="askify">Askify Pro</SelectItem>
+              <SelectItem value="askify">
+                <span className="font-semibold tracking-wide">ASKIFY PRO</span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </header>
