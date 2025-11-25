@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Paperclip, Smile, Brain, Search, Sparkles } from 'lucide-react';
+import { Send, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ChatInputProps {
   onSendMessage: (message: string, image?: string) => void;
-  onModeChange: (mode: 'normal' | 'deepthink' | 'search') => void;
-  mode: 'normal' | 'deepthink' | 'search';
+  onModeChange: (mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => void;
+  mode: 'normal' | 'deepthink' | 'search' | 'reasoning';
   disabled?: boolean;
 }
 
@@ -81,6 +81,15 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             <Brain className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">DeepThink</span>
             <span className="sm:hidden">Deep</span>
+          </Toggle>
+          <Toggle
+            pressed={mode === 'reasoning'}
+            onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3"
+          >
+            <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Reasoning</span>
+            <span className="sm:hidden">Reason</span>
           </Toggle>
           <Toggle
             pressed={mode === 'search'}

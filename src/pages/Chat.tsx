@@ -69,7 +69,7 @@ const Chat = () => {
     }
   };
 
-  const handleModeChange = (mode: 'normal' | 'deepthink' | 'search') => {
+  const handleModeChange = (mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => {
     if (currentChat) {
       updateChatSettings(selectedModel, mode);
     }

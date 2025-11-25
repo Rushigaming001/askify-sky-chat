@@ -15,7 +15,7 @@ export interface Chat {
   messages: Message[];
   createdAt: number;
   model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3';
-  mode: 'normal' | 'deepthink' | 'search';
+  mode: 'normal' | 'deepthink' | 'search' | 'reasoning';
   pinned?: boolean;
 }
 
@@ -28,7 +28,7 @@ interface ChatContextType {
   renameChat: (chatId: string, newTitle: string) => void;
   togglePinChat: (chatId: string) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
-  updateChatSettings: (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3', mode: 'normal' | 'deepthink' | 'search') => void;
+  updateChatSettings: (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3', mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -131,7 +131,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const updateChatSettings = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3', mode: 'normal' | 'deepthink' | 'search') => {
+  const updateChatSettings = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3', mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => {
     if (!currentChat) return;
     const updatedChat = { ...currentChat, model, mode };
     setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
