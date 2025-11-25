@@ -88,14 +88,14 @@ const Chat = () => {
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="flex-1 flex flex-col">
-        <header className="border-b border-border p-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex-1 flex items-center">
-            <h1 className="text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <header className="border-b border-border p-4 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
               ASKIFY
             </h1>
           </div>
           <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[160px] sm:w-[200px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
