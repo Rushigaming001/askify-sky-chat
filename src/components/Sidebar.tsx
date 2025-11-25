@@ -7,21 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo.png';
 
 export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const { chats, currentChat, createNewChat, selectChat, deleteChat, renameChat, togglePinChat } = useChat();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newName, setNewName] = useState(user?.name || '');
-  const [newEmail, setNewEmail] = useState(user?.email || '');
 
   const handleRename = (chatId: string) => {
     if (newTitle.trim()) {
@@ -49,12 +45,6 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
   const handleLogout = () => {
     logout();
     navigate('/auth');
-  };
-
-  const handleUpdateSettings = () => {
-    updateUser({ name: newName });
-    setSettingsOpen(false);
-    toast({ title: 'Settings updated successfully' });
   };
 
   if (!isOpen) {
@@ -183,41 +173,15 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             Download Mobile App
           </Button>
           
-          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Account Settings</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="settings-name">Name</Label>
-                  <Input
-                    id="settings-name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="settings-email">Email</Label>
-                  <Input
-                    id="settings-email"
-                    value={newEmail}
-                    disabled
-                    className="opacity-60"
-                  />
-                </div>
-                <Button onClick={handleUpdateSettings} className="w-full">
-                  Save Changes
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => navigate('/settings')}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
 
           <Button 
             variant="ghost" 
