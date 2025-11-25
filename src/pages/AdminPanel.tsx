@@ -291,14 +291,14 @@ export default function AdminPanel() {
           <TabsContent value="users">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <CardTitle>User Management</CardTitle>
                     <CardDescription>
                       Manage all registered users and their accounts
                     </CardDescription>
                   </div>
-                  <Button onClick={() => setShowCreateUser(true)}>
+                  <Button onClick={() => setShowCreateUser(true)} className="w-full sm:w-auto">
                     <UserPlus className="h-4 w-4 mr-2" />
                     Create User
                   </Button>
