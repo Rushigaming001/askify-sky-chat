@@ -14,12 +14,15 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isLoading) return;
     
     if (!email || !password || (!isLogin && !name)) {
       toast({
@@ -30,6 +33,7 @@ const Auth = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       if (isLogin) {
         const result = await login(email, password);
@@ -69,6 +73,8 @@ const Auth = () => {
         description: 'Something went wrong. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -140,8 +146,8 @@ const Auth = () => {
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 text-base font-medium" size="lg">
-                  Login to ASKIFY
+                <Button type="submit" className="w-full h-11 text-base font-medium" size="lg" disabled={isLoading}>
+                  {isLoading ? 'Logging in...' : 'Login to ASKIFY'}
                 </Button>
               </form>
             </TabsContent>
@@ -190,8 +196,8 @@ const Auth = () => {
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 text-base font-medium" size="lg">
-                  Create ASKIFY Account
+                <Button type="submit" className="w-full h-11 text-base font-medium" size="lg" disabled={isLoading}>
+                  {isLoading ? 'Creating account...' : 'Create ASKIFY Account'}
                 </Button>
               </form>
             </TabsContent>
