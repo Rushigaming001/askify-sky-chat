@@ -125,7 +125,7 @@ const Chat = () => {
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="flex-1 flex flex-col">
-        <header className="border-b border-border px-3 py-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="border-b border-border px-3 py-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative z-50">
           <div className="flex items-center gap-2 min-w-0">
             <Button 
               variant="ghost" 
