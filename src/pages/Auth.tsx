@@ -14,7 +14,9 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [age, setAge] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -31,6 +33,15 @@ const Auth = () => {
       toast({
         title: 'Error',
         description: 'Please fill in all fields',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
         variant: 'destructive'
       });
       return;
@@ -415,6 +426,34 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-confirm-password" className="text-sm font-semibold text-foreground">Confirm Password</Label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Input
+                        id="register-confirm-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-age" className="text-sm font-semibold text-foreground">Age (Optional)</Label>
+                    <div className="relative group">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Input
+                        id="register-age"
+                        type="number"
+                        placeholder="Your age"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
                         className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
                       />
                     </div>
