@@ -19,7 +19,7 @@ const Chat = () => {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify'>('gemini');
+  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3'>('gemini');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const Chat = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [currentChat?.messages]);
+  }, [currentChat?.messages, isLoading]);
 
   useEffect(() => {
     if (!currentChat) {
@@ -72,7 +72,7 @@ const Chat = () => {
     }
   };
 
-  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify') => {
+  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => {
     setSelectedModel(model);
     if (currentChat) {
       updateChatSettings(model, currentChat.mode);
@@ -89,15 +89,22 @@ const Chat = () => {
       
       <div className="flex-1 flex flex-col">
         <header className="border-b border-border p-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex-1" />
-          <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify') => handleModelChange(v)}>
+          <div className="flex-1 flex items-center">
+            <h1 className="text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              ASKIFY
+            </h1>
+          </div>
+          <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gemini">Gemini Pro</SelectItem>
+              <SelectItem value="gemini">Gemini Flash</SelectItem>
               <SelectItem value="gpt">GPT-5</SelectItem>
-              <SelectItem value="askify">Askify</SelectItem>
+              <SelectItem value="gpt-mini">GPT-5 Mini</SelectItem>
+              <SelectItem value="gpt-nano">GPT-5 Nano</SelectItem>
+              <SelectItem value="gemini-3">Gemini 3 Pro</SelectItem>
+              <SelectItem value="askify">Askify Pro</SelectItem>
             </SelectContent>
           </Select>
         </header>
