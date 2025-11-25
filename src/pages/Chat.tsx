@@ -7,6 +7,7 @@ import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { callAI } from '@/services/chatService';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -90,14 +91,22 @@ const Chat = () => {
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="flex-1 flex flex-col">
-        <header className="border-b border-border p-4 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
-              ASKIFY
+        <header className="border-b border-border px-3 py-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <span className="text-2xl">☰</span>
+            </Button>
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
+              KIFY
             </h1>
           </div>
           <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
-            <SelectTrigger className="w-[160px] sm:w-[200px]">
+            <SelectTrigger className="w-[130px] sm:w-[160px] md:w-[200px] h-9 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -115,12 +124,12 @@ const Chat = () => {
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           {showWelcome ? (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-              <img src={logo} alt="Askify" className="h-20 w-20 mb-6" />
-              <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center">
+              <img src={logo} alt="Askify" className="h-16 w-16 sm:h-20 sm:w-20 mb-4 sm:mb-6" />
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent px-4">
                 How can I help you?
               </h1>
-              <p className="text-muted-foreground max-w-md">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-md px-4">
                 Ask me anything. I'm powered by advanced AI models to assist you with your questions.
               </p>
             </div>
