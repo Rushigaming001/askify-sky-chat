@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, Calculator } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,73 +72,65 @@ export function MathSolver() {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
-          Math Problem Solver
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            variant="outline" 
-            className="w-full"
-            disabled={loading}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Scan/Upload Math Problem
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <Button 
+          onClick={() => fileInputRef.current?.click()} 
+          variant="outline" 
+          className="w-full"
+          disabled={loading}
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          Scan/Upload Math Problem
+        </Button>
+      </div>
 
-        {selectedImage && (
-          <>
-            <div className="relative rounded-lg overflow-hidden border border-border">
-              <img 
-                src={selectedImage} 
-                alt="Math problem" 
-                className="w-full h-auto max-h-96 object-contain"
-              />
-            </div>
-
-            <Button 
-              onClick={handleSolve} 
-              disabled={loading} 
-              className="w-full"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Solving...
-                </>
-              ) : (
-                <>
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Solve Math Problem
-                </>
-              )}
-            </Button>
-          </>
-        )}
-
-        {solution && (
-          <div className="p-4 rounded-lg bg-muted/50 border border-border">
-            <h4 className="font-semibold mb-2 text-primary">Solution:</h4>
-            <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-              {solution}
-            </div>
+      {selectedImage && (
+        <>
+          <div className="relative rounded-lg overflow-hidden border border-border">
+            <img 
+              src={selectedImage} 
+              alt="Math problem" 
+              className="w-full h-auto max-h-96 object-contain"
+            />
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          <Button 
+            onClick={handleSolve} 
+            disabled={loading} 
+            className="w-full"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Solving...
+              </>
+            ) : (
+              <>
+                <Calculator className="mr-2 h-4 w-4" />
+                Solve Math Problem
+              </>
+            )}
+          </Button>
+        </>
+      )}
+
+      {solution && (
+        <div className="p-4 rounded-lg bg-muted/50 border border-border">
+          <h4 className="font-semibold mb-2 text-primary">Solution:</h4>
+          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+            {solution}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
