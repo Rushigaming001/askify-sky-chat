@@ -136,7 +136,7 @@ const Chat = () => {
               <span className="text-2xl">☰</span>
             </Button>
             <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
-              KIFY
+              ASKIFY
             </h1>
           </div>
           <div className="flex items-center gap-2">
