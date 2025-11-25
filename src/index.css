@@ -44,6 +44,13 @@ All colors MUST be HSL.
     --sidebar-collapsed: 0px;
 
     --sidebar-background: 0 0% 98%;
+    
+    /* Auth page vibrant colors */
+    --auth-gradient-1: 217 91% 60%;
+    --auth-gradient-2: 280 100% 70%;
+    --auth-gradient-3: 340 82% 65%;
+    --auth-gradient-4: 160 84% 45%;
+    --auth-accent: 45 100% 50%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -92,6 +99,13 @@ All colors MUST be HSL.
     --chat-user-bg: 217 91% 60%;
     --chat-ai-bg: 220 14% 14%;
     --sidebar-background: 240 5.9% 10%;
+    
+    /* Auth page vibrant colors - dark mode */
+    --auth-gradient-1: 217 91% 60%;
+    --auth-gradient-2: 280 100% 70%;
+    --auth-gradient-3: 340 82% 65%;
+    --auth-gradient-4: 160 84% 45%;
+    --auth-accent: 45 100% 50%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
