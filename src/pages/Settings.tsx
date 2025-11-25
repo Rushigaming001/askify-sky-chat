@@ -17,8 +17,8 @@ const Settings = () => {
   const [appearance, setAppearance] = useState('System (Default)');
   const [accentColor, setAccentColor] = useState('Default');
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/auth');
   };
 
