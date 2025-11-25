@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
+import { UsageTrafficPanel } from '@/components/UsageTrafficPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -281,9 +282,10 @@ export default function AdminPanel() {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="models">Model Access Control</TabsTrigger>
+            <TabsTrigger value="usage">Usage & Traffic</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -370,6 +372,10 @@ export default function AdminPanel() {
 
           <TabsContent value="models">
             <ModelPermissionsManager />
+          </TabsContent>
+
+          <TabsContent value="usage">
+            <UsageTrafficPanel />
           </TabsContent>
         </Tabs>
       </div>
