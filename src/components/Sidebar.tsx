@@ -17,7 +17,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isInstallable, installPWA } = usePWAInstall();
+  const { isInstallable, installPWA, isInstalled } = usePWAInstall();
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
 
@@ -165,19 +165,55 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             className="w-full justify-start" 
             size="sm"
             onClick={async () => {
+              console.log('Download button clicked');
+              
+              if (isInstalled) {
+                toast({ 
+                  title: 'Already Installed', 
+                  description: 'Askify is already installed on your device!' 
+                });
+                return;
+              }
+
               if (isInstallable) {
-                const installed = await installPWA();
-                if (installed) {
+                const result = await installPWA();
+                console.log('Install result:', result);
+                
+                if (result === true) {
                   toast({ 
                     title: 'App Installed!', 
                     description: 'Askify has been added to your home screen.' 
                   });
+                } else if (result === 'already-installed') {
+                  toast({ 
+                    title: 'Already Installed', 
+                    description: 'Askify is already installed on your device!' 
+                  });
                 }
               } else {
-                toast({ 
-                  title: 'Install Askify', 
-                  description: 'On mobile: tap Share → Add to Home Screen. On desktop: look for the install icon in your browser.' 
-                });
+                // Provide device-specific instructions
+                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                
+                if (isIOS) {
+                  toast({ 
+                    title: 'Install on iOS', 
+                    description: 'Tap the Share button, then select "Add to Home Screen"',
+                    duration: 5000
+                  });
+                } else if (isAndroid) {
+                  toast({ 
+                    title: 'Install on Android', 
+                    description: 'Open browser menu and select "Add to Home screen" or "Install app"',
+                    duration: 5000
+                  });
+                } else {
+                  toast({ 
+                    title: 'Install Askify', 
+                    description: 'Look for the install icon in your browser address bar, or check browser menu for "Install" option',
+                    duration: 5000
+                  });
+                }
               }
             }}
           >
