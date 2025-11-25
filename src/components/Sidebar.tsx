@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChat } from '@/contexts/ChatContext';
@@ -21,6 +22,31 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [showAppDialog, setShowAppDialog] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [user]);
+
+  const checkAdminStatus = async () => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      setIsAdmin(!!data);
+    } catch (error) {
+      setIsAdmin(false);
+    }
+  };
 
   const handleRename = (chatId: string) => {
     if (newTitle.trim()) {
@@ -282,6 +308,18 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             <Mail className="h-4 w-4 mr-2" />
             Contact Us
           </Button>
+
+          {isAdmin && (
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start" 
+              size="sm"
+              onClick={() => navigate('/admin')}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Admin Panel
+            </Button>
+          )}
           
           <div className="flex items-center gap-2 p-2 border-t border-border">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
