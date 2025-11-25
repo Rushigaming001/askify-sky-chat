@@ -19,7 +19,7 @@ export function ChatMessage({ message }: { message: Message }) {
           <img 
             src={message.image} 
             alt="Attached" 
-            className="max-w-sm rounded-lg border border-border"
+            className="max-w-xs max-h-64 object-contain rounded-lg border border-border shadow-sm"
           />
         )}
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
