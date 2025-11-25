@@ -10,12 +10,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo.png';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const { chats, currentChat, createNewChat, selectChat, deleteChat, renameChat, togglePinChat } = useChat();
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isInstallable, installPWA } = usePWAInstall();
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
 
@@ -162,11 +164,21 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             variant="ghost" 
             className="w-full justify-start" 
             size="sm"
-            onClick={() => {
-              toast({ 
-                title: 'Mobile App Coming Soon!', 
-                description: 'Download links will be available shortly.' 
-              });
+            onClick={async () => {
+              if (isInstallable) {
+                const installed = await installPWA();
+                if (installed) {
+                  toast({ 
+                    title: 'App Installed!', 
+                    description: 'Askify has been added to your home screen.' 
+                  });
+                }
+              } else {
+                toast({ 
+                  title: 'Install Askify', 
+                  description: 'On mobile: tap Share → Add to Home Screen. On desktop: look for the install icon in your browser.' 
+                });
+              }
             }}
           >
             <Download className="h-4 w-4 mr-2" />
