@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit2, Shield, ArrowLeft } from 'lucide-react';
+import { Trash2, Edit2, Shield, ArrowLeft, UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Profile {
   id: string;
@@ -37,6 +44,13 @@ export default function AdminPanel() {
   const [userRoles, setUserRoles] = useState<Record<string, string[]>>({});
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState('');
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'owner'>('user');
+  const [editingUserRole, setEditingUserRole] = useState<Profile | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'owner'>('user');
 
   useEffect(() => {
     checkAdminStatus();
@@ -53,13 +67,13 @@ export default function AdminPanel() {
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .eq('role', 'admin')
+        .in('role', ['admin', 'owner'])
         .maybeSingle();
 
       if (error) throw error;
 
       if (!data) {
-        toast.error('Access denied. Admin privileges required.');
+        toast.error('Access denied. Admin or Owner privileges required.');
         navigate('/');
         return;
       }
@@ -157,6 +171,84 @@ export default function AdminPanel() {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserName) {
+      toast.error('Please fill all fields');
+      return;
+    }
+
+    try {
+      // Create auth user using admin API
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+        options: {
+          data: { name: newUserName },
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Assign role to the new user
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: newUserRole
+          });
+
+        if (roleError) throw roleError;
+
+        toast.success(`User created successfully with ${newUserRole} role`);
+        setShowCreateUser(false);
+        setNewUserEmail('');
+        setNewUserPassword('');
+        setNewUserName('');
+        setNewUserRole('user');
+        loadUsers();
+      }
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast.error('Failed to create user: ' + error.message);
+    }
+  };
+
+  const handleEditUserRole = (profile: Profile) => {
+    setEditingUserRole(profile);
+    const currentRole = userRoles[profile.id]?.[0] || 'user';
+    setSelectedRole(currentRole as 'user' | 'admin' | 'owner');
+  };
+
+  const handleSaveRole = async () => {
+    if (!editingUserRole) return;
+
+    try {
+      // Delete existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', editingUserRole.id);
+
+      // Insert new role
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: editingUserRole.id,
+          role: selectedRole
+        });
+
+      if (error) throw error;
+
+      toast.success('Role updated successfully');
+      setEditingUserRole(null);
+      loadUsers();
+    } catch (error: any) {
+      console.error('Error updating role:', error);
+      toast.error('Failed to update role');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -188,10 +280,18 @@ export default function AdminPanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>
-              Manage all registered users and their accounts
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  Manage all registered users and their accounts
+                </CardDescription>
+              </div>
+              <Button onClick={() => setShowCreateUser(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create User
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -222,6 +322,14 @@ export default function AdminPanel() {
                     )}
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditUserRole(profile)}
+                      title="Change Role"
+                    >
+                      <Shield className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -283,6 +391,99 @@ export default function AdminPanel() {
               Cancel
             </Button>
             <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+            <DialogDescription>
+              Create a new account with specified role
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-name">Name</Label>
+              <Input
+                id="new-name"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="Enter name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-email">Email</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="Enter email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="Enter password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-role">Role</Label>
+              <Select value={newUserRole} onValueChange={(value: any) => setNewUserRole(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowCreateUser(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateUser}>Create User</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingUserRole} onOpenChange={() => setEditingUserRole(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change User Role</DialogTitle>
+            <DialogDescription>
+              Update role for {editingUserRole?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={selectedRole} onValueChange={(value: any) => setSelectedRole(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditingUserRole(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRole}>Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>
