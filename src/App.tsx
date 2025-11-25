@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ChatProvider } from "./contexts/ChatContext";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
+import AIFeatures from "./pages/AIFeatures";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Chat />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/ai-features" element={<AIFeatures />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

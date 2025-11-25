@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { Send, Paperclip, Smile, Brain, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Send, Paperclip, Smile, Brain, Search, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
@@ -19,6 +20,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
   const [showEmoji, setShowEmoji] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSend = () => {
     if (message.trim() && !disabled) {
@@ -56,7 +58,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
   return (
     <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-4xl mx-auto p-4 space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Toggle
             pressed={mode === 'deepthink'}
             onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
@@ -73,6 +75,15 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             <Search className="h-4 w-4 mr-2" />
             Search
           </Toggle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/ai-features')}
+            className="ml-auto"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI Features
+          </Button>
         </div>
 
         <div className="relative flex items-end gap-2 p-2 rounded-2xl border border-border bg-background shadow-lg">
