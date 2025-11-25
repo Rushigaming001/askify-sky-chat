@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import { ImageGenerator } from '@/components/ImageGenerator';
 import { ImageAnalyzer } from '@/components/ImageAnalyzer';
 import { VoiceChat } from '@/components/VoiceChat';
+import { MathSolver } from '@/components/MathSolver';
 
 const AIFeatures = () => {
   const { user } = useAuth();
@@ -36,9 +37,10 @@ const AIFeatures = () => {
 
       <div className="max-w-6xl mx-auto p-4">
         <Tabs defaultValue="generate" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="generate">Generate Images</TabsTrigger>
             <TabsTrigger value="analyze">Analyze Images</TabsTrigger>
+            <TabsTrigger value="math">Math Solver</TabsTrigger>
             <TabsTrigger value="voice">Voice Chat</TabsTrigger>
           </TabsList>
 
@@ -48,6 +50,10 @@ const AIFeatures = () => {
 
           <TabsContent value="analyze" className="space-y-4">
             <ImageAnalyzer />
+          </TabsContent>
+
+          <TabsContent value="math" className="space-y-4">
+            <MathSolver />
           </TabsContent>
 
           <TabsContent value="voice" className="space-y-4">
