@@ -41,6 +41,8 @@ Be helpful, accurate, and conversational.`;
       systemPrompt += '\n\nYou are in Deep Think mode. Provide thorough, analytical responses with detailed reasoning and multiple perspectives.';
     } else if (mode === 'search') {
       systemPrompt += '\n\nYou are in Search mode. Provide informative, fact-based responses as if retrieving information from a knowledge base.';
+    } else if (mode === 'reasoning') {
+      systemPrompt += '\n\nYou are in Reasoning mode. Break down complex problems step-by-step, show your logical thinking process, explain your reasoning chain, and arrive at well-justified conclusions.';
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
