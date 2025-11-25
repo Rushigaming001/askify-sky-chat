@@ -5,12 +5,14 @@ import { useChat } from '@/contexts/ChatContext';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
+import { MathSolver } from '@/components/MathSolver';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { callAI } from '@/services/chatService';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calculator } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
@@ -105,21 +107,41 @@ const Chat = () => {
               KIFY
             </h1>
           </div>
-          <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
-            <SelectTrigger className="w-[130px] sm:w-[160px] md:w-[200px] h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="gemini">Gemini Flash</SelectItem>
-              <SelectItem value="gpt">GPT-5</SelectItem>
-              <SelectItem value="gpt-mini">GPT-5 Mini</SelectItem>
-              <SelectItem value="gpt-nano">GPT-5 Nano</SelectItem>
-              <SelectItem value="gemini-3">Gemini 3 Pro</SelectItem>
-              <SelectItem value="askify">
-                <span className="font-semibold tracking-wide">ASKIFY PRO</span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  className="h-9 w-9"
+                  title="Math Solver"
+                >
+                  <Calculator className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Math Problem Solver</DialogTitle>
+                </DialogHeader>
+                <MathSolver />
+              </DialogContent>
+            </Dialog>
+            <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
+              <SelectTrigger className="w-[130px] sm:w-[160px] md:w-[200px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gemini">Gemini Flash</SelectItem>
+                <SelectItem value="gpt">GPT-5</SelectItem>
+                <SelectItem value="gpt-mini">GPT-5 Mini</SelectItem>
+                <SelectItem value="gpt-nano">GPT-5 Nano</SelectItem>
+                <SelectItem value="gemini-3">Gemini 3 Pro</SelectItem>
+                <SelectItem value="askify">
+                  <span className="font-semibold tracking-wide">ASKIFY PRO</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </header>
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calculator } from 'lucide-react';
 import { ImageGenerator } from '@/components/ImageGenerator';
 import { ImageAnalyzer } from '@/components/ImageAnalyzer';
 import { VoiceChat } from '@/components/VoiceChat';
@@ -53,7 +54,17 @@ const AIFeatures = () => {
           </TabsContent>
 
           <TabsContent value="math" className="space-y-4">
-            <MathSolver />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Math Problem Solver
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MathSolver />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="voice" className="space-y-4">
