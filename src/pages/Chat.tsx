@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { callAI } from '@/services/chatService';
+import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calculator } from 'lucide-react';
+import { Loader2, Calculator, Lock } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
@@ -23,13 +24,34 @@ const Chat = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3'>('gemini');
+  const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) {
       navigate('/auth');
+    } else {
+      // Check model access permissions
+      checkModelAccess();
     }
   }, [user, navigate]);
+
+  const checkModelAccess = async () => {
+    const modelMap: Record<string, string> = {
+      'gemini': 'google/gemini-2.5-flash',
+      'gpt': 'openai/gpt-5',
+      'gpt-mini': 'openai/gpt-5-mini',
+      'gpt-nano': 'openai/gpt-5-nano',
+      'gemini-3': 'google/gemini-3-pro-preview',
+      'askify': 'google/gemini-2.5-pro'
+    };
+
+    const access: Record<string, boolean> = {};
+    for (const [key, modelId] of Object.entries(modelMap)) {
+      access[key] = await canAccessModel(modelId);
+    }
+    setModelAccess(access);
+  };
 
   useEffect(() => {
     // Auto-scroll to bottom when messages change
@@ -78,6 +100,15 @@ const Chat = () => {
   };
 
   const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => {
+    if (!modelAccess[model]) {
+      toast({
+        title: 'Access Denied',
+        description: 'You don\'t have access to this model. Please upgrade your account.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     setSelectedModel(model);
     if (currentChat) {
       updateChatSettings(model, currentChat.mode);
@@ -131,13 +162,41 @@ const Chat = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gemini">Gemini Flash</SelectItem>
-                <SelectItem value="gpt">GPT-5</SelectItem>
-                <SelectItem value="gpt-mini">GPT-5 Mini</SelectItem>
-                <SelectItem value="gpt-nano">GPT-5 Nano</SelectItem>
-                <SelectItem value="gemini-3">Gemini 3 Pro</SelectItem>
-                <SelectItem value="askify">
-                  <span className="font-semibold tracking-wide">ASKIFY PRO</span>
+                <SelectItem value="gemini" disabled={!modelAccess.gemini}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.gemini && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Gemini Flash</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gpt" disabled={!modelAccess.gpt}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.gpt && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>GPT-5</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gpt-mini" disabled={!modelAccess['gpt-mini']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gpt-mini'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>GPT-5 Mini</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gpt-nano" disabled={!modelAccess['gpt-nano']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gpt-nano'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>GPT-5 Nano</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gemini-3" disabled={!modelAccess['gemini-3']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gemini-3'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Gemini 3 Pro</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="askify" disabled={!modelAccess.askify}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.askify && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span className="font-semibold tracking-wide">ASKIFY PRO</span>
+                  </div>
                 </SelectItem>
               </SelectContent>
             </Select>

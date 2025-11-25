@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit2, Shield, ArrowLeft, UserPlus } from 'lucide-react';
+import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock } from 'lucide-react';
+import ModelPermissionsManager from '@/components/ModelPermissionsManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -278,85 +280,98 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Manage all registered users and their accounts
-                </CardDescription>
-              </div>
-              <Button onClick={() => setShowCreateUser(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Create User
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {profiles.map((profile) => (
-                <div
-                  key={profile.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="font-semibold">{profile.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {profile.email}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Joined: {new Date(profile.created_at).toLocaleDateString()}
-                    </div>
-                    {userRoles[profile.id] && (
-                      <div className="flex gap-2 mt-2">
-                        {userRoles[profile.id].map((role) => (
-                          <span
-                            key={role}
-                            className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full"
-                          >
-                            {role}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditUserRole(profile)}
-                      title="Change Role"
-                    >
-                      <Shield className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditUser(profile)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteUser(profile.id, profile.email)}
-                      disabled={profile.id === user?.id}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="models">Model Access Control</TabsTrigger>
+          </TabsList>
 
-              {profiles.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No users found
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>
+                      Manage all registered users and their accounts
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => setShowCreateUser(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create User
+                  </Button>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {profiles.map((profile) => (
+                    <div
+                      key={profile.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold">{profile.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {profile.email}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Joined: {new Date(profile.created_at).toLocaleDateString()}
+                        </div>
+                        {userRoles[profile.id] && (
+                          <div className="flex gap-2 mt-2">
+                            {userRoles[profile.id].map((role) => (
+                              <span
+                                key={role}
+                                className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full"
+                              >
+                                {role}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUserRole(profile)}
+                          title="Change Role"
+                        >
+                          <Shield className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(profile)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteUser(profile.id, profile.email)}
+                          disabled={profile.id === user?.id}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {profiles.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No users found
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="models">
+            <ModelPermissionsManager />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>

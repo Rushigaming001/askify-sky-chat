@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      model_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_allowed: boolean
+          model_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean
+          model_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean
+          model_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -96,6 +123,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_model: {
+        Args: { _model_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

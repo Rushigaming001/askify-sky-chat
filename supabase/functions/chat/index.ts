@@ -18,6 +18,15 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Get user from auth header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Map user's model selection to Lovable AI models
     let aiModel = 'google/gemini-2.5-flash';
     if (model === 'gpt') {
@@ -30,6 +39,34 @@ serve(async (req) => {
       aiModel = 'google/gemini-3-pro-preview';
     } else if (model === 'askify') {
       aiModel = 'google/gemini-2.5-pro'; // Askify uses the premium Gemini model
+    }
+
+    // Check if user has permission to use this model
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.3');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check model access permission
+    const { data: canAccess } = await supabase.rpc('can_access_model', {
+      _user_id: user.id,
+      _model_id: aiModel
+    });
+
+    if (!canAccess) {
+      return new Response(JSON.stringify({ error: "You don't have access to this model. Please upgrade your account." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     
     // Build system prompt based on mode
