@@ -71,40 +71,42 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
 
   return (
     <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-4xl mx-auto p-4 space-y-3">
+      <div className="max-w-4xl mx-auto p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Toggle
             pressed={mode === 'deepthink'}
             onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3"
           >
-            <Brain className="h-4 w-4 mr-2" />
-            DeepThink
+            <Brain className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">DeepThink</span>
+            <span className="sm:hidden">Deep</span>
           </Toggle>
           <Toggle
             pressed={mode === 'search'}
             onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3"
           >
-            <Search className="h-4 w-4 mr-2" />
+            <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Search
           </Toggle>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate('/ai-features')}
-            className="ml-auto"
+            className="ml-auto text-xs sm:text-sm h-8 px-2 sm:px-3"
           >
-            <Sparkles className="h-4 w-4 mr-2" />
-            AI Features
+            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">AI Features</span>
+            <span className="sm:hidden">AI</span>
           </Button>
         </div>
 
-        <div className="relative flex items-end gap-2 p-2 rounded-2xl border border-border bg-background shadow-lg">
+        <div className="relative flex items-end gap-1 sm:gap-2 p-2 rounded-2xl border border-border bg-background shadow-lg">
           <Popover open={showEmoji} onOpenChange={setShowEmoji}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="flex-shrink-0">
-                <Smile className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+                <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </PopoverTrigger>
             <PopoverContent side="top" className="w-auto p-0 border-0">
@@ -119,8 +121,8 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             onChange={handleFileChange}
             accept="image/*"
           />
-          <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0">
-            <Paperclip className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+            <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
 
           <div className="flex-1 space-y-2">
@@ -144,7 +146,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Message Askify..."
-              className="min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+              className="min-h-[50px] sm:min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-sm sm:text-base"
               disabled={disabled}
             />
           </div>
@@ -153,9 +155,9 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             onClick={handleSend}
             disabled={(!message.trim() && !attachedImage) || disabled}
             size="icon"
-            className="flex-shrink-0 rounded-xl h-10 w-10"
+            className="flex-shrink-0 rounded-xl h-9 w-9 sm:h-10 sm:w-10"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </div>
