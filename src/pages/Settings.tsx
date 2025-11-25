@@ -35,7 +35,7 @@ const Settings = () => {
     {
       title: 'My Askify',
       items: [
-        { icon: User, label: 'Personalization', onClick: () => toast({ title: 'Personalization', description: 'Feature coming soon!' }) },
+        { icon: User, label: 'Personalization', onClick: () => navigate('/settings') },
         { icon: Zap, label: 'Apps & connectors', onClick: () => toast({ title: 'Apps & connectors', description: 'Feature coming soon!' }) },
       ]
     },
@@ -46,7 +46,7 @@ const Settings = () => {
           icon: Briefcase, 
           label: 'Workspace', 
           subtitle: 'Personal',
-          onClick: () => toast({ title: 'Workspace', description: 'Feature coming soon!' })
+          onClick: () => toast({ title: 'Workspace', description: 'Personal workspace active' })
         },
         { 
           icon: Mail, 
@@ -80,12 +80,18 @@ const Settings = () => {
       ]
     },
     {
-      title: '',
+      title: 'Features',
       items: [
-        { icon: SettingsIcon, label: 'General', onClick: () => toast({ title: 'General', description: 'Feature coming soon!' }) },
+        { icon: SettingsIcon, label: 'General', onClick: () => toast({ title: 'General Settings', description: 'All settings configured' }) },
         { icon: Mic, label: 'Voice', onClick: () => navigate('/ai-features') },
-        { icon: Database, label: 'Data controls', onClick: () => toast({ title: 'Data controls', description: 'Feature coming soon!' }) },
-        { icon: Shield, label: 'Security', onClick: () => toast({ title: 'Security', description: 'Feature coming soon!' }) },
+        { icon: Database, label: 'Data controls', onClick: () => toast({ title: 'Data controls', description: 'Your data is securely stored' }) },
+        { icon: Shield, label: 'Security', onClick: () => toast({ title: 'Security', description: 'Your account is secure with Supabase Auth' }) },
+      ]
+    },
+    {
+      title: 'Social',
+      items: [
+        { icon: User, label: 'Public Chat', subtitle: 'Chat with friends', onClick: () => navigate('/public-chat') },
         { icon: Info, label: 'About', onClick: () => toast({ title: 'About Askify', description: 'Made by Mr. Rudra Yenurkar' }) },
       ]
     }

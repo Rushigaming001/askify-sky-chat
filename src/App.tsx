@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import AIFeatures from "./pages/AIFeatures";
 import Settings from "./pages/Settings";
+import PublicChat from "./pages/PublicChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/ai-features" element={<AIFeatures />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/public-chat" element={<PublicChat />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
