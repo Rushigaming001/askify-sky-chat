@@ -21,7 +21,6 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
   const { isInstallable, installPWA, isInstalled } = usePWAInstall();
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [showAppDialog, setShowAppDialog] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -187,107 +186,48 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
         </ScrollArea>
 
         <div className="border-t border-border p-2 space-y-1">
-          <Dialog open={showAppDialog} onOpenChange={setShowAppDialog}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start" 
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download Mobile App
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl">Download Askify Mobile App</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6">
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                  <h3 className="font-semibold text-lg mb-2">🎉 Native Mobile App Available!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Build a real Android APK or iOS app that users can install like any other app from their device.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Quick Start Guide:</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex gap-3 items-start">
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 font-semibold">1</div>
-                      <div className="flex-1">
-                        <p className="font-medium">Export to GitHub</p>
-                        <p className="text-sm text-muted-foreground">Click the GitHub button (top right) and export this project to your repository.</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 items-start">
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 font-semibold">2</div>
-                      <div className="flex-1">
-                        <p className="font-medium">Install Required Software</p>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">For Android:</span> Install Android Studio<br/>
-                          <span className="font-medium">For iOS:</span> Install Xcode (Mac only)
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 items-start">
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 font-semibold">3</div>
-                      <div className="flex-1">
-                        <p className="font-medium">Build Your APK</p>
-                        <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                          <code className="block bg-muted p-2 rounded text-xs">npm install</code>
-                          <code className="block bg-muted p-2 rounded text-xs">npm run build</code>
-                          <code className="block bg-muted p-2 rounded text-xs">npx cap add android</code>
-                          <code className="block bg-muted p-2 rounded text-xs">npx cap sync android</code>
-                          <code className="block bg-muted p-2 rounded text-xs">npx cap open android</code>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 items-start">
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 font-semibold">4</div>
-                      <div className="flex-1">
-                        <p className="font-medium">Generate APK in Android Studio</p>
-                        <p className="text-sm text-muted-foreground">Build → Build Bundle(s) / APK(s) → Build APK(s)</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-muted rounded-lg p-4">
-                  <p className="text-sm">
-                    <span className="font-semibold">📱 Result:</span> You'll get an APK file that anyone can install on their Android device!
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button 
-                    className="flex-1"
-                    onClick={() => {
-                      window.open('https://capacitorjs.com/docs/getting-started', '_blank');
-                    }}
-                  >
-                    View Full Documentation
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      toast({
-                        title: 'BUILD_MOBILE_APP.md created!',
-                        description: 'Check your project files for detailed instructions.'
-                      });
-                      setShowAppDialog(false);
-                    }}
-                  >
-                    Got It
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={async () => {
+              const result = await installPWA();
+              if (result === 'already-installed') {
+                toast({
+                  title: 'Already Installed',
+                  description: 'Askify app is already installed on your device!'
+                });
+              } else if (result === true) {
+                toast({
+                  title: 'Success!',
+                  description: 'Askify app has been installed successfully!'
+                });
+              } else if (result === false) {
+                toast({
+                  title: 'Installation Cancelled',
+                  description: 'You cancelled the installation.'
+                });
+              } else {
+                // Create a download link for APK (if you host one)
+                const apkUrl = 'https://your-server.com/askify.apk'; // Replace with actual APK URL
+                const link = document.createElement('a');
+                link.href = apkUrl;
+                link.download = 'Askify.apk';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                toast({
+                  title: 'Download Started',
+                  description: 'APK download will begin shortly. Install it to use Askify as a native app!',
+                  duration: 5000
+                });
+              }
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download Mobile App
+          </Button>
           
           <Button 
             variant="ghost" 
