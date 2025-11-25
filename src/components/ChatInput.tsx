@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, image?: string) => void;
   onModeChange: (mode: 'normal' | 'deepthink' | 'search') => void;
   mode: 'normal' | 'deepthink' | 'search';
   disabled?: boolean;
@@ -18,14 +18,16 @@ interface ChatInputProps {
 export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSend = () => {
-    if (message.trim() && !disabled) {
-      onSendMessage(message);
+    if ((message.trim() || attachedImage) && !disabled) {
+      onSendMessage(message, attachedImage || undefined);
       setMessage('');
+      setAttachedImage(null);
     }
   };
 
@@ -46,13 +48,25 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedImage(reader.result as string);
+        toast({
+          title: 'Image attached',
+          description: `${file.name} is ready to send`
+        });
+      };
+      reader.readAsDataURL(file);
+    } else if (file) {
       toast({
-        title: 'File uploaded',
-        description: `${files[0].name} has been attached`
+        title: 'Invalid file',
+        description: 'Please select an image file',
+        variant: 'destructive'
       });
     }
+    e.target.value = '';
   };
 
   return (
@@ -103,24 +117,41 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             type="file"
             className="hidden"
             onChange={handleFileChange}
-            accept="*/*"
+            accept="image/*"
           />
           <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0">
             <Paperclip className="h-5 w-5" />
           </Button>
 
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message Askify..."
-            className="min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
-            disabled={disabled}
-          />
+          <div className="flex-1 space-y-2">
+            {attachedImage && (
+              <div className="relative inline-block">
+                <img 
+                  src={attachedImage} 
+                  alt="Attached" 
+                  className="h-20 rounded-lg border border-border"
+                />
+                <button
+                  onClick={() => setAttachedImage(null)}
+                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message Askify..."
+              className="min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+              disabled={disabled}
+            />
+          </div>
 
           <Button
             onClick={handleSend}
-            disabled={!message.trim() || disabled}
+            disabled={(!message.trim() && !attachedImage) || disabled}
             size="icon"
             className="flex-shrink-0 rounded-xl h-10 w-10"
           >

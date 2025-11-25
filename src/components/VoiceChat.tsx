@@ -3,111 +3,128 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mic, MicOff, Phone, PhoneOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function VoiceChat() {
   const [isConnected, setIsConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const { toast } = useToast();
 
   const startVoiceChat = async () => {
     try {
-      // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Check if browser supports speech recognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       
-      // Initialize audio context
-      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
-      
-      // Connect to voice chat endpoint
-      const projectRef = window.location.hostname.includes('lovable.app') 
-        ? window.location.hostname.split('.')[0]
-        : 'wexmklgizitrjitkalry';
-      
-      wsRef.current = new WebSocket(
-        `wss://${projectRef}.supabase.co/functions/v1/voice-chat`
-      );
+      if (!SpeechRecognition) {
+        toast({
+          title: 'Not Supported',
+          description: 'Speech recognition is not supported in this browser',
+          variant: 'destructive'
+        });
+        return;
+      }
 
-      wsRef.current.onopen = () => {
+      // Initialize speech recognition
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      // Initialize speech synthesis
+      synthesisRef.current = window.speechSynthesis;
+
+      recognitionRef.current.onstart = () => {
         setIsConnected(true);
         setIsListening(true);
         toast({
-          title: 'Connected',
-          description: 'Voice chat is now active. Start speaking!'
+          title: 'Voice Chat Started',
+          description: 'Start speaking to the AI!'
         });
       };
 
-      wsRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+      recognitionRef.current.onresult = async (event: any) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        console.log('You said:', transcript);
         
-        if (data.type === 'audio') {
-          // Play received audio
-          setIsSpeaking(true);
-          playAudio(data.audio);
-        } else if (data.type === 'transcript') {
-          console.log('AI:', data.text);
+        setIsListening(false);
+        
+        // Send to AI
+        try {
+          const { data, error } = await supabase.functions.invoke('chat', {
+            body: { 
+              messages: [{ role: 'user', content: transcript }],
+              model: 'gemini',
+              mode: 'normal'
+            }
+          });
+
+          if (error) throw error;
+          
+          if (data?.reply) {
+            // Speak the AI response
+            setIsSpeaking(true);
+            const utterance = new SpeechSynthesisUtterance(data.reply);
+            utterance.onend = () => {
+              setIsSpeaking(false);
+              setIsListening(true);
+            };
+            synthesisRef.current?.speak(utterance);
+          }
+        } catch (error) {
+          console.error('Error getting AI response:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to get AI response',
+            variant: 'destructive'
+          });
+          setIsListening(true);
         }
       };
 
-      wsRef.current.onerror = () => {
-        toast({
-          title: 'Connection Error',
-          description: 'Failed to connect to voice chat',
-          variant: 'destructive'
-        });
-        stopVoiceChat();
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'no-speech') {
+          toast({
+            title: 'Recognition Error',
+            description: `Error: ${event.error}`,
+            variant: 'destructive'
+          });
+        }
       };
 
-      wsRef.current.onclose = () => {
-        setIsConnected(false);
-        setIsListening(false);
+      recognitionRef.current.onend = () => {
+        if (isConnected) {
+          recognitionRef.current?.start();
+        }
       };
+
+      recognitionRef.current.start();
 
     } catch (error) {
       console.error('Error starting voice chat:', error);
       toast({
         title: 'Error',
-        description: 'Failed to access microphone or start voice chat',
+        description: 'Failed to start voice chat',
         variant: 'destructive'
       });
     }
   };
 
   const stopVoiceChat = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
     }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+    if (synthesisRef.current) {
+      synthesisRef.current.cancel();
+      synthesisRef.current = null;
     }
     setIsConnected(false);
     setIsListening(false);
     setIsSpeaking(false);
-  };
-
-  const playAudio = async (base64Audio: string) => {
-    if (!audioContextRef.current) return;
-    
-    try {
-      const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const audioBuffer = await audioContextRef.current.decodeAudioData(bytes.buffer);
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
-      source.onended = () => setIsSpeaking(false);
-      source.start(0);
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      setIsSpeaking(false);
-    }
   };
 
   useEffect(() => {
