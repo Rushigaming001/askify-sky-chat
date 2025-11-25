@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Mail, Lock, User, Zap } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, Zap, Shield, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
@@ -17,12 +18,29 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const passwordStrength = useMemo(() => {
+    if (!password) return { score: 0, label: '', color: '' };
+    
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+    if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
+    if (score <= 3) return { score, label: 'Fair', color: 'bg-orange-500' };
+    if (score <= 4) return { score, label: 'Good', color: 'bg-yellow-500' };
+    return { score, label: 'Strong', color: 'bg-green-500' };
+  }, [password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +60,15 @@ const Auth = () => {
       toast({
         title: 'Error',
         description: 'Passwords do not match',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!isLogin && !acceptTerms) {
+      toast({
+        title: 'Error',
+        description: 'Please accept the terms and conditions',
         variant: 'destructive'
       });
       return;
@@ -429,6 +456,64 @@ const Auth = () => {
                         className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
                       />
                     </div>
+                    {password && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Password strength:</span>
+                          <span className={`font-semibold ${
+                            passwordStrength.label === 'Weak' ? 'text-red-500' :
+                            passwordStrength.label === 'Fair' ? 'text-orange-500' :
+                            passwordStrength.label === 'Good' ? 'text-yellow-500' : 'text-green-500'
+                          }`}>
+                            {passwordStrength.label}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <div
+                              key={i}
+                              className={`h-1 flex-1 rounded-full transition-all ${
+                                i < passwordStrength.score ? passwordStrength.color : 'bg-muted'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            {password.length >= 8 ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <X className="h-3 w-3 text-red-500" />
+                            )}
+                            <span>At least 8 characters</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {/[a-z]/.test(password) && /[A-Z]/.test(password) ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <X className="h-3 w-3 text-red-500" />
+                            )}
+                            <span>Upper & lowercase letters</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {/\d/.test(password) ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <X className="h-3 w-3 text-red-500" />
+                            )}
+                            <span>Contains numbers</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {/[^a-zA-Z0-9]/.test(password) ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <X className="h-3 w-3 text-red-500" />
+                            )}
+                            <span>Special characters (!@#$%...)</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-confirm-password" className="text-sm font-semibold text-foreground">Confirm Password</Label>
@@ -458,6 +543,31 @@ const Auth = () => {
                       />
                     </div>
                   </div>
+                  
+                  <div className="flex items-start space-x-3 p-4 rounded-lg bg-blue-50/50 border border-primary/10">
+                    <Checkbox
+                      id="terms"
+                      checked={acceptTerms}
+                      onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <label
+                        htmlFor="terms"
+                        className="text-sm text-foreground leading-relaxed cursor-pointer"
+                      >
+                        I agree to the{' '}
+                        <a href="#" className="text-primary hover:underline font-medium">
+                          Terms of Service
+                        </a>{' '}
+                        and{' '}
+                        <a href="#" className="text-primary hover:underline font-medium">
+                          Privacy Policy
+                        </a>
+                      </label>
+                    </div>
+                  </div>
+                  
                   <Button 
                     type="submit" 
                     className="w-full h-12 text-base font-bold bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]" 
