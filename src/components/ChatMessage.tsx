@@ -15,6 +15,13 @@ export function ChatMessage({ message }: { message: Message }) {
         <div className="text-sm font-medium text-muted-foreground">
           {isUser ? 'You' : 'Askify'}
         </div>
+        {message.image && (
+          <img 
+            src={message.image} 
+            alt="Attached" 
+            className="max-w-sm rounded-lg border border-border"
+          />
+        )}
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
           {message.content}
         </div>

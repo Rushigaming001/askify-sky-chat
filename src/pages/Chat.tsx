@@ -40,10 +40,10 @@ const Chat = () => {
     }
   }, []);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, image?: string) => {
     if (!currentChat) return;
 
-    addMessage({ role: 'user', content });
+    addMessage({ role: 'user', content, image });
     setIsLoading(true);
 
     try {
