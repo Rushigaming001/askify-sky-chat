@@ -119,6 +119,13 @@ Be helpful, accurate, and conversational.`;
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "No response generated";
 
+    // Log usage
+    await supabase.from('usage_logs').insert({
+      user_id: user.id,
+      model_id: aiModel,
+      mode: mode || 'normal'
+    });
+
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
