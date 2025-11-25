@@ -31,35 +31,37 @@ const Auth = () => {
     }
 
     try {
-      let success = false;
       if (isLogin) {
-        success = await login(email, password);
-        if (!success) {
+        const result = await login(email, password);
+        if (!result.success) {
           toast({
             title: 'Login Failed',
-            description: 'Invalid email or password',
+            description: result.error || 'Invalid email or password',
             variant: 'destructive'
           });
           return;
         }
-      } else {
-        success = await register(email, password, name);
-        if (!success) {
-          toast({
-            title: 'Registration Failed',
-            description: 'Email already exists',
-            variant: 'destructive'
-          });
-          return;
-        }
-      }
-
-      if (success) {
         toast({
           title: 'Success',
-          description: isLogin ? 'Logged in successfully!' : 'Account created successfully!'
+          description: 'Logged in successfully!'
         });
         navigate('/');
+      } else {
+        const result = await register(email, password, name);
+        if (!result.success) {
+          toast({
+            title: 'Registration Failed',
+            description: result.error || 'Could not create account',
+            variant: 'destructive'
+          });
+          return;
+        }
+        toast({
+          title: 'Success',
+          description: 'Account created! You can now log in.'
+        });
+        setIsLogin(true);
+        setPassword('');
       }
     } catch (error) {
       toast({
