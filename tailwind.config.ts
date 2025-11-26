@@ -65,20 +65,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
         "float": {
           "0%, 100%": { transform: "translateY(0px)" },
@@ -108,6 +100,26 @@ export default {
           "33%": { transform: "translate(60px, 100px) scale(0.9)" },
           "66%": { transform: "translate(-100px, -80px) scale(1.15)" },
         },
+        "slide-in-left": {
+          "0%": { transform: "translateX(-100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" },
+        },
+        "slide-out-left": {
+          "0%": { transform: "translateX(0)", opacity: "1" },
+          "100%": { transform: "translateX(-100%)", opacity: "0" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -118,6 +130,11 @@ export default {
         "orb-1": "orb-1 20s ease-in-out infinite",
         "orb-2": "orb-2 25s ease-in-out infinite",
         "orb-3": "orb-3 30s ease-in-out infinite",
+        "slide-in-left": "slide-in-left 0.3s ease-out",
+        "slide-out-left": "slide-out-left 0.3s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+        "scale-in": "scale-in 0.2s ease-out",
+        "shimmer": "shimmer 2s linear infinite",
       },
     },
   },

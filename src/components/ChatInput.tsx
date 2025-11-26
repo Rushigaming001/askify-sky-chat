@@ -70,13 +70,13 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
   };
 
   return (
-    <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in">
       <div className="max-w-4xl mx-auto p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Toggle
             pressed={mode === 'deepthink'}
             onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
           >
             <Brain className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">DeepThink</span>
@@ -85,7 +85,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
           <Toggle
             pressed={mode === 'reasoning'}
             onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
           >
             <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Reasoning</span>
@@ -94,7 +94,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
           <Toggle
             pressed={mode === 'search'}
             onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
           >
             <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Search
@@ -103,7 +103,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             variant="outline"
             size="sm"
             onClick={() => navigate('/ai-features')}
-            className="ml-auto text-xs sm:text-sm h-8 px-2 sm:px-3"
+            className="ml-auto text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
           >
             <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">AI Features</span>
@@ -111,14 +111,14 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
           </Button>
         </div>
 
-        <div className="relative flex items-end gap-1 sm:gap-2 p-2 rounded-2xl border border-border bg-background shadow-lg">
+        <div className="relative flex items-end gap-1 sm:gap-2 p-2 rounded-2xl border border-border bg-background shadow-lg hover:shadow-xl transition-all duration-300">
           <Popover open={showEmoji} onOpenChange={setShowEmoji}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+              <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200">
                 <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent side="top" className="w-auto p-0 border-0">
+            <PopoverContent side="top" className="w-auto p-0 border-0 animate-scale-in">
               <EmojiPicker onEmojiClick={handleEmojiClick} />
             </PopoverContent>
           </Popover>
@@ -130,13 +130,13 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             onChange={handleFileChange}
             accept="image/*"
           />
-          <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+          <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200">
             <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
 
           <div className="flex-1 space-y-2">
             {attachedImage && (
-              <div className="relative inline-block">
+              <div className="relative inline-block animate-scale-in">
                 <img 
                   src={attachedImage} 
                   alt="Attached" 
@@ -144,7 +144,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
                 />
                 <button
                   onClick={() => setAttachedImage(null)}
-                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
+                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:scale-110 transition-all duration-200"
                 >
                   ×
                 </button>
@@ -155,7 +155,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Message Askify..."
-              className="min-h-[50px] sm:min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-sm sm:text-base"
+              className="min-h-[50px] sm:min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-sm sm:text-base transition-all"
               disabled={disabled}
             />
           </div>
@@ -164,7 +164,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             onClick={handleSend}
             disabled={(!message.trim() && !attachedImage) || disabled}
             size="icon"
-            className="flex-shrink-0 rounded-xl h-9 w-9 sm:h-10 sm:w-10"
+            className="flex-shrink-0 rounded-xl h-9 w-9 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200 disabled:hover:scale-100"
           >
             <Send className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>

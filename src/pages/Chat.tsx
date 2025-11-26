@@ -123,17 +123,17 @@ const Chat = () => {
   const showWelcome = !currentChat || currentChat.messages.length === 0;
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen w-full bg-background overflow-hidden">
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className="flex-1 flex flex-col">
-        <header className="border-b border-border px-3 py-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative z-50">
+      <div className="flex-1 flex flex-col min-w-0 animate-fade-in">
+        <header className="border-b border-border px-3 py-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative z-50 animate-fade-in">
           <div className="flex items-center gap-2 min-w-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-8 w-8 sm:h-10 sm:w-10"
+              className="h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200"
             >
               <span className="text-2xl">☰</span>
             </Button>
@@ -141,19 +141,19 @@ const Chat = () => {
               ASKIFY
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Dialog>
               <DialogTrigger asChild>
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="Math Solver"
                 >
-                  <Calculator className="h-4 w-4" />
+                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
                 <DialogHeader>
                   <DialogTitle>Math Problem Solver</DialogTitle>
                 </DialogHeader>
@@ -165,13 +165,13 @@ const Chat = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="Live Video Call with AI"
                 >
-                  <Video className="h-4 w-4" />
+                  <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
                 <DialogHeader>
                   <DialogTitle>Live Video Call with AI</DialogTitle>
                 </DialogHeader>
@@ -183,13 +183,13 @@ const Chat = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="AI Video Generator"
                 >
-                  <Film className="h-4 w-4" />
+                  <Film className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
                 <DialogHeader>
                   <DialogTitle>AI Video Generator</DialogTitle>
                 </DialogHeader>
@@ -201,13 +201,13 @@ const Chat = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="Minecraft Plugin Maker"
                 >
-                  <Box className="h-4 w-4" />
+                  <Box className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
                 <DialogHeader>
                   <DialogTitle>Minecraft Plugin Maker</DialogTitle>
                 </DialogHeader>
@@ -215,10 +215,10 @@ const Chat = () => {
               </DialogContent>
             </Dialog>
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
-              <SelectTrigger className="w-[130px] sm:w-[160px] md:w-[200px] h-9 text-sm">
+              <SelectTrigger className="w-[110px] sm:w-[140px] md:w-[180px] h-8 sm:h-9 text-xs sm:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background/95 backdrop-blur-sm">
                 <SelectItem value="gemini" disabled={!modelAccess.gemini}>
                   <div className="flex items-center gap-2">
                     {!modelAccess.gemini && <Lock className="h-3 w-3 text-muted-foreground" />}
@@ -262,22 +262,32 @@ const Chat = () => {
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           {showWelcome ? (
-            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center">
-              <img src={logo} alt="Askify" className="h-16 w-16 sm:h-20 sm:w-20 mb-4 sm:mb-6" />
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent px-4">
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-fade-in">
+              <img 
+                src={logo} 
+                alt="Askify" 
+                className="h-16 w-16 sm:h-20 sm:w-20 mb-4 sm:mb-6 animate-float" 
+              />
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent px-4 animate-scale-in">
                 How can I help you?
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-md px-4">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-md px-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                 Ask me anything. I'm powered by advanced AI models to assist you with your questions.
               </p>
             </div>
           ) : (
-            <div>
-              {currentChat?.messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
+            <div className="animate-fade-in">
+              {currentChat?.messages.map((message, index) => (
+                <div 
+                  key={message.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
+                >
+                  <ChatMessage message={message} />
+                </div>
               ))}
               {isLoading && (
-                <div className="flex items-center justify-center p-8">
+                <div className="flex items-center justify-center p-8 animate-fade-in">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               )}
