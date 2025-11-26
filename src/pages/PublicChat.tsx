@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -21,6 +21,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { UsersList } from '@/components/UsersList';
+import { DirectMessageChat } from '@/components/DirectMessageChat';
 
 interface PublicMessage {
   id: string;
@@ -47,6 +55,8 @@ const PublicChat = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [showUsersList, setShowUsersList] = useState(false);
+  const [activeDM, setActiveDM] = useState<{ userId: string; userName: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -289,7 +299,7 @@ const PublicChat = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <Users className="h-5 w-5 text-primary" />
               </div>
@@ -298,6 +308,14 @@ const PublicChat = () => {
                 <p className="text-sm text-muted-foreground">Chat with everyone</p>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowUsersList(true)}
+              title="View users"
+            >
+              <UserCircle className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 
@@ -447,6 +465,30 @@ const PublicChat = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Sheet open={showUsersList} onOpenChange={setShowUsersList}>
+          <SheetContent side="left" className="w-80 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Users</SheetTitle>
+            </SheetHeader>
+            <UsersList
+              onOpenDM={(userId, userName) => {
+                setActiveDM({ userId, userName });
+                setShowUsersList(false);
+              }}
+            />
+          </SheetContent>
+        </Sheet>
+
+        {activeDM && (
+          <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
+            <DirectMessageChat
+              recipientId={activeDM.userId}
+              recipientName={activeDM.userName}
+              onClose={() => setActiveDM(null)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
