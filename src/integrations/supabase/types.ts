@@ -404,6 +404,57 @@ export type Database = {
           },
         ]
       }
+      user_restrictions: {
+        Row: {
+          ai_chat_disabled: boolean | null
+          banned_from_direct_messages: boolean | null
+          banned_from_groups: boolean | null
+          banned_from_public_chat: boolean | null
+          created_at: string | null
+          id: string
+          image_generation_disabled: boolean | null
+          live_video_call_disabled: boolean | null
+          math_solver_disabled: boolean | null
+          minecraft_plugin_disabled: boolean | null
+          updated_at: string | null
+          user_id: string
+          video_generation_disabled: boolean | null
+          voice_chat_disabled: boolean | null
+        }
+        Insert: {
+          ai_chat_disabled?: boolean | null
+          banned_from_direct_messages?: boolean | null
+          banned_from_groups?: boolean | null
+          banned_from_public_chat?: boolean | null
+          created_at?: string | null
+          id?: string
+          image_generation_disabled?: boolean | null
+          live_video_call_disabled?: boolean | null
+          math_solver_disabled?: boolean | null
+          minecraft_plugin_disabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          video_generation_disabled?: boolean | null
+          voice_chat_disabled?: boolean | null
+        }
+        Update: {
+          ai_chat_disabled?: boolean | null
+          banned_from_direct_messages?: boolean | null
+          banned_from_groups?: boolean | null
+          banned_from_public_chat?: boolean | null
+          created_at?: string | null
+          id?: string
+          image_generation_disabled?: boolean | null
+          live_video_call_disabled?: boolean | null
+          math_solver_disabled?: boolean | null
+          minecraft_plugin_disabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          video_generation_disabled?: boolean | null
+          voice_chat_disabled?: boolean | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -443,6 +494,10 @@ export type Database = {
       }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_owner_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      user_has_restriction: {
+        Args: { _restriction_type: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner"
