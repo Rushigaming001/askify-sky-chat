@@ -1,1 +1,16 @@
 project_id = "wexmklgizitrjitkalry"
+
+[functions.chat]
+verify_jwt = true
+
+[functions.askify-chat]
+verify_jwt = true
+
+[functions.image-ai]
+verify_jwt = true
+
+[functions.minecraft-plugin]
+verify_jwt = true
+
+[functions.video-ai]
+verify_jwt = true
