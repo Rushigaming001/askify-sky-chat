@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import { UsageTrafficPanel } from '@/components/UsageTrafficPanel';
+import UserControlsManager from '@/components/UserControlsManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -282,8 +283,9 @@ export default function AdminPanel() {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="controls">User Controls</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="usage">Usage</TabsTrigger>
           </TabsList>
@@ -368,6 +370,10 @@ export default function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="controls">
+            <UserControlsManager />
           </TabsContent>
 
           <TabsContent value="models">
