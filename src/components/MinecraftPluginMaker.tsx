@@ -195,11 +195,25 @@ const MinecraftPluginMaker = () => {
                 <SelectTrigger id="serverType">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   <SelectItem value="paper">Paper</SelectItem>
                   <SelectItem value="spigot">Spigot</SelectItem>
                   <SelectItem value="bukkit">Bukkit</SelectItem>
+                  <SelectItem value="purpur">Purpur</SelectItem>
+                  <SelectItem value="airplane">Airplane</SelectItem>
+                  <SelectItem value="pufferfish">Pufferfish</SelectItem>
+                  <SelectItem value="folia">Folia</SelectItem>
                   <SelectItem value="velocity">Velocity (Proxy)</SelectItem>
+                  <SelectItem value="waterfall">Waterfall (Proxy)</SelectItem>
+                  <SelectItem value="bungeecord">BungeeCord (Proxy)</SelectItem>
+                  <SelectItem value="bedrock">Bedrock (PocketMine)</SelectItem>
+                  <SelectItem value="nukkit">Nukkit (Bedrock)</SelectItem>
+                  <SelectItem value="powernukkit">PowerNukkit (Bedrock)</SelectItem>
+                  <SelectItem value="cloudburst">CloudBurst (Bedrock)</SelectItem>
+                  <SelectItem value="fabric">Fabric</SelectItem>
+                  <SelectItem value="forge">Forge</SelectItem>
+                  <SelectItem value="neoforge">NeoForge</SelectItem>
+                  <SelectItem value="sponge">Sponge</SelectItem>
                 </SelectContent>
               </Select>
             </div>
