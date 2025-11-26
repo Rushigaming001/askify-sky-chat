@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, Send, Video, Phone } from 'lucide-react';
-import { CallInterface } from './CallInterface';
+import { WebRTCCall } from './WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
 
 interface DirectMessage {
@@ -227,18 +227,22 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
         </form>
       </div>
 
-      <CallInterface
+      <WebRTCCall
         isOpen={showVideoCall}
         onClose={() => setShowVideoCall(false)}
         callType="video"
         recipientName={recipientName}
+        recipientId={recipientId}
+        isInitiator={true}
       />
 
-      <CallInterface
+      <WebRTCCall
         isOpen={showVoiceCall}
         onClose={() => setShowVoiceCall(false)}
         callType="voice"
         recipientName={recipientName}
+        recipientId={recipientId}
+        isInitiator={true}
       />
     </div>
   );
