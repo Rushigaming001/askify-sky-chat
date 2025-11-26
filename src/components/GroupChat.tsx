@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { X, Send, Users, Settings, Video, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { GroupMembersDialog } from './GroupMembersDialog';
 
 interface GroupMessage {
   id: string;
@@ -33,12 +34,15 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !groupId) return;
 
     loadMessages();
+    checkAdminStatus();
 
     const channel = supabase
       .channel(`group-${groupId}`)
@@ -71,6 +75,19 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
       supabase.removeChannel(channel);
     };
   }, [user, groupId]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', user.id)
+      .single();
+
+    setIsAdmin(membership?.role === 'admin');
+  };
 
   useEffect(() => {
     const scrollContainer = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
@@ -155,6 +172,9 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setShowMembers(true)} title="View members">
+            <Users className="h-4 w-4" />
+          </Button>
           <Button size="sm" variant="ghost" onClick={onVideoCall}>
             <Video className="h-4 w-4" />
           </Button>
@@ -234,6 +254,14 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
           </Button>
         </form>
       </div>
+
+      <GroupMembersDialog
+        isOpen={showMembers}
+        onClose={() => setShowMembers(false)}
+        groupId={groupId}
+        groupName={groupName}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
