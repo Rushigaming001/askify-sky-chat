@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WebRTCCallProps {
   isOpen: boolean;
@@ -27,24 +30,91 @@ export function WebRTCCall({
   isInitiator 
 }: WebRTCCallProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [participants, setParticipants] = useState<Array<{ user_id: string; name: string; call_type: string }>>([]);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
+    if (isOpen && recipientId === 'public') {
+      // Track participants in public calls
+      const loadParticipants = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .limit(20);
+        
+        if (data && user) {
+          // Add current user to presence
+          const currentUserData = {
+            user_id: user.id,
+            name: data.find(p => p.id === user.id)?.name || 'You',
+            call_type: callType
+          };
+          
+          setParticipants([currentUserData]);
+        }
+      };
+
+      loadParticipants();
+
+      // Subscribe to call presence
+      const channel = supabase.channel(`call-${callType}-presence`);
+      channelRef.current = channel;
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const participantsList: Array<{ user_id: string; name: string; call_type: string }> = [];
+          
+          Object.keys(state).forEach(key => {
+            const presences = state[key];
+            presences.forEach((presence: any) => {
+              participantsList.push({
+                user_id: presence.user_id,
+                name: presence.name,
+                call_type: presence.call_type
+              });
+            });
+          });
+          
+          setParticipants(participantsList);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED' && user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', user.id)
+              .single();
+
+            await channel.track({
+              user_id: user.id,
+              name: profile?.name || 'Unknown',
+              call_type: callType
+            });
+          }
+        });
+    }
+
     if (isOpen) {
       initializeCall();
     }
 
     return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
       cleanup();
     };
-  }, [isOpen]);
+  }, [isOpen, recipientId, callType, user]);
 
   const initializeCall = async () => {
     try {
@@ -168,9 +238,17 @@ export function WebRTCCall({
     <Dialog open={isOpen} onOpenChange={handleEndCall}>
       <DialogContent className="max-w-5xl h-[85vh] p-0">
         <DialogHeader className="p-4 border-b">
-          <DialogTitle>
-            {callType === 'video' ? 'Video' : 'Voice'} Call with {recipientName}
-            {isConnecting && ' - Connecting...'}
+          <DialogTitle className="flex items-center gap-3">
+            <span>
+              {callType === 'video' ? 'Video' : 'Voice'} Call with {recipientName}
+              {isConnecting && ' - Connecting...'}
+            </span>
+            {recipientId === 'public' && participants.length > 0 && (
+              <Badge variant="secondary" className="flex items-center gap-1.5">
+                <Users className="h-3 w-3" />
+                <span>{participants.length}</span>
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
         
@@ -206,6 +284,24 @@ export function WebRTCCall({
                 <p className="text-sm text-muted-foreground mt-3">
                   {isConnecting ? 'Connecting...' : 'Voice Call Active'}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Participants list for public calls */}
+          {recipientId === 'public' && participants.length > 0 && (
+            <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm rounded-lg p-3 max-w-xs shadow-lg">
+              <div className="flex items-center gap-2 mb-2 text-sm font-medium">
+                <Users className="h-4 w-4" />
+                <span>In Call ({participants.length})</span>
+              </div>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {participants.map((participant) => (
+                  <div key={participant.user_id} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="truncate">{participant.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
