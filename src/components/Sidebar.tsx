@@ -77,8 +77,13 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
 
   if (!isOpen) {
     return (
-      <div className="fixed top-4 left-4 z-50">
-        <Button variant="ghost" size="icon" onClick={onToggle} className="bg-background/80 backdrop-blur">
+      <div className="fixed top-4 left-4 z-50 animate-fade-in">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onToggle} 
+          className="bg-background/80 backdrop-blur hover:bg-background hover:scale-110 transition-all duration-200 shadow-lg"
+        >
           <Menu className="h-5 w-5" />
         </Button>
       </div>
@@ -87,22 +92,34 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
 
   return (
     <>
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" onClick={onToggle} />
-      <aside className="fixed left-0 top-0 h-full w-64 bg-background border-r border-border z-50 flex flex-col">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="Askify" className="h-8 w-8" />
+      <div 
+        className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 animate-fade-in" 
+        onClick={onToggle} 
+      />
+      <aside className="fixed left-0 top-0 h-full w-64 md:w-72 bg-background border-r border-border z-50 flex flex-col shadow-2xl animate-slide-in-left">
+        <div className="p-4 border-b border-border flex items-center justify-between backdrop-blur">
+          <div className="flex items-center gap-2 animate-scale-in">
+            <img src={logo} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
             <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Askify
             </span>
           </div>
-          <Button variant="ghost" size="icon" onClick={onToggle}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggle}
+            className="hover:bg-accent hover:rotate-90 transition-all duration-300"
+          >
             <Menu className="h-5 w-5" />
           </Button>
         </div>
 
         <div className="p-4">
-          <Button onClick={createNewChat} className="w-full" size="lg">
+          <Button 
+            onClick={createNewChat} 
+            className="w-full hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg" 
+            size="lg"
+          >
             <Plus className="h-5 w-5 mr-2" />
             New Chat
           </Button>
@@ -119,8 +136,8 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
               .map((chat) => (
               <div
                 key={chat.id}
-                className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-accent transition-colors ${
-                  currentChat?.id === chat.id ? 'bg-accent' : ''
+                className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-accent transition-all duration-200 hover:scale-[1.02] hover:shadow-sm ${
+                  currentChat?.id === chat.id ? 'bg-accent shadow-sm' : ''
                 }`}
               >
                 {chat.pinned && <Pin className="h-3 w-3 text-primary flex-shrink-0" />}
@@ -134,7 +151,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -185,10 +202,10 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           </div>
         </ScrollArea>
 
-        <div className="border-t border-border p-2 space-y-1">
+        <div className="border-t border-border p-2 space-y-1 animate-fade-in">
           <Button 
             variant="ghost" 
-            className="w-full justify-start" 
+            className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
             size="sm"
             onClick={async () => {
               const result = await installPWA();
@@ -231,7 +248,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           
           <Button 
             variant="ghost" 
-            className="w-full justify-start" 
+            className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
             size="sm"
             onClick={() => navigate('/settings')}
           >
@@ -241,7 +258,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
 
           <Button 
             variant="ghost" 
-            className="w-full justify-start" 
+            className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
             size="sm"
             onClick={() => window.location.href = 'mailto:opgamer012321@gmail.com'}
           >
@@ -252,7 +269,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           {isAdmin && (
             <Button 
               variant="ghost" 
-              className="w-full justify-start" 
+              className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
               size="sm"
               onClick={() => navigate('/admin')}
             >
@@ -261,15 +278,20 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             </Button>
           )}
           
-          <div className="flex items-center gap-2 p-2 border-t border-border">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+          <div className="flex items-center gap-2 p-2 border-t border-border animate-fade-in">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground transition-transform hover:scale-110 duration-200">
               <User className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">{user?.name}</div>
               <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout} 
+              className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
