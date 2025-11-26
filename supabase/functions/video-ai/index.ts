@@ -38,30 +38,28 @@ serve(async (req) => {
     console.log("Generating video with prompt:", body.prompt)
     
     // Using Minimax video-01 model for highly realistic video generation
-    const output = await replicate.run(
-      "minimax/video-01",
-      {
-        input: {
-          prompt: body.prompt,
-        }
+    const output = await replicate.run("minimax/video-01", {
+      input: {
+        prompt: body.prompt,
       }
-    )
+    })
 
-    console.log("Video generation started:", output)
+    console.log("Video generation completed:", output)
     
-    // For replicate.run, it waits for completion and returns the output directly
+    // Get the video URL from the output
+    let videoUrl: string;
     if (typeof output === 'string') {
-      return new Response(JSON.stringify({ 
-        output: output,
-        status: 'succeeded'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+      videoUrl = output;
+    } else if (output && typeof output.url === 'function') {
+      videoUrl = output.url();
+    } else if (Array.isArray(output) && output.length > 0) {
+      videoUrl = output[0];
+    } else {
+      videoUrl = output;
     }
     
     return new Response(JSON.stringify({ 
-      output: output,
+      output: videoUrl,
       status: 'succeeded'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
