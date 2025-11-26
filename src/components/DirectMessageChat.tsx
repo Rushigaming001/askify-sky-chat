@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send } from 'lucide-react';
+import { X, Send, Video, Phone } from 'lucide-react';
+import { CallInterface } from './CallInterface';
 import { useToast } from '@/hooks/use-toast';
 
 interface DirectMessage {
@@ -29,6 +30,8 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -152,9 +155,17 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     <div className="flex flex-col h-full bg-background border-l border-border">
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="font-semibold">DM with {recipientName}</h3>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setShowVideoCall(true)}>
+            <Video className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setShowVoiceCall(true)}>
+            <Phone className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="flex-1" ref={scrollRef}>
@@ -215,6 +226,20 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
           </Button>
         </form>
       </div>
+
+      <CallInterface
+        isOpen={showVideoCall}
+        onClose={() => setShowVideoCall(false)}
+        callType="video"
+        recipientName={recipientName}
+      />
+
+      <CallInterface
+        isOpen={showVoiceCall}
+        onClose={() => setShowVoiceCall(false)}
+        callType="voice"
+        recipientName={recipientName}
+      />
     </div>
   );
 }
