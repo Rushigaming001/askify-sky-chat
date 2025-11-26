@@ -12,70 +12,78 @@ serve(async (req) => {
   }
 
   try {
-    const { pluginName, description, version, serverType, commands, functionality } = await req.json();
+    const { name, description, version, serverType, modLoader, addonType, commands, functionality, creationType = 'plugin' } = await req.json();
     
-    console.log("Generating Minecraft plugin:", { pluginName, version, serverType });
+    console.log(`Generating Minecraft ${creationType}:`, { name, version, serverType, modLoader, addonType });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const isBedrockPlugin = ['bedrock', 'nukkit', 'powernukkit', 'cloudburst'].includes(serverType);
-    const isProxy = ['velocity', 'waterfall', 'bungeecord'].includes(serverType);
-    const isModded = ['fabric', 'forge', 'neoforge', 'sponge'].includes(serverType);
-    
-    let apiType = 'Bukkit/Spigot API';
-    let baseClass = 'JavaPlugin';
+    let systemPrompt = '';
+    let userPrompt = '';
     let configFile = 'plugin.yml';
-    
-    if (isBedrockPlugin) {
-      apiType = 'PocketMine/Nukkit API';
-      baseClass = 'PluginBase';
-      configFile = 'plugin.yml';
-    } else if (serverType === 'velocity') {
-      apiType = 'Velocity API';
-      baseClass = '@Plugin annotation';
-      configFile = 'velocity-plugin.json';
-    } else if (serverType === 'bungeecord' || serverType === 'waterfall') {
-      apiType = 'BungeeCord API';
-      baseClass = 'Plugin';
-      configFile = 'bungee.yml';
-    } else if (isModded) {
-      apiType = `${serverType.charAt(0).toUpperCase() + serverType.slice(1)} mod API`;
-      baseClass = 'appropriate mod entry point';
-      configFile = 'mod configuration file';
-    }
 
-    const systemPrompt = `You are an expert Minecraft plugin/mod developer. Generate complete, production-ready Java code for Minecraft plugins.
+    if (creationType === 'addon') {
+      // Bedrock addon generation
+      configFile = 'manifest.json';
+      systemPrompt = `You are an expert Minecraft Bedrock addon developer. Generate complete, production-ready addon files.
 
 Generate a response in this EXACT JSON format (no markdown, no code blocks, just raw JSON):
 {
-  "mainClass": "complete Java code here",
-  "pluginYml": "complete ${configFile} content here",
-  "packageName": "com.example.pluginname"
+  "manifest": "complete manifest.json content here",
+  "behaviorFiles": {"path/to/file.json": "content here"},
+  "resourceFiles": {"path/to/file.json": "content here"}
 }
 
 Requirements:
-- Generate clean, well-documented Java code
-- Use proper package structure (e.g., com.example.pluginname)
-- Add all necessary imports
-- Follow best practices for ${serverType} plugins/mods
+- Generate proper Bedrock addon structure
+- Support Minecraft Bedrock ${version}
+- Include proper UUID generation
+- Follow Bedrock addon format specifications
+- ${addonType === 'behavior' ? 'Focus on behavior pack files (entities, items, blocks, functions)' : ''}
+- ${addonType === 'resource' ? 'Focus on resource pack files (textures, models, sounds, UI)' : ''}
+- ${addonType === 'combined' ? 'Include both behavior and resource pack files' : ''}`;
+
+      userPrompt = `Generate a Minecraft Bedrock addon with these specifications:
+
+Addon Name: ${name}
+Description: ${description}
+Bedrock Version: ${version}
+Addon Type: ${addonType} pack
+
+Functionality:
+${functionality}
+
+Return ONLY valid JSON with manifest, behaviorFiles, and resourceFiles fields. No markdown formatting.`;
+    } else if (creationType === 'mod') {
+      // Mod generation
+      const modInfo = getModInfo(modLoader);
+      systemPrompt = `You are an expert Minecraft ${modLoader} mod developer. Generate complete, production-ready mod code.
+
+Generate a response in this EXACT JSON format (no markdown, no code blocks, just raw JSON):
+{
+  "mainClass": "complete Java/Kotlin code here",
+  "modConfig": "complete ${modInfo.configFile} content here",
+  "packageName": "com.example.modname"
+}
+
+Requirements:
+- Generate clean, well-documented code
+- Use proper package structure
+- Follow ${modLoader} mod standards
 - Support Minecraft version ${version}
-- Include proper error handling
-- Add permission nodes for commands
-- Make code compatible with ${apiType}
-- The main class MUST extend ${baseClass}
-${isBedrockPlugin ? '- Use PocketMine/Nukkit API methods for Bedrock Edition compatibility' : ''}
-${isProxy ? '- Implement proxy-specific features and event handling' : ''}
-${isModded ? '- Follow mod structure and registration patterns for ' + serverType : ''}`;
+- Include proper ${modInfo.entryPoint}
+- Add ${modInfo.dependencies} dependencies
+- Follow ${modLoader} mod lifecycle`;
 
-    const userPrompt = `Generate a Minecraft ${isBedrockPlugin ? 'Bedrock Edition plugin' : isModded ? 'mod' : 'plugin'} with these specifications:
+      userPrompt = `Generate a Minecraft ${modLoader} mod with these specifications:
 
-Plugin Name: ${pluginName}
+Mod Name: ${name}
 Description: ${description}
 Minecraft Version: ${version}
-Platform: ${serverType}${isBedrockPlugin ? ' (Bedrock Edition)' : ''}
+Mod Loader: ${modLoader}
 
 Commands:
 ${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
@@ -83,11 +91,44 @@ ${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
 Functionality:
 ${functionality}
 
-${isBedrockPlugin ? 'IMPORTANT: This is for Bedrock Edition. Use PocketMine/Nukkit API methods.' : ''}
-${isProxy ? 'IMPORTANT: This is a proxy plugin. Focus on proxy-specific features like server switching and player messaging.' : ''}
-${isModded ? 'IMPORTANT: This is a mod. Follow mod structure with proper mod metadata and entry points.' : ''}
+Return ONLY valid JSON with mainClass, modConfig, and packageName fields. No markdown formatting.`;
+    } else {
+      // Plugin generation
+      const pluginInfo = getPluginInfo(serverType);
+      systemPrompt = `You are an expert Minecraft plugin developer. Generate complete, production-ready Java code.
 
-Return ONLY valid JSON with mainClass, pluginYml (or appropriate config), and packageName fields. No markdown formatting.`;
+Generate a response in this EXACT JSON format (no markdown, no code blocks, just raw JSON):
+{
+  "mainClass": "complete Java code here",
+  "pluginYml": "complete ${pluginInfo.configFile} content here",
+  "packageName": "com.example.pluginname"
+}
+
+Requirements:
+- Generate clean, well-documented Java code
+- Use proper package structure
+- Follow best practices for ${serverType}
+- Support Minecraft version ${version}
+- The main class MUST extend ${pluginInfo.baseClass}
+- Make code compatible with ${pluginInfo.apiType}
+${pluginInfo.isProxy ? '- Implement proxy-specific features' : ''}`;
+
+      userPrompt = `Generate a Minecraft plugin with these specifications:
+
+Plugin Name: ${name}
+Description: ${description}
+Minecraft Version: ${version}
+Server Software: ${serverType}
+
+Commands:
+${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
+
+Functionality:
+${functionality}
+
+Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No markdown formatting.`;
+    }
+
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -134,20 +175,27 @@ Return ONLY valid JSON with mainClass, pluginYml (or appropriate config), and pa
       throw new Error('Failed to parse AI response as JSON');
     }
 
-    const { mainClass, pluginYml, packageName } = pluginData;
+    let fileContent: string;
 
-    if (!mainClass || !pluginYml || !packageName) {
-      throw new Error('AI response missing required fields');
+    if (creationType === 'addon') {
+      const { manifest, behaviorFiles, resourceFiles } = pluginData;
+      if (!manifest) throw new Error('AI response missing manifest');
+      fileContent = await createAddonPack(name, manifest, behaviorFiles || {}, resourceFiles || {}, addonType);
+      console.log("Bedrock addon created successfully");
+    } else {
+      const { mainClass, pluginYml, modConfig, packageName } = pluginData;
+      const configData = pluginYml || modConfig;
+      
+      if (!mainClass || !configData || !packageName) {
+        throw new Error('AI response missing required fields');
+      }
+      
+      fileContent = await createSourceJar(name, mainClass, configData, packageName, creationType);
+      console.log(`${creationType} created successfully`);
     }
 
-    // Create a simple JAR structure in memory
-    // For a real JAR, we'd need proper Java compilation, but we'll create a source JAR
-    const jarContent = await createSourceJar(pluginName, mainClass, pluginYml, packageName);
-
-    console.log("Plugin JAR created successfully");
-
     return new Response(
-      JSON.stringify({ jarBase64: jarContent }),
+      JSON.stringify({ fileBase64: fileContent }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -167,12 +215,81 @@ Return ONLY valid JSON with mainClass, pluginYml (or appropriate config), and pa
   }
 });
 
-// Create a ZIP file containing the plugin source (acting as a JAR)
+function getPluginInfo(serverType: string) {
+  const isProxy = ['velocity', 'waterfall', 'bungeecord'].includes(serverType);
+  
+  return {
+    apiType: isProxy ? `${serverType} Proxy API` : 'Bukkit/Spigot API',
+    baseClass: serverType === 'velocity' ? '@Plugin annotation' : isProxy ? 'Plugin' : 'JavaPlugin',
+    configFile: serverType === 'velocity' ? 'velocity-plugin.json' : isProxy ? 'bungee.yml' : 'plugin.yml',
+    isProxy
+  };
+}
+
+function getModInfo(modLoader: string) {
+  const configs: Record<string, any> = {
+    fabric: { configFile: 'fabric.mod.json', entryPoint: 'ModInitializer', dependencies: 'Fabric API' },
+    forge: { configFile: 'mods.toml', entryPoint: '@Mod annotation', dependencies: 'Forge API' },
+    neoforge: { configFile: 'mods.toml', entryPoint: '@Mod annotation', dependencies: 'NeoForge API' },
+    quilt: { configFile: 'quilt.mod.json', entryPoint: 'ModInitializer', dependencies: 'Quilt API' },
+    sponge: { configFile: 'sponge_plugins.json', entryPoint: '@Plugin annotation', dependencies: 'Sponge API' }
+  };
+  
+  return configs[modLoader] || configs.fabric;
+}
+
+async function createAddonPack(
+  name: string,
+  manifest: string,
+  behaviorFiles: Record<string, string>,
+  resourceFiles: Record<string, string>,
+  addonType: string
+): Promise<string> {
+  const encoder = new TextEncoder();
+  let archiveContent = '';
+  
+  // Add manifest
+  archiveContent += `\n\n========== manifest.json ==========\n\n${manifest}`;
+  
+  // Add behavior pack files
+  if (addonType === 'behavior' || addonType === 'combined') {
+    for (const [path, content] of Object.entries(behaviorFiles)) {
+      archiveContent += `\n\n========== BP/${path} ==========\n\n${content}`;
+    }
+  }
+  
+  // Add resource pack files
+  if (addonType === 'resource' || addonType === 'combined') {
+    for (const [path, content] of Object.entries(resourceFiles)) {
+      archiveContent += `\n\n========== RP/${path} ==========\n\n${content}`;
+    }
+  }
+  
+  const readme = `# ${name} - Bedrock Addon
+
+This is a Minecraft Bedrock Edition addon generated by ASKIFY.
+
+## Installation
+
+1. Import the .mcpack file in Minecraft Bedrock Edition
+2. Open Minecraft and go to Settings > Storage > Resource/Behavior Packs
+3. Activate the addon in your world settings
+
+Note: This is a source archive. Extract and compile if needed.
+`;
+  
+  archiveContent += `\n\n========== README.md ==========\n\n${readme}`;
+  
+  const archiveBytes = encoder.encode(archiveContent);
+  return base64Encode(archiveBytes.buffer);
+}
+
 async function createSourceJar(
-  pluginName: string,
+  name: string,
   mainClass: string,
-  pluginYml: string,
-  packageName: string
+  configContent: string,
+  packageName: string,
+  creationType: string
 ): Promise<string> {
   // Create a simple text-based archive since we can't compile Java
   // This creates a ZIP file that users can extract and build
@@ -182,32 +299,39 @@ async function createSourceJar(
   const packagePath = packageName.replace(/\./g, '/');
   const files = new Map<string, Uint8Array>();
   
-  files.set(`src/main/java/${packagePath}/${pluginName}.java`, encoder.encode(mainClass));
-  files.set('src/main/resources/plugin.yml', encoder.encode(pluginYml));
+  files.set(`src/main/java/${packagePath}/${name}.java`, encoder.encode(mainClass));
   
-  const readme = `# ${pluginName}
+  const configPath = creationType === 'mod' ? 
+    (configContent.includes('fabric') ? 'src/main/resources/fabric.mod.json' :
+     configContent.includes('quilt') ? 'src/main/resources/quilt.mod.json' :
+     'src/main/resources/META-INF/mods.toml') :
+    'src/main/resources/plugin.yml';
+    
+  files.set(configPath, encoder.encode(configContent));
+  
+  const readme = `# ${name}
 
-This is a Minecraft plugin source package generated by ASKIFY.
+This is a Minecraft ${creationType} source package generated by ASKIFY.
 
-## Building the Plugin
+## Building the ${creationType.charAt(0).toUpperCase() + creationType.slice(1)}
 
-To build this plugin into a .jar file:
+To build this into a .jar file:
 
 1. Install Maven or Gradle
 2. Extract this archive
-3. Add a pom.xml or build.gradle file for your build system
-4. Run: mvn clean package (for Maven) or gradle build (for Gradle)
-5. Find the compiled .jar in the target/ or build/libs/ directory
+3. Add a pom.xml or build.gradle file
+4. Run: mvn clean package (Maven) or gradle build (Gradle)
+5. Find the compiled .jar in target/ or build/libs/
 
 ## Quick Maven Setup
 
-Create pom.xml in the root directory:
+Create pom.xml:
 
 \`\`\`xml
 <project>
     <modelVersion>4.0.0</modelVersion>
     <groupId>${packageName}</groupId>
-    <artifactId>${pluginName}</artifactId>
+    <artifactId>${name}</artifactId>
     <version>1.0.0</version>
     <build>
         <plugins>
@@ -241,9 +365,9 @@ Create pom.xml in the root directory:
 
 ## Installation
 
-1. Build the plugin (see above)
-2. Copy the .jar file to your server's plugins folder
-3. Restart your server
+1. Build the ${creationType} (see above)
+2. Copy the .jar file to your ${creationType === 'plugin' ? 'server plugins' : 'mods'} folder
+3. ${creationType === 'plugin' ? 'Restart your server' : 'Launch the game'}
 
 Note: This is a source archive. You need to compile it before use.
 `;
