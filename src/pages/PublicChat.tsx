@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone } from 'lucide-react';
-import { CallInterface } from '@/components/CallInterface';
+import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
 import { useToast } from '@/hooks/use-toast';
@@ -549,18 +549,22 @@ const PublicChat = () => {
           </div>
         )}
 
-        <CallInterface
+        <WebRTCCall
           isOpen={showVideoCall}
           onClose={() => setShowVideoCall(false)}
           callType="video"
           recipientName="Public Chat"
+          recipientId="public"
+          isInitiator={true}
         />
 
-        <CallInterface
+        <WebRTCCall
           isOpen={showVoiceCall}
           onClose={() => setShowVoiceCall(false)}
           callType="voice"
           recipientName="Public Chat"
+          recipientId="public"
+          isInitiator={true}
         />
       </div>
     </div>
