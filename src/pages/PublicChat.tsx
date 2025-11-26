@@ -528,25 +528,53 @@ const PublicChat = () => {
         </Sheet>
 
         {activeDM && (
-          <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
-            <DirectMessageChat
-              recipientId={activeDM.userId}
-              recipientName={activeDM.userName}
-              onClose={() => setActiveDM(null)}
-            />
-          </div>
+          <>
+            {/* Desktop: side panel */}
+            <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
+              <DirectMessageChat
+                recipientId={activeDM.userId}
+                recipientName={activeDM.userName}
+                onClose={() => setActiveDM(null)}
+              />
+            </div>
+            {/* Mobile: full screen dialog */}
+            <Dialog open={!!activeDM} onOpenChange={() => setActiveDM(null)}>
+              <DialogContent className="md:hidden max-w-full w-full h-full max-h-screen p-0 gap-0">
+                <DirectMessageChat
+                  recipientId={activeDM.userId}
+                  recipientName={activeDM.userName}
+                  onClose={() => setActiveDM(null)}
+                />
+              </DialogContent>
+            </Dialog>
+          </>
         )}
 
         {activeGroup && (
-          <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
-            <GroupChat
-              groupId={activeGroup.groupId}
-              groupName={activeGroup.groupName}
-              onClose={() => setActiveGroup(null)}
-              onVideoCall={() => setShowVideoCall(true)}
-              onVoiceCall={() => setShowVoiceCall(true)}
-            />
-          </div>
+          <>
+            {/* Desktop: side panel */}
+            <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
+              <GroupChat
+                groupId={activeGroup.groupId}
+                groupName={activeGroup.groupName}
+                onClose={() => setActiveGroup(null)}
+                onVideoCall={() => setShowVideoCall(true)}
+                onVoiceCall={() => setShowVoiceCall(true)}
+              />
+            </div>
+            {/* Mobile: full screen dialog */}
+            <Dialog open={!!activeGroup} onOpenChange={() => setActiveGroup(null)}>
+              <DialogContent className="md:hidden max-w-full w-full h-full max-h-screen p-0 gap-0">
+                <GroupChat
+                  groupId={activeGroup.groupId}
+                  groupName={activeGroup.groupName}
+                  onClose={() => setActiveGroup(null)}
+                  onVideoCall={() => setShowVideoCall(true)}
+                  onVoiceCall={() => setShowVoiceCall(true)}
+                />
+              </DialogContent>
+            </Dialog>
+          </>
         )}
 
         <WebRTCCall

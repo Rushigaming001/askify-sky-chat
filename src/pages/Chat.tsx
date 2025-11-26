@@ -141,16 +141,16 @@ const Chat = () => {
               ASKIFY
             </h1>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0">
             <Dialog>
               <DialogTrigger asChild>
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="Math Solver"
                 >
-                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Calculator className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
@@ -165,10 +165,10 @@ const Chat = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="Live Video Call with AI"
                 >
-                  <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Video className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
@@ -183,10 +183,10 @@ const Chat = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="AI Video Generator"
                 >
-                  <Film className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Film className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
@@ -201,10 +201,10 @@ const Chat = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
                   title="Minecraft Plugin Maker"
                 >
-                  <Box className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Box className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
@@ -215,7 +215,7 @@ const Chat = () => {
               </DialogContent>
             </Dialog>
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
-              <SelectTrigger className="w-[110px] sm:w-[140px] md:w-[180px] h-8 sm:h-9 text-xs sm:text-sm hover:border-primary/50 transition-all duration-200">
+              <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background/95 backdrop-blur-sm">
