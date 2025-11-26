@@ -21,12 +21,38 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `You are an expert Minecraft plugin developer. Generate complete, production-ready Java code for Minecraft plugins.
+    const isBedrockPlugin = ['bedrock', 'nukkit', 'powernukkit', 'cloudburst'].includes(serverType);
+    const isProxy = ['velocity', 'waterfall', 'bungeecord'].includes(serverType);
+    const isModded = ['fabric', 'forge', 'neoforge', 'sponge'].includes(serverType);
+    
+    let apiType = 'Bukkit/Spigot API';
+    let baseClass = 'JavaPlugin';
+    let configFile = 'plugin.yml';
+    
+    if (isBedrockPlugin) {
+      apiType = 'PocketMine/Nukkit API';
+      baseClass = 'PluginBase';
+      configFile = 'plugin.yml';
+    } else if (serverType === 'velocity') {
+      apiType = 'Velocity API';
+      baseClass = '@Plugin annotation';
+      configFile = 'velocity-plugin.json';
+    } else if (serverType === 'bungeecord' || serverType === 'waterfall') {
+      apiType = 'BungeeCord API';
+      baseClass = 'Plugin';
+      configFile = 'bungee.yml';
+    } else if (isModded) {
+      apiType = `${serverType.charAt(0).toUpperCase() + serverType.slice(1)} mod API`;
+      baseClass = 'appropriate mod entry point';
+      configFile = 'mod configuration file';
+    }
+
+    const systemPrompt = `You are an expert Minecraft plugin/mod developer. Generate complete, production-ready Java code for Minecraft plugins.
 
 Generate a response in this EXACT JSON format (no markdown, no code blocks, just raw JSON):
 {
   "mainClass": "complete Java code here",
-  "pluginYml": "complete plugin.yml content here",
+  "pluginYml": "complete ${configFile} content here",
   "packageName": "com.example.pluginname"
 }
 
@@ -34,19 +60,22 @@ Requirements:
 - Generate clean, well-documented Java code
 - Use proper package structure (e.g., com.example.pluginname)
 - Add all necessary imports
-- Follow best practices for ${serverType} plugins
+- Follow best practices for ${serverType} plugins/mods
 - Support Minecraft version ${version}
 - Include proper error handling
 - Add permission nodes for commands
-- Make code compatible with ${serverType === 'velocity' ? 'Velocity proxy API' : 'Bukkit/Spigot API'}
-- The main class MUST extend JavaPlugin for Bukkit/Spigot or implement the appropriate base class for Velocity`;
+- Make code compatible with ${apiType}
+- The main class MUST extend ${baseClass}
+${isBedrockPlugin ? '- Use PocketMine/Nukkit API methods for Bedrock Edition compatibility' : ''}
+${isProxy ? '- Implement proxy-specific features and event handling' : ''}
+${isModded ? '- Follow mod structure and registration patterns for ' + serverType : ''}`;
 
-    const userPrompt = `Generate a Minecraft plugin with these specifications:
+    const userPrompt = `Generate a Minecraft ${isBedrockPlugin ? 'Bedrock Edition plugin' : isModded ? 'mod' : 'plugin'} with these specifications:
 
 Plugin Name: ${pluginName}
 Description: ${description}
 Minecraft Version: ${version}
-Server Type: ${serverType}
+Platform: ${serverType}${isBedrockPlugin ? ' (Bedrock Edition)' : ''}
 
 Commands:
 ${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
@@ -54,7 +83,11 @@ ${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
 Functionality:
 ${functionality}
 
-Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No markdown formatting.`;
+${isBedrockPlugin ? 'IMPORTANT: This is for Bedrock Edition. Use PocketMine/Nukkit API methods.' : ''}
+${isProxy ? 'IMPORTANT: This is a proxy plugin. Focus on proxy-specific features like server switching and player messaging.' : ''}
+${isModded ? 'IMPORTANT: This is a mod. Follow mod structure with proper mod metadata and entry points.' : ''}
+
+Return ONLY valid JSON with mainClass, pluginYml (or appropriate config), and packageName fields. No markdown formatting.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
