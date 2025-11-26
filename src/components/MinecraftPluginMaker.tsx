@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Download, Code } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,7 +16,7 @@ const MinecraftPluginMaker = () => {
   const [serverType, setServerType] = useState("paper");
   const [commands, setCommands] = useState("");
   const [functionality, setFunctionality] = useState("");
-  const [generatedCode, setGeneratedCode] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -31,7 +31,7 @@ const MinecraftPluginMaker = () => {
     }
 
     setIsGenerating(true);
-    setGeneratedCode("");
+    setDownloadUrl("");
 
     try {
       const { data, error } = await supabase.functions.invoke('minecraft-plugin', {
@@ -47,16 +47,35 @@ const MinecraftPluginMaker = () => {
 
       if (error) throw error;
 
-      setGeneratedCode(data.code);
+      // Create blob from base64 data and trigger download
+      const byteCharacters = atob(data.jarBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/java-archive' });
+      const url = URL.createObjectURL(blob);
+      
+      setDownloadUrl(url);
+      
+      // Auto-download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${pluginName || 'Plugin'}.jar`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
       toast({
         title: "Plugin Generated!",
-        description: "Your Minecraft plugin code is ready.",
+        description: "Your .jar file is downloading now.",
       });
     } catch (error: any) {
       console.error('Plugin generation error:', error);
       toast({
         title: "Generation Failed",
-        description: error.message || "Failed to generate plugin code.",
+        description: error.message || "Failed to generate plugin.",
         variant: "destructive",
       });
     } finally {
@@ -64,28 +83,24 @@ const MinecraftPluginMaker = () => {
     }
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([generatedCode], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${pluginName || 'Plugin'}.java`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleDownloadAgain = () => {
+    if (downloadUrl) {
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${pluginName || 'Plugin'}.jar`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   return (
     <div className="space-y-6 p-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Code className="h-5 w-5" />
-            Minecraft Plugin Maker
-          </CardTitle>
+          <CardTitle>Minecraft Plugin Maker</CardTitle>
           <CardDescription>
-            Generate custom Minecraft plugins with AI assistance
+            Generate custom Minecraft plugins as downloadable .jar files
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -183,21 +198,21 @@ const MinecraftPluginMaker = () => {
         </CardContent>
       </Card>
 
-      {generatedCode && (
+      {downloadUrl && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              Generated Code
-              <Button onClick={handleDownload} size="sm">
+              Plugin Ready
+              <Button onClick={handleDownloadAgain} size="sm">
                 <Download className="mr-2 h-4 w-4" />
-                Download
+                Download Again
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
-              <code>{generatedCode}</code>
-            </pre>
+            <p className="text-sm text-muted-foreground">
+              Your plugin .jar file has been generated and downloaded. You can upload it to your server's plugins folder and restart the server.
+            </p>
           </CardContent>
         </Card>
       )}
