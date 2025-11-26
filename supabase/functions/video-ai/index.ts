@@ -49,7 +49,7 @@ serve(async (req) => {
     
     // Using Minimax video-01 model for highly realistic video generation
     const prediction = await replicate.predictions.create({
-      version: "f1fde73c5e83fbf01b7a7fc96ca48ebf92e4a19d8e9b93f8c96be4f10e1e4caf",
+      version: "e0893c8a6e3c5e0eab43317e8bccea6efe33a3c0aa79a0be05b0a43958a35c2c",
       input: {
         prompt: body.prompt,
       }
