@@ -14,6 +14,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface Group {
   id: string;
@@ -36,10 +38,13 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
     loadGroups();
+    loadAllUsers();
 
     const channel = supabase
       .channel('groups-changes')
@@ -60,6 +65,16 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
       supabase.removeChannel(channel);
     };
   }, [user]);
+
+  const loadAllUsers = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .neq('id', user.id);
+    
+    setAllUsers(data || []);
+  };
 
   const loadGroups = async () => {
     const { data: groupsData, error } = await supabase
@@ -109,28 +124,56 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
     }
 
     // Add creator as admin member
+    const membersToAdd = [
+      { group_id: group.id, user_id: user.id, role: 'admin' },
+      ...selectedMembers.map(userId => ({ 
+        group_id: group.id, 
+        user_id: userId, 
+        role: 'member' 
+      }))
+    ];
+
     const { error: memberError } = await supabase
       .from('group_members')
-      .insert({
-        group_id: group.id,
-        user_id: user.id,
-        role: 'admin'
-      });
+      .insert(membersToAdd);
 
     if (memberError) {
-      console.error('Error adding creator to group:', memberError);
+      console.error('Error adding members to group:', memberError);
+      toast({
+        title: 'Warning',
+        description: 'Group created but some members could not be added',
+        variant: 'destructive'
+      });
+    } else {
+      toast({
+        title: 'Success',
+        description: 'Group created successfully'
+      });
     }
-
-    toast({
-      title: 'Success',
-      description: 'Group created successfully'
-    });
 
     setShowCreateDialog(false);
     setNewGroupName('');
     setNewGroupDescription('');
+    setSelectedMembers([]);
     setIsCreating(false);
     loadGroups();
+  };
+
+  const toggleMember = (userId: string) => {
+    setSelectedMembers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -216,6 +259,33 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
                 placeholder="What's this group about?"
                 maxLength={200}
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Add Members (optional)</label>
+              <ScrollArea className="h-48 border rounded-md p-2">
+                {allUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No users available</p>
+                ) : (
+                  <div className="space-y-2">
+                    {allUsers.map(user => (
+                      <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md">
+                        <Checkbox
+                          id={`user-${user.id}`}
+                          checked={selectedMembers.includes(user.id)}
+                          onCheckedChange={() => toggleMember(user.id)}
+                        />
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{user.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
             </div>
           </div>
           <DialogFooter>
