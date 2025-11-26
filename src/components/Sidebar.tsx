@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -114,7 +114,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           </Button>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 space-y-2">
           <Button 
             onClick={createNewChat} 
             className="w-full hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg" 
@@ -123,6 +123,25 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             <Plus className="h-5 w-5 mr-2" />
             New Chat
           </Button>
+          
+          <Button 
+            onClick={() => {
+              navigate('/public-chat');
+              onToggle();
+            }}
+            variant="outline"
+            className="w-full hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg" 
+            size="lg"
+          >
+            <MessageCircle className="h-5 w-5 mr-2" />
+            Public Chat
+          </Button>
+        </div>
+        
+        <div className="px-4 py-2">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Chat History
+          </div>
         </div>
 
         <ScrollArea className="flex-1 px-2">
