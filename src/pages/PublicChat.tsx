@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone } from 'lucide-react';
+import { CallInterface } from '@/components/CallInterface';
+import { GroupsList } from '@/components/GroupsList';
+import { GroupChat } from '@/components/GroupChat';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -56,7 +59,11 @@ const PublicChat = () => {
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [showUsersList, setShowUsersList] = useState(false);
+  const [showGroupsList, setShowGroupsList] = useState(false);
   const [activeDM, setActiveDM] = useState<{ userId: string; userName: string } | null>(null);
+  const [activeGroup, setActiveGroup] = useState<{ groupId: string; groupName: string } | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -308,14 +315,40 @@ const PublicChat = () => {
                 <p className="text-sm text-muted-foreground">Chat with everyone</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowUsersList(true)}
-              title="View users"
-            >
-              <UserCircle className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowVideoCall(true)}
+                title="Start video call"
+              >
+                <Video className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowVoiceCall(true)}
+                title="Start voice call"
+              >
+                <Phone className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowGroupsList(true)}
+                title="View groups"
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowUsersList(true)}
+                title="View users"
+              >
+                <UserCircle className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -480,6 +513,20 @@ const PublicChat = () => {
           </SheetContent>
         </Sheet>
 
+        <Sheet open={showGroupsList} onOpenChange={setShowGroupsList}>
+          <SheetContent side="left" className="w-80 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Groups</SheetTitle>
+            </SheetHeader>
+            <GroupsList
+              onOpenGroupChat={(groupId, groupName) => {
+                setActiveGroup({ groupId, groupName });
+                setShowGroupsList(false);
+              }}
+            />
+          </SheetContent>
+        </Sheet>
+
         {activeDM && (
           <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
             <DirectMessageChat
@@ -489,6 +536,32 @@ const PublicChat = () => {
             />
           </div>
         )}
+
+        {activeGroup && (
+          <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
+            <GroupChat
+              groupId={activeGroup.groupId}
+              groupName={activeGroup.groupName}
+              onClose={() => setActiveGroup(null)}
+              onVideoCall={() => setShowVideoCall(true)}
+              onVoiceCall={() => setShowVoiceCall(true)}
+            />
+          </div>
+        )}
+
+        <CallInterface
+          isOpen={showVideoCall}
+          onClose={() => setShowVideoCall(false)}
+          callType="video"
+          recipientName="Public Chat"
+        />
+
+        <CallInterface
+          isOpen={showVoiceCall}
+          onClose={() => setShowVoiceCall(false)}
+          callType="voice"
+          recipientName="Public Chat"
+        />
       </div>
     </div>
   );
