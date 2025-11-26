@@ -52,8 +52,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (user && chats.length > 0) {
-      localStorage.setItem(`askify_chats_${user.email}`, JSON.stringify(chats));
+    if (user) {
+      if (chats.length > 0) {
+        localStorage.setItem(`askify_chats_${user.email}`, JSON.stringify(chats));
+      } else {
+        localStorage.removeItem(`askify_chats_${user.email}`);
+      }
     }
   }, [chats, user]);
 
