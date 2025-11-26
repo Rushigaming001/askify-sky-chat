@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import Replicate from "https://esm.sh/replicate@0.25.2"
+import Replicate from "https://esm.sh/replicate@0.30.2"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,17 +23,7 @@ serve(async (req) => {
 
     const body = await req.json()
 
-    // Check status of existing prediction
-    if (body.predictionId) {
-      console.log("Checking status for prediction:", body.predictionId)
-      const prediction = await replicate.predictions.get(body.predictionId)
-      console.log("Status check response:", prediction)
-      return new Response(JSON.stringify(prediction), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Generate new video
+    // Generate new video - using replicate.run which waits for completion
     if (!body.prompt) {
       return new Response(
         JSON.stringify({ 
@@ -48,17 +38,31 @@ serve(async (req) => {
     console.log("Generating video with prompt:", body.prompt)
     
     // Using Minimax video-01 model for highly realistic video generation
-    const prediction = await replicate.predictions.create({
-      version: "e0893c8a6e3c5e0eab43317e8bccea6efe33a3c0aa79a0be05b0a43958a35c2c",
-      input: {
-        prompt: body.prompt,
+    const output = await replicate.run(
+      "minimax/video-01",
+      {
+        input: {
+          prompt: body.prompt,
+        }
       }
-    })
+    )
 
-    console.log("Video generation started:", prediction)
+    console.log("Video generation started:", output)
+    
+    // For replicate.run, it waits for completion and returns the output directly
+    if (typeof output === 'string') {
+      return new Response(JSON.stringify({ 
+        output: output,
+        status: 'succeeded'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+    
     return new Response(JSON.stringify({ 
-      predictionId: prediction.id,
-      status: prediction.status 
+      output: output,
+      status: 'succeeded'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

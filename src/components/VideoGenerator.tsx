@@ -11,45 +11,7 @@ export function VideoGenerator() {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  const [predictionId, setPredictionId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const checkStatus = async (id: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('video-ai', {
-        body: { predictionId: id }
-      });
-
-      if (error) throw error;
-
-      if (data.status === 'succeeded') {
-        setGeneratedVideo(data.output);
-        setLoading(false);
-        toast({
-          title: 'Success',
-          description: 'Video generated successfully!'
-        });
-      } else if (data.status === 'failed') {
-        setLoading(false);
-        toast({
-          title: 'Error',
-          description: 'Video generation failed',
-          variant: 'destructive'
-        });
-      } else {
-        // Still processing, check again in 3 seconds
-        setTimeout(() => checkStatus(id), 3000);
-      }
-    } catch (error) {
-      console.error('Error checking status:', error);
-      setLoading(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to check video status',
-        variant: 'destructive'
-      });
-    }
-  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -71,18 +33,22 @@ export function VideoGenerator() {
 
       if (error) throw error;
 
-      if (data.predictionId) {
-        setPredictionId(data.predictionId);
-        checkStatus(data.predictionId);
+      if (data.output) {
+        setGeneratedVideo(data.output);
+        toast({
+          title: 'Success',
+          description: 'Video generated successfully!'
+        });
       }
     } catch (error) {
       console.error('Error generating video:', error);
-      setLoading(false);
       toast({
         title: 'Error',
-        description: 'Failed to generate video',
+        description: 'Failed to generate video. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,7 +64,6 @@ export function VideoGenerator() {
   const handleClose = () => {
     setGeneratedVideo(null);
     setPrompt('');
-    setPredictionId(null);
   };
 
   return (
@@ -134,7 +99,7 @@ export function VideoGenerator() {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Video... (This may take 2-3 minutes)
+              Generating Video... (This may take 2-5 minutes)
             </>
           ) : (
             'Generate Video'
