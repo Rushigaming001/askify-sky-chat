@@ -189,13 +189,13 @@ const PublicChat = () => {
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="text-xs bg-muted">
-                        {getInitials(message.profiles.name)}
+                        {message.profiles ? getInitials(message.profiles.name) : '??'}
                       </AvatarFallback>
                     </Avatar>
                     <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
                       <div className="flex items-baseline gap-2 mb-1">
                         <span className="text-sm font-medium">
-                          {isOwnMessage ? 'You' : message.profiles.name}
+                          {isOwnMessage ? 'You' : (message.profiles?.name || 'Anonymous')}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {formatTime(message.created_at)}
