@@ -6,14 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface PublicMessage {
   id: string;
   user_id: string;
   content: string;
   created_at: string;
+  edited_at?: string;
+  deleted_at?: string;
+  deleted_by?: string;
+  edit_history?: any[];
   profiles: {
     name: string;
     email: string;
@@ -27,6 +44,9 @@ const PublicChat = () => {
   const [messages, setMessages] = useState<PublicMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +55,19 @@ const PublicChat = () => {
       return;
     }
 
+    // Check if user is owner or admin
+    const checkAdminStatus = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'admin'])
+        .single();
+      
+      setIsAdmin(!!data);
+    };
+
+    checkAdminStatus();
     loadMessages();
 
     // Subscribe to new messages
@@ -43,22 +76,32 @@ const PublicChat = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'public_messages'
         },
         async (payload) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name, email')
-            .eq('id', payload.new.user_id)
-            .single();
+          if (payload.eventType === 'INSERT') {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name, email')
+              .eq('id', payload.new.user_id)
+              .single();
 
-          if (profile) {
-            setMessages(prev => [...prev, {
-              ...payload.new as any,
-              profiles: profile
-            }]);
+            if (profile) {
+              setMessages(prev => [...prev, {
+                ...payload.new as any,
+                profiles: profile
+              }]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages(prev => prev.map(msg => 
+              msg.id === payload.new.id 
+                ? { ...msg, ...payload.new as any }
+                : msg
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
           }
         }
       )
@@ -82,7 +125,7 @@ const PublicChat = () => {
       .from('public_messages')
       .select(`
         *,
-        profiles (
+        profiles!public_messages_user_id_fkey (
           name,
           email
         )
@@ -105,12 +148,33 @@ const PublicChat = () => {
     if (!newMessage.trim() || !user || isLoading) return;
 
     setIsLoading(true);
+    const content = newMessage.trim();
+
+    // Check for /askify command
+    if (content.startsWith('/askify ')) {
+      const question = content.substring(8);
+      
+      const { error } = await supabase.functions.invoke('askify-chat', {
+        body: { question, messageId: user.id }
+      });
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to get AI response',
+          variant: 'destructive'
+        });
+      }
+      setNewMessage('');
+      setIsLoading(false);
+      return;
+    }
 
     const { error } = await supabase
       .from('public_messages')
       .insert({
         user_id: user.id,
-        content: newMessage.trim()
+        content
       });
 
     if (error) {
@@ -145,6 +209,72 @@ const PublicChat = () => {
     } else {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
+  };
+
+  const handleEditMessage = async () => {
+    if (!editingMessage || !editContent.trim()) return;
+
+    const message = messages.find(m => m.id === editingMessage);
+    if (!message) return;
+
+    const editHistory = message.edit_history || [];
+    editHistory.push({
+      content: message.content,
+      edited_at: new Date().toISOString()
+    });
+
+    const { error } = await supabase
+      .from('public_messages')
+      .update({
+        content: editContent.trim(),
+        edited_at: new Date().toISOString(),
+        edit_history: editHistory
+      })
+      .eq('id', editingMessage);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to edit message',
+        variant: 'destructive'
+      });
+    } else {
+      setEditingMessage(null);
+      setEditContent('');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    const { error } = await supabase
+      .from('public_messages')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id
+      })
+      .eq('id', messageId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete message',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const renderMessageContent = (content: string) => {
+    // Parse @mentions and highlight them
+    const parts = content.split(/(@\w+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        return (
+          <span key={i} className="text-primary font-semibold">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   return (
@@ -182,10 +312,18 @@ const PublicChat = () => {
             ) : (
               messages.map((message) => {
                 const isOwnMessage = message.user_id === user?.id;
+                const isDeleted = !!message.deleted_at;
+                const canSeeDeleted = isAdmin || isOwnMessage;
+                
+                // Skip deleted messages for non-admin users who don't own them
+                if (isDeleted && !canSeeDeleted) {
+                  return null;
+                }
+
                 return (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
+                    className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''}`}
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="text-xs bg-muted">
@@ -200,17 +338,63 @@ const PublicChat = () => {
                         <span className="text-xs text-muted-foreground">
                           {formatTime(message.created_at)}
                         </span>
+                        {message.edited_at && (
+                          <span className="text-xs text-muted-foreground italic">
+                            (edited)
+                          </span>
+                        )}
                       </div>
-                      <div
-                        className={`rounded-2xl px-4 py-2 ${
-                          isOwnMessage
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {message.content}
-                        </p>
+                      <div className="flex items-start gap-2">
+                        <div
+                          className={`rounded-2xl px-4 py-2 ${
+                            isDeleted 
+                              ? 'bg-destructive/20 text-destructive line-through'
+                              : isOwnMessage
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-foreground'
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap break-words">
+                            {isDeleted ? (
+                              isAdmin ? (
+                                <>
+                                  [Deleted by {message.deleted_by === message.user_id ? 'user' : 'admin'}] {message.content}
+                                </>
+                              ) : (
+                                '[Message deleted]'
+                              )
+                            ) : (
+                              renderMessageContent(message.content)
+                            )}
+                          </p>
+                        </div>
+                        {!isDeleted && isOwnMessage && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingMessage(message.id);
+                                  setEditContent(message.content);
+                                }}
+                              >
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteMessage(message.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -221,6 +405,9 @@ const PublicChat = () => {
         </ScrollArea>
 
         <div className="border-t border-border p-4 bg-background">
+          <div className="mb-2 text-xs text-muted-foreground">
+            Tip: Use @username to mention someone or /askify your question to get AI help
+          </div>
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={newMessage}
@@ -238,6 +425,28 @@ const PublicChat = () => {
             </Button>
           </form>
         </div>
+
+        <Dialog open={!!editingMessage} onOpenChange={() => setEditingMessage(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Message</DialogTitle>
+            </DialogHeader>
+            <Input
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              placeholder="Edit your message..."
+              className="mt-4"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingMessage(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditMessage}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

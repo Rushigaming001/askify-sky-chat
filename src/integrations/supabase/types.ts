@@ -69,6 +69,10 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          edit_history: Json | null
+          edited_at: string | null
           id: string
           updated_at: string
           user_id: string
@@ -76,6 +80,10 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edit_history?: Json | null
+          edited_at?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -83,11 +91,22 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edit_history?: Json | null
+          edited_at?: string | null
           id?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "public_messages_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "public_messages_user_id_fkey"
             columns: ["user_id"]
