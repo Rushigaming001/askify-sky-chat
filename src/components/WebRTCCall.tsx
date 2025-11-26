@@ -41,6 +41,8 @@ export function WebRTCCall({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const channelRef = useRef<any>(null);
+  const signalingChannelRef = useRef<any>(null);
+  const [callId] = useState(() => `call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     if (isOpen && recipientId === 'public') {
@@ -106,15 +108,55 @@ export function WebRTCCall({
 
     if (isOpen) {
       initializeCall();
+      setupSignaling();
     }
 
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
+      if (signalingChannelRef.current) {
+        supabase.removeChannel(signalingChannelRef.current);
+      }
       cleanup();
     };
   }, [isOpen, recipientId, callType, user]);
+
+  const setupSignaling = () => {
+    if (!user || recipientId === 'public') return;
+
+    const signalingChannel = supabase.channel(`webrtc-${callId}`);
+    signalingChannelRef.current = signalingChannel;
+
+    signalingChannel
+      .on('broadcast', { event: 'offer' }, async ({ payload }) => {
+        console.log('Received offer:', payload);
+        if (payload.to === user.id && peerConnectionRef.current) {
+          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.offer));
+          const answer = await peerConnectionRef.current.createAnswer();
+          await peerConnectionRef.current.setLocalDescription(answer);
+          
+          signalingChannel.send({
+            type: 'broadcast',
+            event: 'answer',
+            payload: { answer, to: payload.from, from: user.id }
+          });
+        }
+      })
+      .on('broadcast', { event: 'answer' }, async ({ payload }) => {
+        console.log('Received answer:', payload);
+        if (payload.to === user.id && peerConnectionRef.current) {
+          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
+        }
+      })
+      .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+        console.log('Received ICE candidate:', payload);
+        if (payload.to === user.id && peerConnectionRef.current && payload.candidate) {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
+        }
+      })
+      .subscribe();
+  };
 
   const initializeCall = async () => {
     try {
@@ -135,7 +177,8 @@ export function WebRTCCall({
       const configuration = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
         ]
       };
 
@@ -149,6 +192,7 @@ export function WebRTCCall({
 
       // Handle incoming tracks
       peerConnection.ontrack = (event) => {
+        console.log('Received remote track:', event);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
           setIsConnecting(false);
@@ -157,9 +201,13 @@ export function WebRTCCall({
 
       // Handle ICE candidates
       peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          // In a real implementation, send this to the other peer via signaling server
-          console.log('New ICE candidate:', event.candidate);
+        if (event.candidate && signalingChannelRef.current && user) {
+          console.log('Sending ICE candidate:', event.candidate);
+          signalingChannelRef.current.send({
+            type: 'broadcast',
+            event: 'ice-candidate',
+            payload: { candidate: event.candidate, to: recipientId, from: user.id }
+          });
         }
       };
 
@@ -172,15 +220,28 @@ export function WebRTCCall({
             title: 'Connected',
             description: `${callType === 'video' ? 'Video' : 'Voice'} call connected`
           });
+        } else if (peerConnection.connectionState === 'failed') {
+          toast({
+            title: 'Connection Failed',
+            description: 'Failed to establish connection. Please try again.',
+            variant: 'destructive'
+          });
         }
       };
 
       // If initiator, create offer
-      if (isInitiator) {
+      if (isInitiator && user && recipientId !== 'public') {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        // In real implementation: send offer to peer via signaling server
-        console.log('Created offer:', offer);
+        
+        if (signalingChannelRef.current) {
+          console.log('Sending offer:', offer);
+          signalingChannelRef.current.send({
+            type: 'broadcast',
+            event: 'offer',
+            payload: { offer, to: recipientId, from: user.id, callId }
+          });
+        }
       }
 
       setIsConnecting(false);
