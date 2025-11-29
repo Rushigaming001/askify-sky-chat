@@ -23,14 +23,16 @@ serve(async (req) => {
       });
     }
 
-    // Check if model is GPT (use OpenRouter) or Gemini (use Google AI)
+    // Check if model is GPT (use OpenRouter), Gemini (use Google AI), or NVIDIA NIM
     const isGPTModel = model === 'gpt' || model === 'gpt-mini' || model === 'gpt-nano';
     const isGeminiModel = model === 'gemini' || model === 'gemini-3' || model === 'askify';
+    const isNvidiaModel = model === 'nvidia';
     
     // Map user's model selection
     let aiModel = 'gemini-2.0-flash-exp';
     let openAIModel = '';
     let geminiModel = '';
+    let nvidiaModel = '';
     
     if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
@@ -47,6 +49,8 @@ serve(async (req) => {
       geminiModel = 'gemini-exp-1206';
     } else if (model === 'askify') {
       geminiModel = 'gemini-2.0-pro-exp';
+    } else if (model === 'nvidia') {
+      nvidiaModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
     }
 
     // Initialize Supabase client
@@ -206,6 +210,57 @@ Be helpful, accurate, and conversational.`;
 
       const data = await response.json();
       reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated";
+    } else if (isNvidiaModel) {
+      // Use NVIDIA NIM API with user's key
+      const NVIDIA_NIM_API_KEY = Deno.env.get("NVIDIA_NIM_API_KEY");
+      
+      if (!NVIDIA_NIM_API_KEY) {
+        return new Response(JSON.stringify({ error: "NVIDIA NIM API key not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${NVIDIA_NIM_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: nvidiaModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          max_tokens: 4096,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("NVIDIA NIM API error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "NVIDIA NIM rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        if (response.status === 401) {
+          return new Response(JSON.stringify({ error: "Invalid NVIDIA NIM API key. Please check your key." }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        throw new Error(`NVIDIA NIM API request failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+      reply = data.choices?.[0]?.message?.content || "No response generated";
     } else {
       return new Response(JSON.stringify({ error: "Invalid model selection" }), {
         status: 400,
