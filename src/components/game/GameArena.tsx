@@ -38,51 +38,48 @@ export function GameArena() {
 
   return (
     <group>
-      {/* Ground */}
+      {/* Ground - Bright visible floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[60, 60]} />
         <meshStandardMaterial 
-          color="#1a1a1a" 
-          roughness={0.9}
-          metalness={0.1}
+          color="#556677" 
+          roughness={0.8}
+          metalness={0.2}
         />
       </mesh>
 
-      {/* Grid pattern on ground */}
-      <gridHelper args={[60, 60, '#333333', '#222222']} position={[0, 0.01, 0]} />
+      {/* Grid pattern on ground - More visible */}
+      <gridHelper args={[60, 30, '#88aacc', '#445566']} position={[0, 0.01, 0]} />
 
-      {/* Walls */}
+      {/* Walls - Visible concrete color */}
       {wallPositions.map((wall, i) => (
-        <mesh key={`wall-${i}`} position={wall.pos as [number, number, number]} castShadow receiveShadow>
+        <mesh key={`wall-${i}`} position={wall.pos as [number, number, number]}>
           <boxGeometry args={wall.size as [number, number, number]} />
           <meshStandardMaterial 
-            color="#2a2a2a" 
+            color="#708090" 
             roughness={0.8}
-            metalness={0.2}
           />
         </mesh>
       ))}
 
-      {/* Large Obstacles/Cover */}
+      {/* Large Obstacles/Cover - Orange crates */}
       {largeObstacles.map((obstacle, i) => (
-        <mesh key={`large-${i}`} position={obstacle.pos as [number, number, number]} castShadow receiveShadow>
+        <mesh key={`large-${i}`} position={obstacle.pos as [number, number, number]}>
           <boxGeometry args={obstacle.size as [number, number, number]} />
           <meshStandardMaterial 
-            color="#444444" 
-            roughness={0.6} 
-            metalness={0.4}
+            color="#d97706" 
+            roughness={0.6}
           />
         </mesh>
       ))}
 
-      {/* Small Obstacles/Crates */}
+      {/* Small Obstacles/Crates - Wooden boxes */}
       {smallObstacles.map((obstacle, i) => (
-        <mesh key={`small-${i}`} position={obstacle.pos as [number, number, number]} castShadow receiveShadow>
+        <mesh key={`small-${i}`} position={obstacle.pos as [number, number, number]}>
           <boxGeometry args={obstacle.size as [number, number, number]} />
           <meshStandardMaterial 
-            color="#666666" 
-            roughness={0.7} 
-            metalness={0.3}
+            color="#92400e" 
+            roughness={0.7}
           />
         </mesh>
       ))}
@@ -95,10 +92,14 @@ export function GameArena() {
         [-8, 0.1, -8],
       ].map((pos, i) => (
         <mesh key={`spawn-${i}`} position={pos as [number, number, number]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.8, 32]} />
-          <meshBasicMaterial color="#00ff00" opacity={0.3} transparent />
+          <circleGeometry args={[0.8, 16]} />
+          <meshBasicMaterial color="#22c55e" opacity={0.5} transparent />
         </mesh>
       ))}
+
+      {/* Ambient lighting for visibility */}
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[10, 20, 10]} intensity={0.8} />
     </group>
   );
 }
