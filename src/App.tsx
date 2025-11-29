@@ -11,6 +11,7 @@ import AIFeatures from "./pages/AIFeatures";
 import Settings from "./pages/Settings";
 import PublicChat from "./pages/PublicChat";
 import AdminPanel from "./pages/AdminPanel";
+import Game from "./pages/Game";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/public-chat" element={<PublicChat />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/game" element={<Game />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
