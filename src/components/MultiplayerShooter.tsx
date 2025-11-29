@@ -975,11 +975,16 @@ export function MultiplayerShooter() {
             </>
           )}
 
-          <Canvas 
-            shadows={false} 
+          <Canvas
+            shadows
+            gl={{ 
+              antialias: true,
+              alpha: false,
+              powerPreference: 'high-performance'
+            }}
             camera={{ fov: 75, position: [0, 2, 5] }}
             performance={{ min: 0.5 }}
-            dpr={isMobile ? [0.5, 1] : [1, 2]}
+            dpr={isMobile ? [0.7, 1.2] : [1, 2]}
           >
             <FirstPersonCamera
               position={[
@@ -990,8 +995,13 @@ export function MultiplayerShooter() {
               rotation={cameraRotation}
             />
             
-            {/* Simplified lighting for performance */}
-            <Sky sunPosition={[100, 20, 100]} />
+            {/* Outdoor sky */}
+            <Sky 
+              distance={450000}
+              sunPosition={[100, 50, 100]}
+              inclination={0.6}
+              azimuth={0.25}
+            />
             <GameArena />
 
             {participants.map((participant) => (
