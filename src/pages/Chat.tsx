@@ -10,7 +10,6 @@ import { LiveVideoCall } from '@/components/LiveVideoCall';
 import { VideoGenerator } from '@/components/VideoGenerator';
 import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
 import CapCutPro from '@/components/CapCutPro';
-import DeadshotGame from '@/components/DeadshotGame';
 import { MultiplayerShooter } from '@/components/MultiplayerShooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
