@@ -53,8 +53,8 @@ serve(async (req) => {
       aiModel = 'google/gemini-2.5-pro';
       geminiModel = 'gemini-2.0-pro-exp';
     } else if (model === 'nvidia') {
-      aiModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
-      nvidiaModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
+      aiModel = 'meta/llama-3.1-8b-instruct';
+      nvidiaModel = 'meta/llama-3.1-8b-instruct';
     }
 
     // Initialize Supabase client

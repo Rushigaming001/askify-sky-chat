@@ -48,7 +48,7 @@ const Chat = () => {
       'gpt-nano': 'openai/gpt-5-nano',
       'gemini-3': 'google/gemini-3-pro-preview',
       'askify': 'google/gemini-2.5-pro',
-      'nvidia': 'nvidia/llama-3.1-nemotron-70b-instruct'
+      'nvidia': 'meta/llama-3.1-8b-instruct'
     };
 
     const access: Record<string, boolean> = {};
