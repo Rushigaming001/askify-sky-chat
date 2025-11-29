@@ -9,13 +9,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Target, Users, Play, StopCircle, Trophy, Crosshair, Trash2 } from 'lucide-react';
+import { Target, Users, Play, StopCircle, Trophy, Crosshair, Trash2, Maximize } from 'lucide-react';
 import * as THREE from 'three';
 import { Player } from './game/Player';
 import { Bullet } from './game/Bullet';
 import { GameArena } from './game/GameArena';
-import { WebRTCCall } from './WebRTCCall';
 import { FirstPersonCamera } from './game/FirstPersonCamera';
+import { GameHUD } from './game/GameHUD';
+import { WeaponType, WEAPONS } from './game/WeaponSystem';
 
 interface GameRoom {
   id: string;
@@ -40,13 +41,18 @@ interface RoomParticipant {
   position_z: number;
   rotation_y: number;
   health: number;
+  team: 'red' | 'blue';
+  current_weapon: WeaponType;
 }
 
-interface Bullet {
+interface BulletData {
   id: string;
   position: [number, number, number];
   velocity: [number, number, number];
   ownerId: string;
+  ownerTeam: 'red' | 'blue';
+  damage: number;
+  color: string;
 }
 
 export function MultiplayerShooter() {
@@ -58,21 +64,24 @@ export function MultiplayerShooter() {
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);
   const [newRoomName, setNewRoomName] = useState('');
   const [playerName, setPlayerName] = useState('');
-  const [bullets, setBullets] = useState<Bullet[]>([]);
+  const [bullets, setBullets] = useState<BulletData[]>([]);
   const [crosshairVisible, setCrosshairVisible] = useState(false);
   const [cameraRotation, setCameraRotation] = useState({ x: 0, y: 0 });
   const [inGameCall, setInGameCall] = useState(false);
+  const [currentWeapon, setCurrentWeapon] = useState<WeaponType>('rifle');
+  const [gameTime, setGameTime] = useState(300); // 5 minutes
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const moveSpeed = 0.15;
   const rotationSpeed = 0.002;
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseMovement = useRef({ x: 0, y: 0 });
   const lastSyncTime = useRef(Date.now());
+  const lastShotTime = useRef(0);
 
   useEffect(() => {
     loadRooms();
     
-    // Subscribe to rooms updates
     const roomsChannel = supabase
       .channel('game-rooms-changes')
       .on('postgres_changes', {
@@ -93,7 +102,6 @@ export function MultiplayerShooter() {
     if (currentRoom) {
       loadParticipants();
       
-      // Subscribe to participants updates
       const participantsChannel = supabase
         .channel(`room-${currentRoom.id}-participants`)
         .on('postgres_changes', {
@@ -106,11 +114,9 @@ export function MultiplayerShooter() {
         })
         .subscribe();
 
-      // Subscribe to realtime game state
       const gameChannel = supabase
         .channel(`game-${currentRoom.id}`)
         .on('broadcast', { event: 'player-move' }, ({ payload }) => {
-          // Update other players' positions
           setParticipants(prev => prev.map(p => 
             p.user_id === payload.user_id 
               ? { ...p, position_x: payload.x, position_y: payload.y, position_z: payload.z, rotation_y: payload.rotation }
@@ -118,24 +124,32 @@ export function MultiplayerShooter() {
           ));
         })
         .on('broadcast', { event: 'player-shoot' }, ({ payload }) => {
-          // Add bullet from other player
           setBullets(prev => [...prev, {
             id: `bullet-${Date.now()}-${Math.random()}`,
             position: payload.position,
             velocity: payload.velocity,
-            ownerId: payload.ownerId
+            ownerId: payload.ownerId,
+            ownerTeam: payload.team,
+            damage: payload.damage,
+            color: payload.color
           }]);
         })
         .on('broadcast', { event: 'player-hit' }, ({ payload }) => {
-          // Handle player hit
           if (payload.hitUserId === user?.id) {
             toast({
               title: '💥 Hit!',
-              description: `You were hit by ${payload.shooterName}`,
+              description: `${payload.damage} damage from ${payload.shooterName}`,
               variant: 'destructive'
             });
           }
-          updatePlayerHealth(payload.hitUserId, payload.damage);
+          updatePlayerHealth(payload.hitUserId, payload.damage, payload.shooterId);
+        })
+        .on('broadcast', { event: 'weapon-change' }, ({ payload }) => {
+          setParticipants(prev => prev.map(p =>
+            p.user_id === payload.user_id
+              ? { ...p, current_weapon: payload.weapon }
+              : p
+          ));
         })
         .subscribe();
 
@@ -149,7 +163,20 @@ export function MultiplayerShooter() {
   useEffect(() => {
     if (view === 'game') {
       const handleKeyDown = (e: KeyboardEvent) => {
-        keysPressed.current.add(e.key.toLowerCase());
+        const key = e.key.toLowerCase();
+        keysPressed.current.add(key);
+        
+        // Weapon switching with number keys
+        if (key >= '1' && key <= '5') {
+          const weapons: WeaponType[] = ['smg', 'rifle', 'sniper', 'shotgun', 'special'];
+          const newWeapon = weapons[parseInt(key) - 1];
+          changeWeapon(newWeapon);
+        }
+
+        // Escape to exit
+        if (key === 'escape' && document.pointerLockElement) {
+          document.exitPointerLock();
+        }
       };
 
       const handleKeyUp = (e: KeyboardEvent) => {
@@ -192,18 +219,28 @@ export function MultiplayerShooter() {
         window.removeEventListener('click', handleClick);
       };
     }
-  }, [view, currentRoom, participants]);
+  }, [view, currentRoom, participants, currentWeapon]);
 
   useEffect(() => {
     if (view === 'game' && currentRoom) {
       const gameLoop = setInterval(() => {
         updatePlayerPosition();
         updateBullets();
-      }, 1000 / 60); // 60 FPS
+      }, 1000 / 60);
 
       return () => clearInterval(gameLoop);
     }
   }, [view, currentRoom, participants]);
+
+  useEffect(() => {
+    if (view === 'game' && currentRoom?.status === 'playing') {
+      const timer = setInterval(() => {
+        setGameTime(prev => Math.max(0, prev - 1));
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [view, currentRoom]);
 
   const loadRooms = async () => {
     const { data, error } = await supabase
@@ -225,7 +262,7 @@ export function MultiplayerShooter() {
       .eq('room_id', currentRoom.id);
 
     if (!error && data) {
-      setParticipants(data);
+      setParticipants(data as RoomParticipant[]);
     }
   };
 
@@ -267,13 +304,24 @@ export function MultiplayerShooter() {
       return;
     }
 
+    // Count existing participants to determine team
+    const { data: existingParticipants } = await supabase
+      .from('room_participants')
+      .select('team')
+      .eq('room_id', room.id);
+
+    const redCount = existingParticipants?.filter(p => p.team === 'red').length || 0;
+    const blueCount = existingParticipants?.filter(p => p.team === 'blue').length || 0;
+    const assignedTeam: 'red' | 'blue' = redCount <= blueCount ? 'red' : 'blue';
+
     const { error } = await supabase
       .from('room_participants')
       .insert({
         room_id: room.id,
         user_id: user.id,
         player_name: playerName,
-        position_x: Math.random() * 40 - 20, // Spread out in larger arena
+        team: assignedTeam,
+        position_x: Math.random() * 40 - 20,
         position_y: 0.5,
         position_z: Math.random() * 40 - 20
       });
@@ -294,6 +342,10 @@ export function MultiplayerShooter() {
     } else {
       setCurrentRoom(room);
       setView('room');
+      toast({
+        title: `Joined ${assignedTeam.toUpperCase()} Team!`,
+        description: 'Waiting for game to start...'
+      });
     }
   };
 
@@ -329,6 +381,7 @@ export function MultiplayerShooter() {
 
     setCurrentRoom(null);
     setView('lobby');
+    setInGameCall(false);
   };
 
   const startGame = async () => {
@@ -345,9 +398,10 @@ export function MultiplayerShooter() {
     if (!error) {
       setView('game');
       setInGameCall(true);
+      setGameTime(300);
       toast({
         title: '🎮 Game Started!',
-        description: 'Click to lock mouse and shoot! WASD to move, mouse to aim.'
+        description: 'Click to lock mouse and shoot! WASD to move, 1-5 to switch weapons.'
       });
     }
   };
@@ -366,7 +420,44 @@ export function MultiplayerShooter() {
     if (!error) {
       setInGameCall(false);
       setView('room');
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
     }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  const changeWeapon = async (weapon: WeaponType) => {
+    if (!currentRoom || !user) return;
+
+    setCurrentWeapon(weapon);
+
+    const myParticipant = participants.find(p => p.user_id === user.id);
+    if (!myParticipant) return;
+
+    await supabase
+      .from('room_participants')
+      .update({ current_weapon: weapon })
+      .eq('id', myParticipant.id);
+
+    const channel = supabase.channel(`game-${currentRoom.id}`);
+    channel.send({
+      type: 'broadcast',
+      event: 'weapon-change',
+      payload: {
+        user_id: user.id,
+        weapon
+      }
+    });
   };
 
   const updatePlayerPosition = async () => {
@@ -380,13 +471,11 @@ export function MultiplayerShooter() {
     let rotationChanged = false;
     let newRotation = myParticipant.rotation_y;
 
-    // Movement
     if (keysPressed.current.has('w')) dz -= moveSpeed;
     if (keysPressed.current.has('s')) dz += moveSpeed;
     if (keysPressed.current.has('a')) dx -= moveSpeed;
     if (keysPressed.current.has('d')) dx += moveSpeed;
 
-    // Rotation from mouse
     if (Math.abs(mouseMovement.current.x) > 0 || Math.abs(mouseMovement.current.y) > 0) {
       newRotation = cameraRotation.y;
       mouseMovement.current.x = 0;
@@ -395,7 +484,6 @@ export function MultiplayerShooter() {
     }
 
     if (dx !== 0 || dz !== 0 || rotationChanged) {
-      // Rotate movement based on player rotation
       const cos = Math.cos(newRotation);
       const sin = Math.sin(newRotation);
       const rotatedDx = dx * cos - dz * sin;
@@ -404,11 +492,9 @@ export function MultiplayerShooter() {
       const newX = myParticipant.position_x + rotatedDx;
       const newZ = myParticipant.position_z + rotatedDz;
 
-      // Boundary check (larger arena)
-      const boundedX = Math.max(-30, Math.min(30, newX));
-      const boundedZ = Math.max(-30, Math.min(30, newZ));
+      const boundedX = Math.max(-29, Math.min(29, newX));
+      const boundedZ = Math.max(-29, Math.min(29, newZ));
 
-      // Update in database periodically (every 100ms)
       const now = Date.now();
       if (now - lastSyncTime.current > 100) {
         await supabase
@@ -420,7 +506,6 @@ export function MultiplayerShooter() {
           })
           .eq('id', myParticipant.id);
 
-        // Broadcast to other players
         const channel = supabase.channel(`game-${currentRoom.id}`);
         channel.send({
           type: 'broadcast',
@@ -437,7 +522,6 @@ export function MultiplayerShooter() {
         lastSyncTime.current = now;
       }
 
-      // Update local state immediately
       setParticipants(prev => prev.map(p =>
         p.user_id === user.id
           ? { ...p, position_x: boundedX, position_z: boundedZ, rotation_y: newRotation }
@@ -452,47 +536,66 @@ export function MultiplayerShooter() {
     const myParticipant = participants.find(p => p.user_id === user.id);
     if (!myParticipant || !myParticipant.is_alive) return;
 
-    const bulletId = `bullet-${Date.now()}-${Math.random()}`;
-    const speed = 1.2;
-    
-    // Use camera rotation for shooting direction (first-person)
-    const direction = new THREE.Vector3(
-      -Math.sin(cameraRotation.y) * Math.cos(cameraRotation.x),
-      Math.sin(cameraRotation.x),
-      -Math.cos(cameraRotation.y) * Math.cos(cameraRotation.x)
-    ).normalize();
+    const weaponStats = WEAPONS[currentWeapon];
+    const now = Date.now();
+    const fireDelay = 1000 / weaponStats.fireRate;
 
-    const startPos: [number, number, number] = [
-      myParticipant.position_x + direction.x * 0.5,
-      myParticipant.position_y + 1.5 + direction.y * 0.5, // Eye level
-      myParticipant.position_z + direction.z * 0.5
-    ];
+    if (now - lastShotTime.current < fireDelay) return;
+    lastShotTime.current = now;
 
-    const velocity: [number, number, number] = [
-      direction.x * speed,
-      direction.y * speed,
-      direction.z * speed
-    ];
+    // Create bullets based on weapon stats
+    for (let i = 0; i < weaponStats.bulletCount; i++) {
+      const bulletId = `bullet-${Date.now()}-${Math.random()}`;
+      const spread = weaponStats.spread;
+      
+      const spreadX = (Math.random() - 0.5) * spread;
+      const spreadY = (Math.random() - 0.5) * spread;
+      
+      const direction = new THREE.Vector3(
+        -Math.sin(cameraRotation.y + spreadX) * Math.cos(cameraRotation.x + spreadY),
+        Math.sin(cameraRotation.x + spreadY),
+        -Math.cos(cameraRotation.y + spreadX) * Math.cos(cameraRotation.x + spreadY)
+      ).normalize();
 
-    // Add bullet locally
-    setBullets(prev => [...prev, {
-      id: bulletId,
-      position: startPos,
-      velocity,
-      ownerId: user.id
-    }]);
+      const startPos: [number, number, number] = [
+        myParticipant.position_x + direction.x * 0.5,
+        myParticipant.position_y + 1.5 + direction.y * 0.5,
+        myParticipant.position_z + direction.z * 0.5
+      ];
 
-    // Broadcast shoot event
-    const channel = supabase.channel(`game-${currentRoom.id}`);
-    channel.send({
-      type: 'broadcast',
-      event: 'player-shoot',
-      payload: {
-        ownerId: user.id,
+      const speed = weaponStats.bulletSpeed / 50;
+      const velocity: [number, number, number] = [
+        direction.x * speed,
+        direction.y * speed,
+        direction.z * speed
+      ];
+
+      const bulletData: BulletData = {
+        id: bulletId,
         position: startPos,
-        velocity
-      }
-    });
+        velocity,
+        ownerId: user.id,
+        ownerTeam: myParticipant.team,
+        damage: weaponStats.damage,
+        color: weaponStats.color
+      };
+
+      setBullets(prev => [...prev, bulletData]);
+
+      const channel = supabase.channel(`game-${currentRoom.id}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'player-shoot',
+        payload: {
+          ownerId: user.id,
+          team: myParticipant.team,
+          position: startPos,
+          velocity,
+          damage: weaponStats.damage,
+          color: weaponStats.color
+        }
+      });
+    }
   };
 
   const updateBullets = () => {
@@ -508,38 +611,35 @@ export function MultiplayerShooter() {
         }))
         .filter(bullet => {
           const [x, y, z] = bullet.position;
-          return Math.abs(x) < 30 && Math.abs(z) < 30 && y > -1;
+          return Math.abs(x) < 30 && Math.abs(z) < 30 && y > -1 && y < 10;
         });
 
-      // Check for hits
       updated.forEach(bullet => {
         participants.forEach(p => {
-          if (p.user_id !== bullet.ownerId && p.is_alive) {
-            // Check 3D distance including Y coordinate (height)
+          if (p.user_id !== bullet.ownerId && p.is_alive && p.team !== bullet.ownerTeam) {
             const dist = Math.sqrt(
               Math.pow(bullet.position[0] - p.position_x, 2) +
-              Math.pow(bullet.position[1] - (p.position_y + 1.0), 2) + // Center of mass
+              Math.pow(bullet.position[1] - (p.position_y + 1.0), 2) +
               Math.pow(bullet.position[2] - p.position_z, 2)
             );
             
-            if (dist < 0.8) { // Hit radius
-              handlePlayerHit(bullet.ownerId, p.user_id);
+            if (dist < 0.8) {
+              handlePlayerHit(bullet.ownerId, p.user_id, bullet.damage);
+              bullet.position = [-1000, -1000, -1000]; // Remove bullet
             }
           }
         });
       });
 
-      return updated;
+      return updated.filter(b => b.position[0] > -999);
     });
   };
 
-  const handlePlayerHit = async (shooterId: string, hitUserId: string) => {
+  const handlePlayerHit = async (shooterId: string, hitUserId: string, damage: number) => {
     if (!currentRoom) return;
 
-    const damage = 25;
     const shooter = participants.find(p => p.user_id === shooterId);
     
-    // Broadcast hit event
     const channel = supabase.channel(`game-${currentRoom.id}`);
     channel.send({
       type: 'broadcast',
@@ -553,12 +653,14 @@ export function MultiplayerShooter() {
     });
   };
 
-  const updatePlayerHealth = async (userId: string, damage: number) => {
+  const updatePlayerHealth = async (userId: string, damage: number, shooterId?: string) => {
     const participant = participants.find(p => p.user_id === userId);
     if (!participant) return;
 
     const newHealth = Math.max(0, participant.health - damage);
     const isDead = newHealth <= 0;
+
+    const shooter = participants.find(p => p.user_id === shooterId);
 
     await supabase
       .from('room_participants')
@@ -568,6 +670,16 @@ export function MultiplayerShooter() {
         deaths: isDead ? participant.deaths + 1 : participant.deaths
       })
       .eq('id', participant.id);
+
+    if (isDead && shooterId && shooter) {
+      await supabase
+        .from('room_participants')
+        .update({
+          kills: shooter.kills + 1,
+          score: shooter.score + 100
+        })
+        .eq('id', shooter.id);
+    }
 
     if (isDead && userId === user?.id) {
       toast({
@@ -589,106 +701,100 @@ export function MultiplayerShooter() {
     }
   };
 
+  const myParticipant = participants.find(p => p.user_id === user?.id);
   const isOwner = currentRoom && user && currentRoom.owner_id === user.id;
+  
+  const redTeam = participants.filter(p => p.team === 'red');
+  const blueTeam = participants.filter(p => p.team === 'blue');
+  const redScore = redTeam.reduce((sum, p) => sum + p.kills, 0);
+  const blueScore = blueTeam.reduce((sum, p) => sum + p.kills, 0);
 
   return (
     <div className="w-full h-full">
       {view === 'lobby' && (
         <div className="p-6 space-y-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Target className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-bold">Multiplayer Shooter</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Target className="w-8 h-8 text-primary" />
+              <h1 className="text-3xl font-bold">Multiplayer Shooter Arena</h1>
+            </div>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              <Users className="w-4 h-4 mr-2" />
+              {rooms.reduce((sum, r) => sum + (r.status === 'playing' ? 1 : 0), 0)} Active Games
+            </Badge>
           </div>
 
-          <Card className="p-4 space-y-4">
-            <h3 className="text-xl font-semibold">Create New Room</h3>
-            <div className="flex gap-2">
+          <Card className="p-4">
+            <div className="space-y-4">
               <Input
                 placeholder="Enter your player name"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="flex-1"
+                className="text-lg"
               />
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Room name"
-                value={newRoomName}
-                onChange={(e) => setNewRoomName(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={createRoom} disabled={!newRoomName.trim() || !playerName.trim()}>
-                Create Room
-              </Button>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Room name"
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                />
+                <Button onClick={createRoom} disabled={!playerName.trim()}>
+                  Create Room
+                </Button>
+              </div>
             </div>
           </Card>
 
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Available Rooms</h3>
-            <ScrollArea className="h-[400px]">
-                <div className="space-y-3">
-                  {rooms.map(room => {
-                    const isRoomOwner = user && room.owner_id === user.id;
-                    return (
-                      <Card key={room.id} className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-lg">{room.name}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant={room.status === 'waiting' ? 'default' : room.status === 'playing' ? 'secondary' : 'outline'}>
-                                {room.status}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {participants.filter(p => p.room_id === room.id).length}/{room.max_players}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              onClick={() => joinRoom(room)}
-                              disabled={room.status !== 'waiting' || !playerName.trim()}
-                              size="sm"
-                            >
-                              Join
+          <ScrollArea className="h-[500px]">
+            <div className="grid gap-4">
+              {rooms.map((room) => (
+                <Card key={room.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{room.name}</h3>
+                      <div className="flex items-center gap-4 mt-2">
+                        <Badge variant={room.status === 'waiting' ? 'secondary' : room.status === 'playing' ? 'default' : 'outline'}>
+                          {room.status}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          Max {room.max_players} players
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {room.status === 'waiting' && (
+                        <>
+                          <Button onClick={() => joinRoom(room)} disabled={!playerName.trim()}>
+                            Join Room
+                          </Button>
+                          {room.owner_id === user?.id && (
+                            <Button variant="destructive" size="icon" onClick={() => deleteRoom(room.id)}>
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                            {isRoomOwner && room.status === 'waiting' && (
-                              <Button 
-                                onClick={() => deleteRoom(room.id)}
-                                variant="destructive"
-                                size="sm"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                {rooms.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">
-                    No rooms available. Create one!
-                  </p>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       )}
 
-      {view === 'room' && currentRoom && (
+      {view === 'room' && (
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-bold">{currentRoom.name}</h2>
-              <Badge className="mt-2">{currentRoom.status}</Badge>
+              <h2 className="text-2xl font-bold">{currentRoom?.name}</h2>
+              <Badge variant="secondary" className="mt-2">Waiting for game to start...</Badge>
             </div>
             <div className="flex gap-2">
               {isOwner && (
-                <Button onClick={startGame} disabled={participants.length < 2}>
-                  <Play className="mr-2 h-4 w-4" />
-                  Start Game
+                <Button onClick={startGame} className="gap-2">
+                  <Play className="w-4 h-4" />
+                  Start Match
                 </Button>
               )}
               <Button variant="outline" onClick={leaveRoom}>
@@ -697,163 +803,131 @@ export function MultiplayerShooter() {
             </div>
           </div>
 
-          <Card className="p-4">
-            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Players ({participants.length}/{currentRoom.max_players})
-            </h3>
-            <div className="space-y-2">
-              {participants.map(p => (
-                <div key={p.id} className="flex items-center justify-between p-2 rounded bg-muted">
-                  <span className="font-medium">{p.player_name}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Trophy className="h-3 w-3" />
-                      {p.score}
-                    </span>
-                    {p.user_id === currentRoom.owner_id && (
-                      <Badge variant="secondary">Owner</Badge>
-                    )}
-                  </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="p-4 border-[#ff2222] border-2">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-[#ff2222]" />
+                Red Team ({redTeam.length})
+              </h3>
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                  {redTeam.map(p => (
+                    <div key={p.id} className="p-2 bg-muted rounded">
+                      <div className="font-bold">{p.player_name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        K: {p.kills} / D: {p.deaths}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Card>
-
-          {!isOwner && (
-            <Card className="p-4 bg-amber-500/10 border-amber-500/50">
-              <p className="text-sm">Waiting for room owner to start the game...</p>
+              </ScrollArea>
             </Card>
-          )}
+
+            <Card className="p-4 border-[#2222ff] border-2">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-[#2222ff]" />
+                Blue Team ({blueTeam.length})
+              </h3>
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                  {blueTeam.map(p => (
+                    <div key={p.id} className="p-2 bg-muted rounded">
+                      <div className="font-bold">{p.player_name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        K: {p.kills} / D: {p.deaths}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </Card>
+          </div>
         </div>
       )}
 
-      {view === 'game' && currentRoom && (
-        <div className="relative w-full h-screen bg-black">
-          {crosshairVisible && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-              <div className="relative">
-                <Crosshair className="h-6 w-6 text-red-500" strokeWidth={2} />
-                <div className="absolute inset-0 animate-ping">
-                  <Crosshair className="h-6 w-6 text-red-500/50" strokeWidth={2} />
-                </div>
-              </div>
-            </div>
+      {view === 'game' && (
+        <div className="w-full h-screen relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 left-4 z-50 bg-black/50 hover:bg-black/70"
+            onClick={toggleFullscreen}
+          >
+            <Maximize className="w-6 h-6 text-white" />
+          </Button>
+
+          {isOwner && (
+            <Button
+              variant="destructive"
+              className="absolute top-4 right-4 z-50"
+              onClick={endGame}
+            >
+              <StopCircle className="w-4 h-4 mr-2" />
+              End Game
+            </Button>
           )}
 
-          <div className="absolute top-4 left-4 z-50 space-y-2">
-            {participants.find(p => p.user_id === user?.id) && (
-              <Card className="p-3 bg-background/80 backdrop-blur">
-                <div className="text-sm space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Health:</span>
-                    <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-green-500 transition-all"
-                        style={{ width: `${participants.find(p => p.user_id === user?.id)?.health || 0}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Kills: {participants.find(p => p.user_id === user?.id)?.kills || 0}</span>
-                    <span>Deaths: {participants.find(p => p.user_id === user?.id)?.deaths || 0}</span>
-                  </div>
-                </div>
-              </Card>
-            )}
+          <Canvas shadows camera={{ fov: 75, position: [0, 2, 5] }}>
+            <FirstPersonCamera
+              position={[
+                myParticipant?.position_x || 0,
+                myParticipant?.position_y || 0,
+                myParticipant?.position_z || 0
+              ]}
+              rotation={cameraRotation}
+            />
 
-            {isOwner && (
-              <Button variant="destructive" size="sm" onClick={endGame}>
-                <StopCircle className="mr-2 h-4 w-4" />
-                End Game
-              </Button>
-            )}
-          </div>
-
-          <div className="absolute top-4 right-4 z-50">
-            <Card className="p-3 bg-background/80 backdrop-blur">
-              <h4 className="font-semibold text-sm mb-2">Leaderboard</h4>
-              <div className="space-y-1 text-xs">
-                {[...participants]
-                  .sort((a, b) => b.score - a.score)
-                  .slice(0, 5)
-                  .map((p, i) => (
-                    <div key={p.id} className="flex items-center justify-between gap-3">
-                      <span className="font-medium">#{i + 1} {p.player_name}</span>
-                      <span className="text-muted-foreground">{p.score}</span>
-                    </div>
-                  ))}
-              </div>
-            </Card>
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-            <Card className="px-4 py-2 bg-black/80 backdrop-blur text-xs font-semibold text-white border-primary">
-              <div className="flex items-center gap-6">
-                <span className="flex items-center gap-1">
-                  <span className="text-primary">W/A/S/D:</span> Move
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="text-primary">Mouse:</span> Look Around
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="text-primary">Click:</span> Shoot
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="text-primary">ESC:</span> Unlock Mouse
-                </span>
-              </div>
-            </Card>
-          </div>
-
-          <Canvas camera={{ position: [0, 1.6, 0], fov: 75 }}>
-            <Sky sunPosition={[100, 20, 100]} />
             <ambientLight intensity={0.3} />
-            <directionalLight position={[10, 10, 5]} intensity={0.8} castShadow />
-            <pointLight position={[0, 5, 0]} intensity={0.3} />
+            <directionalLight
+              position={[10, 20, 10]}
+              intensity={0.8}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+            />
             
+            <Sky sunPosition={[100, 20, 100]} />
             <GameArena />
-            
-            {/* Render other players (not yourself) */}
-            {participants.filter(p => p.user_id !== user?.id).map(participant => (
-              <Player
-                key={participant.id}
-                position={[participant.position_x, participant.position_y, participant.position_z]}
-                rotation={participant.rotation_y}
-                color="#ff4444"
-                name={participant.player_name}
-                health={participant.health}
-                isAlive={participant.is_alive}
-              />
+
+            {participants.map((participant) => (
+              participant.user_id !== user?.id && (
+                <Player
+                  key={participant.id}
+                  position={[participant.position_x, participant.position_y, participant.position_z]}
+                  rotation={participant.rotation_y}
+                  team={participant.team}
+                  name={participant.player_name}
+                  health={participant.health}
+                  isAlive={participant.is_alive}
+                  currentWeapon={participant.current_weapon}
+                />
+              )
             ))}
 
-            {bullets.map(bullet => (
-              <Bullet key={bullet.id} position={bullet.position} />
+            {bullets.map((bullet) => (
+              <Bullet key={bullet.id} position={bullet.position} color={bullet.color} />
             ))}
-
-            {/* First-person camera controller */}
-            {participants.find(p => p.user_id === user?.id) && (
-              <FirstPersonCamera
-                position={[
-                  participants.find(p => p.user_id === user?.id)!.position_x,
-                  participants.find(p => p.user_id === user?.id)!.position_y,
-                  participants.find(p => p.user_id === user?.id)!.position_z
-                ]}
-                rotation={cameraRotation}
-              />
-            )}
           </Canvas>
 
-          {/* In-game voice and video chat */}
-          {inGameCall && currentRoom && (
-            <WebRTCCall
-              isOpen={inGameCall}
-              onClose={() => setInGameCall(false)}
-              callType="video"
-              recipientName={currentRoom.name}
-              recipientId="public"
-              isInitiator={true}
+          {myParticipant && (
+            <GameHUD
+              health={myParticipant.health}
+              kills={myParticipant.kills}
+              deaths={myParticipant.deaths}
+              currentWeapon={currentWeapon}
+              team={myParticipant.team}
+              timeLeft={gameTime}
+              redScore={redScore}
+              blueScore={blueScore}
+              onWeaponChange={changeWeapon}
             />
+          )}
+
+          {/* In-game voice/video chat placeholder */}
+          {inGameCall && (
+            <div className="fixed bottom-20 right-4 z-40 bg-black/70 p-3 rounded-lg text-white text-sm">
+              Voice & Video Chat Active
+            </div>
           )}
         </div>
       )}

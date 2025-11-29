@@ -386,6 +386,7 @@ export type Database = {
       }
       room_participants: {
         Row: {
+          current_weapon: string | null
           deaths: number | null
           health: number | null
           id: string
@@ -399,9 +400,11 @@ export type Database = {
           room_id: string
           rotation_y: number | null
           score: number | null
+          team: string | null
           user_id: string
         }
         Insert: {
+          current_weapon?: string | null
           deaths?: number | null
           health?: number | null
           id?: string
@@ -415,9 +418,11 @@ export type Database = {
           room_id: string
           rotation_y?: number | null
           score?: number | null
+          team?: string | null
           user_id: string
         }
         Update: {
+          current_weapon?: string | null
           deaths?: number | null
           health?: number | null
           id?: string
@@ -431,6 +436,7 @@ export type Database = {
           room_id?: string
           rotation_y?: number | null
           score?: number | null
+          team?: string | null
           user_id?: string
         }
         Relationships: [
