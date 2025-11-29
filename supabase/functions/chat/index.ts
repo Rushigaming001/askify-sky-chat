@@ -23,40 +23,33 @@ serve(async (req) => {
       });
     }
 
-    // Check if model is GPT (use OpenRouter), Gemini (use Google AI), NVIDIA NIM, or Lovable AI
-    const isGPTModel = model === 'gpt' || model === 'gpt-mini' || model === 'gpt-nano';
-    const isGeminiModel = model === 'gemini' || model === 'gemini-3';
-    const isNvidiaModel = model === 'nvidia';
-    const isLovableAI = model === 'askify'; // Uses Lovable AI Gateway
+    // All models use Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
-    // Map user's model selection
-    let aiModel = 'gemini-2.0-flash-exp';
-    let openAIModel = '';
-    let geminiModel = '';
-    let nvidiaModel = '';
-    let lovableAIModel = '';
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "Lovable AI not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Map user's model selection to Lovable AI models
+    let aiModel = 'google/gemini-2.5-flash';
     
     if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
-      openAIModel = 'gpt-5-2025-08-07';
     } else if (model === 'gpt-mini') {
       aiModel = 'openai/gpt-5-mini';
-      openAIModel = 'gpt-5-mini-2025-08-07';
     } else if (model === 'gpt-nano') {
       aiModel = 'openai/gpt-5-nano';
-      openAIModel = 'gpt-5-nano-2025-08-07';
     } else if (model === 'gemini' || !model) {
       aiModel = 'google/gemini-2.5-flash';
-      geminiModel = 'gemini-2.0-flash-exp';
     } else if (model === 'gemini-3') {
       aiModel = 'google/gemini-3-pro-preview';
-      geminiModel = 'gemini-exp-1206';
-    } else if (model === 'nvidia') {
-      aiModel = 'meta/llama-3.1-8b-instruct';
-      nvidiaModel = 'meta/llama-3.1-8b-instruct';
     } else if (model === 'askify') {
       aiModel = 'google/gemini-2.5-pro';
-      lovableAIModel = 'google/gemini-2.5-pro'; // Lovable AI Gateway
+    } else if (model === 'nvidia') {
+      aiModel = 'meta/llama-3.1-8b-instruct';
     }
 
     // Initialize Supabase client
@@ -102,226 +95,45 @@ Be helpful, accurate, and conversational.`;
 
     let reply = '';
 
-    // Route to appropriate API based on model type
-    if (isGPTModel) {
-      // Use OpenRouter API with user's key for GPT models
-      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    // All models now use Lovable AI Gateway
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: aiModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Lovable AI error:", response.status, errorText);
       
-      if (!OPENAI_API_KEY) {
-        return new Response(JSON.stringify({ error: "OpenRouter API key not configured" }), {
-          status: 500,
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: openAIModel,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          max_completion_tokens: 4096,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "OpenAI rate limit exceeded. Please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        if (response.status === 401) {
-          return new Response(JSON.stringify({ error: "Invalid OpenAI API key. Please check your key." }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        throw new Error(`OpenAI API request failed: ${errorText}`);
-      }
-
-      const data = await response.json();
-      reply = data.choices?.[0]?.message?.content || "No response generated";
       
-    } else if (isGeminiModel) {
-      // Use Google AI API with user's key for Gemini models
-      const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-      
-      if (!GEMINI_API_KEY) {
-        return new Response(JSON.stringify({ error: "Gemini API key not configured" }), {
-          status: 500,
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Out of Lovable AI credits! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
+          status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      // Format messages for Gemini API
-      const contents = messages.map((msg: { role: string; content: string }) => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      }));
-
-      // Add system prompt as first user message
-      contents.unshift({
-        role: 'user',
-        parts: [{ text: systemPrompt }]
-      });
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: contents,
-          generationConfig: {
-            temperature: 0.9,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Gemini API error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Gemini rate limit exceeded. Please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        if (response.status === 401 || response.status === 403) {
-          return new Response(JSON.stringify({ error: "Invalid Gemini API key. Please check your key." }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        throw new Error(`Gemini API request failed: ${errorText}`);
-      }
-
-      const data = await response.json();
-      reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated";
-    } else if (isNvidiaModel) {
-      // Use NVIDIA NIM API with user's key
-      const NVIDIA_NIM_API_KEY = Deno.env.get("NVIDIA_NIM_API_KEY");
       
-      if (!NVIDIA_NIM_API_KEY) {
-        return new Response(JSON.stringify({ error: "NVIDIA NIM API key not configured" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${NVIDIA_NIM_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: nvidiaModel,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          max_tokens: 4096,
-          temperature: 0.7,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("NVIDIA NIM API error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "NVIDIA NIM rate limit exceeded. Please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        if (response.status === 401) {
-          return new Response(JSON.stringify({ error: "Invalid NVIDIA NIM API key. Please check your key." }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        throw new Error(`NVIDIA NIM API request failed: ${errorText}`);
-      }
-
-      const data = await response.json();
-      reply = data.choices?.[0]?.message?.content || "No response generated";
-    } else if (isLovableAI) {
-      // Use Lovable AI Gateway (auto-provisioned API key, no credits from user)
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      
-      if (!LOVABLE_API_KEY) {
-        return new Response(JSON.stringify({ error: "Lovable AI not configured" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: lovableAIModel,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Lovable AI error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Out of Lovable AI credits. Add credits in Settings → Workspace → Usage or use models with your own API keys (GPT, Gemini, NVIDIA)." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        throw new Error(`Lovable AI request failed: ${errorText}`);
-      }
-
-      const data = await response.json();
-      reply = data.choices?.[0]?.message?.content || "No response generated";
-    } else {
-      return new Response(JSON.stringify({ error: "Invalid model selection" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error(`Lovable AI request failed: ${errorText}`);
     }
+
+    const data = await response.json();
+    reply = data.choices?.[0]?.message?.content || "No response generated";
 
     // Log usage
     await supabase.from('usage_logs').insert({
