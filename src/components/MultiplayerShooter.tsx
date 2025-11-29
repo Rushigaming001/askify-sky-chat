@@ -78,8 +78,10 @@ export function MultiplayerShooter() {
   const lastShotTime = useRef(0);
 
   useEffect(() => {
-    ensureGlobalRoom();
-  }, []);
+    if (user) {
+      ensureGlobalRoom();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (currentRoom) {
@@ -226,6 +228,8 @@ export function MultiplayerShooter() {
   }, [view, currentRoom]);
 
   const ensureGlobalRoom = async () => {
+    if (!user) return;
+
     const { data: existingRoom } = await supabase
       .from('game_rooms')
       .select('*')
@@ -233,15 +237,19 @@ export function MultiplayerShooter() {
       .maybeSingle();
 
     if (!existingRoom) {
-      const { data: newRoom } = await supabase
+      const { data: newRoom, error } = await supabase
         .from('game_rooms')
         .insert({
           name: 'GLOBAL_LOBBY',
-          owner_id: '00000000-0000-0000-0000-000000000000',
+          owner_id: user.id,
           status: 'waiting'
         })
         .select()
         .single();
+
+      if (error) {
+        console.error('Failed to create global lobby:', error);
+      }
     }
   };
 
