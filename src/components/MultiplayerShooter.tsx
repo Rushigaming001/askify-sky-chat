@@ -58,19 +58,17 @@ interface BulletData {
 export function MultiplayerShooter() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [view, setView] = useState<'lobby' | 'room' | 'game'>('lobby');
-  const [rooms, setRooms] = useState<GameRoom[]>([]);
+  const [view, setView] = useState<'menu' | 'lobby' | 'game'>('menu');
   const [currentRoom, setCurrentRoom] = useState<GameRoom | null>(null);
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [playerName, setPlayerName] = useState('');
   const [bullets, setBullets] = useState<BulletData[]>([]);
   const [crosshairVisible, setCrosshairVisible] = useState(false);
   const [cameraRotation, setCameraRotation] = useState({ x: 0, y: 0 });
   const [inGameCall, setInGameCall] = useState(false);
   const [currentWeapon, setCurrentWeapon] = useState<WeaponType>('rifle');
-  const [gameTime, setGameTime] = useState(300); // 5 minutes
+  const [gameTime, setGameTime] = useState(300);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   
   const moveSpeed = 0.15;
   const rotationSpeed = 0.002;
@@ -80,22 +78,7 @@ export function MultiplayerShooter() {
   const lastShotTime = useRef(0);
 
   useEffect(() => {
-    loadRooms();
-    
-    const roomsChannel = supabase
-      .channel('game-rooms-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'game_rooms'
-      }, () => {
-        loadRooms();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(roomsChannel);
-    };
+    ensureGlobalRoom();
   }, []);
 
   useEffect(() => {
@@ -242,14 +225,23 @@ export function MultiplayerShooter() {
     }
   }, [view, currentRoom]);
 
-  const loadRooms = async () => {
-    const { data, error } = await supabase
+  const ensureGlobalRoom = async () => {
+    const { data: existingRoom } = await supabase
       .from('game_rooms')
       .select('*')
-      .order('created_at', { ascending: false });
+      .eq('name', 'GLOBAL_LOBBY')
+      .maybeSingle();
 
-    if (!error && data) {
-      setRooms(data);
+    if (!existingRoom) {
+      const { data: newRoom } = await supabase
+        .from('game_rooms')
+        .insert({
+          name: 'GLOBAL_LOBBY',
+          owner_id: '00000000-0000-0000-0000-000000000000',
+          status: 'waiting'
+        })
+        .select()
+        .single();
     }
   };
 
@@ -266,45 +258,22 @@ export function MultiplayerShooter() {
     }
   };
 
-  const createRoom = async () => {
-    if (!newRoomName.trim() || !user) return;
+  const joinGlobalLobby = async () => {
+    if (!user) return;
 
-    const { data, error } = await supabase
+    setIsJoining(true);
+
+    const { data: room } = await supabase
       .from('game_rooms')
-      .insert({
-        name: newRoomName,
-        owner_id: user.id,
-        status: 'waiting'
-      })
-      .select()
+      .select('*')
+      .eq('name', 'GLOBAL_LOBBY')
       .single();
 
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create room',
-        variant: 'destructive'
-      });
-    } else {
-      setNewRoomName('');
-      toast({
-        title: 'Room Created',
-        description: `${newRoomName} is ready!`
-      });
-    }
-  };
-
-  const joinRoom = async (room: GameRoom) => {
-    if (!user || !playerName.trim()) {
-      toast({
-        title: 'Enter Your Name',
-        description: 'Please enter a player name first',
-        variant: 'destructive'
-      });
-      return;
+    if (!room) {
+      await ensureGlobalRoom();
+      return joinGlobalLobby();
     }
 
-    // Count existing participants to determine team
     const { data: existingParticipants } = await supabase
       .from('room_participants')
       .select('team')
@@ -314,63 +283,44 @@ export function MultiplayerShooter() {
     const blueCount = existingParticipants?.filter(p => p.team === 'blue').length || 0;
     const assignedTeam: 'red' | 'blue' = redCount <= blueCount ? 'red' : 'blue';
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single();
+
     const { error } = await supabase
       .from('room_participants')
       .insert({
         room_id: room.id,
         user_id: user.id,
-        player_name: playerName,
+        player_name: profile?.name || 'Player',
         team: assignedTeam,
         position_x: Math.random() * 40 - 20,
         position_y: 0.5,
         position_z: Math.random() * 40 - 20
       });
 
-    if (error) {
-      if (error.code === '23505') {
-        toast({
-          title: 'Already Joined',
-          description: 'You are already in this room'
-        });
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to join room',
-          variant: 'destructive'
-        });
-      }
-    } else {
-      setCurrentRoom(room);
-      setView('room');
-      toast({
-        title: `Joined ${assignedTeam.toUpperCase()} Team!`,
-        description: 'Waiting for game to start...'
-      });
-    }
-  };
-
-  const deleteRoom = async (roomId: string) => {
-    const { error } = await supabase
-      .from('game_rooms')
-      .delete()
-      .eq('id', roomId);
-
-    if (error) {
+    if (error && error.code !== '23505') {
       toast({
         title: 'Error',
-        description: 'Failed to delete room',
+        description: 'Failed to join lobby',
         variant: 'destructive'
       });
-    } else {
-      toast({
-        title: 'Room Deleted',
-        description: 'Room has been deleted successfully'
-      });
-      loadRooms();
+      setIsJoining(false);
+      return;
     }
+
+    setCurrentRoom(room);
+    setView('lobby');
+    setIsJoining(false);
+    toast({
+      title: `Joined ${assignedTeam.toUpperCase()} Team!`,
+      description: 'Waiting for game to start...'
+    });
   };
 
-  const leaveRoom = async () => {
+  const leaveLobby = async () => {
     if (!currentRoom || !user) return;
 
     await supabase
@@ -380,12 +330,30 @@ export function MultiplayerShooter() {
       .eq('user_id', user.id);
 
     setCurrentRoom(null);
-    setView('lobby');
+    setView('menu');
     setInGameCall(false);
   };
 
   const startGame = async () => {
-    if (!currentRoom || !user || currentRoom.owner_id !== user.id) return;
+    if (!currentRoom || !user) return;
+
+    // Check if user is owner/admin
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    const isOwnerOrAdmin = userRole?.role === 'owner' || userRole?.role === 'admin';
+
+    if (!isOwnerOrAdmin) {
+      toast({
+        title: 'Permission Denied',
+        description: 'Only owner/admin can start the game',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const { error } = await supabase
       .from('game_rooms')
@@ -407,19 +375,36 @@ export function MultiplayerShooter() {
   };
 
   const endGame = async () => {
-    if (!currentRoom || !user || currentRoom.owner_id !== user.id) return;
+    if (!currentRoom || !user) return;
+
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    const isOwnerOrAdmin = userRole?.role === 'owner' || userRole?.role === 'admin';
+
+    if (!isOwnerOrAdmin) {
+      toast({
+        title: 'Permission Denied',
+        description: 'Only owner/admin can end the game',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const { error } = await supabase
       .from('game_rooms')
       .update({ 
-        status: 'finished',
+        status: 'waiting',
         ended_at: new Date().toISOString()
       })
       .eq('id', currentRoom.id);
 
     if (!error) {
       setInGameCall(false);
-      setView('room');
+      setView('lobby');
       if (document.pointerLockElement) {
         document.exitPointerLock();
       }
@@ -702,103 +687,70 @@ export function MultiplayerShooter() {
   };
 
   const myParticipant = participants.find(p => p.user_id === user?.id);
-  const isOwner = currentRoom && user && currentRoom.owner_id === user.id;
+  const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   
   const redTeam = participants.filter(p => p.team === 'red');
   const blueTeam = participants.filter(p => p.team === 'blue');
   const redScore = redTeam.reduce((sum, p) => sum + p.kills, 0);
   const blueScore = blueTeam.reduce((sum, p) => sum + p.kills, 0);
 
+  useEffect(() => {
+    const checkRole = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      setIsOwnerOrAdmin(data?.role === 'owner' || data?.role === 'admin');
+    };
+    checkRole();
+  }, [user]);
+
   return (
     <div className="w-full h-full">
-      {view === 'lobby' && (
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <Target className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl font-bold">Multiplayer Shooter Arena</h1>
-            </div>
-            <Badge variant="secondary" className="text-lg px-4 py-2">
-              <Users className="w-4 h-4 mr-2" />
-              {rooms.reduce((sum, r) => sum + (r.status === 'playing' ? 1 : 0), 0)} Active Games
-            </Badge>
-          </div>
-
-          <Card className="p-4">
+      {view === 'menu' && (
+        <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+          <div className="text-center space-y-8">
             <div className="space-y-4">
-              <Input
-                placeholder="Enter your player name"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="text-lg"
-              />
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Room name"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                />
-                <Button onClick={createRoom} disabled={!playerName.trim()}>
-                  Create Room
-                </Button>
-              </div>
+              <h1 className="text-6xl font-bold text-white tracking-wider">DEADSHOT</h1>
+              <p className="text-xl text-gray-400">Team-Based Multiplayer FPS</p>
             </div>
-          </Card>
+            
+            <Button 
+              onClick={joinGlobalLobby}
+              disabled={isJoining}
+              className="px-16 py-8 text-3xl font-bold bg-blue-600 hover:bg-blue-700 transition-all transform hover:scale-105"
+            >
+              {isJoining ? 'JOINING...' : 'PLAY'}
+            </Button>
 
-          <ScrollArea className="h-[500px]">
-            <div className="grid gap-4">
-              {rooms.map((room) => (
-                <Card key={room.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold">{room.name}</h3>
-                      <div className="flex items-center gap-4 mt-2">
-                        <Badge variant={room.status === 'waiting' ? 'secondary' : room.status === 'playing' ? 'default' : 'outline'}>
-                          {room.status}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          Max {room.max_players} players
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {room.status === 'waiting' && (
-                        <>
-                          <Button onClick={() => joinRoom(room)} disabled={!playerName.trim()}>
-                            Join Room
-                          </Button>
-                          {room.owner_id === user?.id && (
-                            <Button variant="destructive" size="icon" onClick={() => deleteRoom(room.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
+            <div className="flex items-center justify-center gap-4 text-gray-400">
+              <Users className="w-5 h-5" />
+              <span>{participants.length} Players Online</span>
             </div>
-          </ScrollArea>
+          </div>
         </div>
       )}
 
-      {view === 'room' && (
+      {view === 'lobby' && (
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">{currentRoom?.name}</h2>
-              <Badge variant="secondary" className="mt-2">Waiting for game to start...</Badge>
+              <h2 className="text-2xl font-bold">Waiting Lobby</h2>
+              <Badge variant="secondary" className="mt-2">
+                {currentRoom?.status === 'playing' ? 'Game in Progress' : 'Waiting for start...'}
+              </Badge>
             </div>
             <div className="flex gap-2">
-              {isOwner && (
-                <Button onClick={startGame} className="gap-2">
-                  <Play className="w-4 h-4" />
+              {isOwnerOrAdmin && (
+                <Button onClick={startGame} className="gap-2" size="lg">
+                  <Play className="w-5 h-5" />
                   Start Match
                 </Button>
               )}
-              <Button variant="outline" onClick={leaveRoom}>
-                Leave Room
+              <Button variant="outline" onClick={leaveLobby}>
+                Leave Lobby
               </Button>
             </div>
           </div>
@@ -856,7 +808,7 @@ export function MultiplayerShooter() {
             <Maximize className="w-6 h-6 text-white" />
           </Button>
 
-          {isOwner && (
+          {isOwnerOrAdmin && (
             <Button
               variant="destructive"
               className="absolute top-4 right-4 z-50"
