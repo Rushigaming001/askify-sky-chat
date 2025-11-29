@@ -12,7 +12,8 @@ const modelNames: Record<string, string> = {
   'openai/gpt-5-mini': 'GPT-5 Mini',
   'openai/gpt-5-nano': 'GPT-5 Nano',
   'google/gemini-3-pro-preview': 'Gemini 3 Pro',
-  'google/gemini-2.5-pro': 'ASKIFY-PRO'
+  'google/gemini-2.5-pro': 'ASKIFY-PRO',
+  'nvidia/llama-3.1-nemotron-70b-instruct': 'NVIDIA Nemotron'
 };
 
 export default function ModelPermissionsManager() {
