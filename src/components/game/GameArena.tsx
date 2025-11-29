@@ -9,82 +9,106 @@ export function GameArena() {
     { pos: [30, 2, 0], size: [0.5, 4, 60] },  // Right wall
   ], []);
 
-  const largeObstacles = useMemo(() => [
-    // Large cover boxes
-    { pos: [8, 1, 8], size: [3, 2, 3] },
-    { pos: [-8, 1, 8], size: [3, 2, 3] },
-    { pos: [8, 1, -8], size: [3, 2, 3] },
-    { pos: [-8, 1, -8], size: [3, 2, 3] },
-    // Central structure
-    { pos: [0, 1.5, 0], size: [4, 3, 4] },
-    // Mid-range cover
-    { pos: [15, 0.75, 0], size: [2, 1.5, 5] },
-    { pos: [-15, 0.75, 0], size: [2, 1.5, 5] },
-    { pos: [0, 0.75, 15], size: [5, 1.5, 2] },
-    { pos: [0, 0.75, -15], size: [5, 1.5, 2] },
+  // Urban buildings and structures
+  const buildings = useMemo(() => [
+    // Main central buildings
+    { pos: [-18, 3, -15], size: [8, 6, 8], color: '#6b7280' },
+    { pos: [18, 2.5, -15], size: [6, 5, 6], color: '#737373' },
+    { pos: [-18, 2, 15], size: [7, 4, 7], color: '#71717a' },
+    { pos: [18, 3.5, 15], size: [9, 7, 9], color: '#6b7280' },
+    
+    // Side buildings
+    { pos: [0, 2.5, -20], size: [12, 5, 5], color: '#737373' },
+    { pos: [0, 2, 20], size: [10, 4, 6], color: '#71717a' },
   ], []);
 
-  const smallObstacles = useMemo(() => [
-    // Small cover crates
-    { pos: [12, 0.5, 12], size: [1, 1, 1] },
-    { pos: [-12, 0.5, 12], size: [1, 1, 1] },
-    { pos: [12, 0.5, -12], size: [1, 1, 1] },
-    { pos: [-12, 0.5, -12], size: [1, 1, 1] },
-    { pos: [18, 0.5, 8], size: [1, 1, 1] },
-    { pos: [-18, 0.5, 8], size: [1, 1, 1] },
-    { pos: [18, 0.5, -8], size: [1, 1, 1] },
-    { pos: [-18, 0.5, -8], size: [1, 1, 1] },
+  // Wooden crates and cover
+  const woodenCrates = useMemo(() => [
+    { pos: [5, 0.75, 5], size: [1.5, 1.5, 1.5] },
+    { pos: [-5, 0.75, 5], size: [1.5, 1.5, 1.5] },
+    { pos: [5, 0.75, -5], size: [1.5, 1.5, 1.5] },
+    { pos: [-5, 0.75, -5], size: [1.5, 1.5, 1.5] },
+    { pos: [10, 0.75, 0], size: [1.5, 1.5, 1.5] },
+    { pos: [-10, 0.75, 0], size: [1.5, 1.5, 1.5] },
+    { pos: [0, 0.75, 10], size: [1.5, 1.5, 1.5] },
+    { pos: [0, 0.75, -10], size: [1.5, 1.5, 1.5] },
+    { pos: [15, 0.75, 10], size: [1.5, 1.5, 1.5] },
+    { pos: [-15, 0.75, 10], size: [1.5, 1.5, 1.5] },
+  ], []);
+
+  // Concrete barriers
+  const concreteBarriers = useMemo(() => [
+    { pos: [8, 0.5, 0], size: [0.5, 1, 4] },
+    { pos: [-8, 0.5, 0], size: [0.5, 1, 4] },
+    { pos: [0, 0.5, 8], size: [4, 1, 0.5] },
+    { pos: [0, 0.5, -8], size: [4, 1, 0.5] },
+    { pos: [12, 0.5, 12], size: [0.5, 1, 3] },
+    { pos: [-12, 0.5, 12], size: [0.5, 1, 3] },
+    { pos: [12, 0.5, -12], size: [0.5, 1, 3] },
+    { pos: [-12, 0.5, -12], size: [0.5, 1, 3] },
   ], []);
 
   return (
     <group>
-      {/* Ground - Bright visible floor */}
+      {/* Ground - Urban concrete floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[60, 60]} />
         <meshStandardMaterial 
-          color="#556677" 
-          roughness={0.8}
-          metalness={0.2}
+          color="#52525b" 
+          roughness={0.9}
+          metalness={0.1}
         />
       </mesh>
 
-      {/* Grid pattern on ground - More visible */}
-      <gridHelper args={[60, 30, '#88aacc', '#445566']} position={[0, 0.01, 0]} />
+      {/* Ground grid pattern */}
+      <gridHelper args={[60, 30, '#71717a', '#3f3f46']} position={[0, 0.02, 0]} />
 
-      {/* Walls - Visible concrete color */}
+      {/* Boundary Walls */}
       {wallPositions.map((wall, i) => (
         <mesh key={`wall-${i}`} position={wall.pos as [number, number, number]}>
           <boxGeometry args={wall.size as [number, number, number]} />
           <meshStandardMaterial 
-            color="#708090" 
+            color="#3f3f46" 
+            roughness={0.9}
+          />
+        </mesh>
+      ))}
+
+      {/* Urban Buildings */}
+      {buildings.map((building, i) => (
+        <mesh key={`building-${i}`} position={building.pos as [number, number, number]}>
+          <boxGeometry args={building.size as [number, number, number]} />
+          <meshStandardMaterial 
+            color={building.color}
             roughness={0.8}
+            metalness={0.2}
           />
         </mesh>
       ))}
 
-      {/* Large Obstacles/Cover - Orange crates */}
-      {largeObstacles.map((obstacle, i) => (
-        <mesh key={`large-${i}`} position={obstacle.pos as [number, number, number]}>
-          <boxGeometry args={obstacle.size as [number, number, number]} />
+      {/* Wooden Crates */}
+      {woodenCrates.map((crate, i) => (
+        <mesh key={`crate-${i}`} position={crate.pos as [number, number, number]}>
+          <boxGeometry args={crate.size as [number, number, number]} />
           <meshStandardMaterial 
-            color="#d97706" 
-            roughness={0.6}
-          />
-        </mesh>
-      ))}
-
-      {/* Small Obstacles/Crates - Wooden boxes */}
-      {smallObstacles.map((obstacle, i) => (
-        <mesh key={`small-${i}`} position={obstacle.pos as [number, number, number]}>
-          <boxGeometry args={obstacle.size as [number, number, number]} />
-          <meshStandardMaterial 
-            color="#92400e" 
+            color="#78350f" 
             roughness={0.7}
           />
         </mesh>
       ))}
 
-      {/* Spawn points markers */}
+      {/* Concrete Barriers */}
+      {concreteBarriers.map((barrier, i) => (
+        <mesh key={`barrier-${i}`} position={barrier.pos as [number, number, number]}>
+          <boxGeometry args={barrier.size as [number, number, number]} />
+          <meshStandardMaterial 
+            color="#52525b" 
+            roughness={0.9}
+          />
+        </mesh>
+      ))}
+
+      {/* Spawn point markers */}
       {[
         [8, 0.1, 8],
         [-8, 0.1, 8],
@@ -93,13 +117,15 @@ export function GameArena() {
       ].map((pos, i) => (
         <mesh key={`spawn-${i}`} position={pos as [number, number, number]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[0.8, 16]} />
-          <meshBasicMaterial color="#22c55e" opacity={0.5} transparent />
+          <meshBasicMaterial color="#22c55e" opacity={0.6} transparent />
         </mesh>
       ))}
 
-      {/* Ambient lighting for visibility */}
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 20, 10]} intensity={0.8} />
+      {/* Enhanced lighting for better visibility */}
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[20, 30, 20]} intensity={1.2} castShadow />
+      <directionalLight position={[-20, 20, -20]} intensity={0.5} />
+      <hemisphereLight args={['#87ceeb', '#52525b', 0.4]} />
     </group>
   );
 }

@@ -73,12 +73,13 @@ export function MultiplayerShooter() {
   const [touchControls, setTouchControls] = useState({ moveX: 0, moveY: 0, lookX: 0, lookY: 0 });
   const [isMobile, setIsMobile] = useState(false);
   
-  const moveSpeed = 0.15;
-  const rotationSpeed = 0.002;
+  const moveSpeed = 0.2; // Increased for smoother movement
+  const rotationSpeed = 0.0025; // Slightly increased
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseMovement = useRef({ x: 0, y: 0 });
   const lastSyncTime = useRef(Date.now());
   const lastShotTime = useRef(0);
+  const velocity = useRef({ x: 0, z: 0 }); // For smooth acceleration
 
   useEffect(() => {
     if (user) {
@@ -155,6 +156,8 @@ export function MultiplayerShooter() {
       const handleKeyDown = (e: KeyboardEvent) => {
         const key = e.key.toLowerCase();
         keysPressed.current.add(key);
+        // Also add uppercase for compatibility
+        keysPressed.current.add(e.key.toUpperCase());
         
         // Weapon switching with number keys
         if (key >= '1' && key <= '5') {
@@ -170,7 +173,9 @@ export function MultiplayerShooter() {
       };
 
       const handleKeyUp = (e: KeyboardEvent) => {
-        keysPressed.current.delete(e.key.toLowerCase());
+        const key = e.key.toLowerCase();
+        keysPressed.current.delete(key);
+        keysPressed.current.delete(e.key.toUpperCase());
       };
 
       const handleMouseMove = (e: MouseEvent) => {
@@ -460,22 +465,36 @@ export function MultiplayerShooter() {
     const myParticipant = participants.find(p => p.user_id === user.id);
     if (!myParticipant) return;
 
-    let dx = 0;
-    let dz = 0;
+    let targetVelX = 0;
+    let targetVelZ = 0;
     let rotationChanged = false;
     let newRotation = myParticipant.rotation_y;
 
-    // Desktop controls
-    if (keysPressed.current.has('w')) dz -= moveSpeed;
-    if (keysPressed.current.has('s')) dz += moveSpeed;
-    if (keysPressed.current.has('a')) dx -= moveSpeed;
-    if (keysPressed.current.has('d')) dx += moveSpeed;
+    // Desktop controls - check for both lowercase and uppercase
+    const hasW = keysPressed.current.has('w') || keysPressed.current.has('W');
+    const hasS = keysPressed.current.has('s') || keysPressed.current.has('S');
+    const hasA = keysPressed.current.has('a') || keysPressed.current.has('A');
+    const hasD = keysPressed.current.has('d') || keysPressed.current.has('D');
+
+    if (hasW) targetVelZ -= 1;
+    if (hasS) targetVelZ += 1;
+    if (hasA) targetVelX -= 1;
+    if (hasD) targetVelX += 1;
 
     // Mobile touch controls
     if (isMobile && (touchControls.moveX !== 0 || touchControls.moveY !== 0)) {
-      dx = touchControls.moveX * moveSpeed * 0.7;
-      dz = touchControls.moveY * moveSpeed * 0.7;
+      targetVelX = touchControls.moveX * 0.7;
+      targetVelZ = touchControls.moveY * 0.7;
     }
+
+    // Smooth acceleration/deceleration
+    const acceleration = 0.3;
+    velocity.current.x += (targetVelX - velocity.current.x) * acceleration;
+    velocity.current.z += (targetVelZ - velocity.current.z) * acceleration;
+
+    // Stop completely when very small
+    if (Math.abs(velocity.current.x) < 0.01) velocity.current.x = 0;
+    if (Math.abs(velocity.current.z) < 0.01) velocity.current.z = 0;
 
     if (Math.abs(mouseMovement.current.x) > 0 || Math.abs(mouseMovement.current.y) > 0) {
       newRotation = cameraRotation.y;
@@ -484,11 +503,11 @@ export function MultiplayerShooter() {
       rotationChanged = true;
     }
 
-    if (dx !== 0 || dz !== 0 || rotationChanged) {
+    if (velocity.current.x !== 0 || velocity.current.z !== 0 || rotationChanged) {
       const cos = Math.cos(newRotation);
       const sin = Math.sin(newRotation);
-      const rotatedDx = dx * cos - dz * sin;
-      const rotatedDz = dx * sin + dz * cos;
+      const rotatedDx = velocity.current.x * moveSpeed * cos - velocity.current.z * moveSpeed * sin;
+      const rotatedDz = velocity.current.x * moveSpeed * sin + velocity.current.z * moveSpeed * cos;
 
       const newX = myParticipant.position_x + rotatedDx;
       const newZ = myParticipant.position_z + rotatedDz;
