@@ -12,6 +12,16 @@ export async function callAI(
 
     if (error) {
       console.error('Chat function error:', error);
+      
+      // Handle specific error types with user-friendly messages
+      if (error.message?.includes('Payment required') || error.message?.includes('402')) {
+        throw new Error('Out of AI credits! Please go to Settings → Workspace → Usage to add credits and continue using ASKIFY.');
+      }
+      
+      if (error.message?.includes('Rate limit') || error.message?.includes('429')) {
+        throw new Error('Too many requests. Please wait a moment and try again.');
+      }
+      
       throw new Error(error.message || 'Failed to get AI response');
     }
 
@@ -20,8 +30,14 @@ export async function callAI(
     }
 
     return data.reply;
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI service error:', error);
-    throw error;
+    
+    // Re-throw with user-friendly message if available
+    if (error.message) {
+      throw error;
+    }
+    
+    throw new Error('An unexpected error occurred. Please try again.');
   }
 }
