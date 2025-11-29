@@ -82,12 +82,9 @@ export function MultiplayerShooter() {
   const velocity = useRef({ x: 0, z: 0 }); // For smooth acceleration
 
   useEffect(() => {
-    if (user) {
-      ensureGlobalRoom();
-    }
     // Detect mobile
     setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (currentRoom) {
@@ -243,29 +240,38 @@ export function MultiplayerShooter() {
   }, [view, currentRoom]);
 
   const ensureGlobalRoom = async () => {
-    if (!user) return;
+    if (!user) return null;
 
-    const { data: existingRoom } = await supabase
+    // Check if any waiting lobby exists
+    const { data: existingRooms } = await supabase
       .from('game_rooms')
       .select('*')
       .eq('name', 'GLOBAL_LOBBY')
-      .maybeSingle();
+      .eq('status', 'waiting')
+      .order('created_at', { ascending: true })
+      .limit(1);
 
-    if (!existingRoom) {
-      const { data: newRoom, error } = await supabase
-        .from('game_rooms')
-        .insert({
-          name: 'GLOBAL_LOBBY',
-          owner_id: user.id,
-          status: 'waiting'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Failed to create global lobby:', error);
-      }
+    if (existingRooms && existingRooms.length > 0) {
+      return existingRooms[0];
     }
+
+    // Only create if no waiting room exists
+    const { data: newRoom, error } = await supabase
+      .from('game_rooms')
+      .insert({
+        name: 'GLOBAL_LOBBY',
+        owner_id: user.id,
+        status: 'waiting'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to create global lobby:', error);
+      return null;
+    }
+
+    return newRoom;
   };
 
   const loadParticipants = async () => {
@@ -286,15 +292,29 @@ export function MultiplayerShooter() {
 
     setIsJoining(true);
 
-    const { data: room } = await supabase
+    // Try to find an existing waiting lobby first
+    const { data: rooms } = await supabase
       .from('game_rooms')
       .select('*')
       .eq('name', 'GLOBAL_LOBBY')
-      .single();
+      .eq('status', 'waiting')
+      .order('created_at', { ascending: true })
+      .limit(1);
 
+    let room = rooms && rooms.length > 0 ? rooms[0] : null;
+
+    // If no room exists, create one
     if (!room) {
-      await ensureGlobalRoom();
-      return joinGlobalLobby();
+      room = await ensureGlobalRoom();
+      if (!room) {
+        toast({
+          title: 'Error',
+          description: 'Failed to create lobby',
+          variant: 'destructive'
+        });
+        setIsJoining(false);
+        return;
+      }
     }
 
     const { data: profile } = await supabase
