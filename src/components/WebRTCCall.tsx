@@ -34,142 +34,78 @@ export function WebRTCCall({
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [participants, setParticipants] = useState<Array<{ user_id: string; name: string; call_type: string }>>([]);
+  const [participants, setParticipants] = useState<Array<{ user_id: string; name: string }>>([]);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const channelRef = useRef<any>(null);
-  const signalingChannelRef = useRef<any>(null);
   const [callId] = useState(() => `call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
-    if (isOpen && recipientId === 'public') {
-      // Track participants in public calls
-      const loadParticipants = async () => {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .limit(20);
-        
-        if (data && user) {
-          // Add current user to presence
-          const currentUserData = {
-            user_id: user.id,
-            name: data.find(p => p.id === user.id)?.name || 'You',
-            call_type: callType
-          };
-          
-          setParticipants([currentUserData]);
-        }
-      };
-
-      loadParticipants();
-
-      // Subscribe to call presence
-      const channel = supabase.channel(`call-${callType}-presence`);
-      channelRef.current = channel;
-
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
-          const participantsList: Array<{ user_id: string; name: string; call_type: string }> = [];
-          
-          Object.keys(state).forEach(key => {
-            const presences = state[key];
-            presences.forEach((presence: any) => {
-              participantsList.push({
-                user_id: presence.user_id,
-                name: presence.name,
-                call_type: presence.call_type
-              });
-            });
-          });
-          
-          setParticipants(participantsList);
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED' && user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('name')
-              .eq('id', user.id)
-              .single();
-
-            await channel.track({
-              user_id: user.id,
-              name: profile?.name || 'Unknown',
-              call_type: callType
-            });
-          }
-        });
-    }
-
     if (isOpen) {
       initializeCall();
-      setupSignaling();
     }
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-      if (signalingChannelRef.current) {
-        supabase.removeChannel(signalingChannelRef.current);
-      }
       cleanup();
     };
-  }, [isOpen, recipientId, callType, user]);
+  }, [isOpen]);
 
-  const setupSignaling = () => {
-    if (!user || recipientId === 'public') return;
+  const createPeerConnection = (targetUserId: string): RTCPeerConnection => {
+    const configuration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
 
-    const signalingChannel = supabase.channel(`webrtc-${callId}-${recipientId}`);
-    signalingChannelRef.current = signalingChannel;
+    const pc = new RTCPeerConnection(configuration);
 
-    signalingChannel
-      .on('broadcast', { event: 'offer' }, async ({ payload }) => {
-        console.log('Received offer:', payload);
-        if (payload.to === user.id && peerConnectionRef.current) {
-          try {
-            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.offer));
-            const answer = await peerConnectionRef.current.createAnswer();
-            await peerConnectionRef.current.setLocalDescription(answer);
-            
-            signalingChannel.send({
-              type: 'broadcast',
-              event: 'answer',
-              payload: { answer, to: payload.from, from: user.id }
-            });
-          } catch (err) {
-            console.error('Error handling offer:', err);
-          }
-        }
-      })
-      .on('broadcast', { event: 'answer' }, async ({ payload }) => {
-        console.log('Received answer:', payload);
-        if (payload.to === user.id && peerConnectionRef.current) {
-          try {
-            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
-          } catch (err) {
-            console.error('Error handling answer:', err);
-          }
-        }
-      })
-      .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
-        console.log('Received ICE candidate:', payload);
-        if (payload.to === user.id && peerConnectionRef.current && payload.candidate) {
-          try {
-            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
-          } catch (err) {
-            console.error('Error adding ICE candidate:', err);
-          }
-        }
-      })
-      .subscribe((status) => {
-        console.log('Signaling channel status:', status);
+    // Add local tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
       });
+    }
+
+    // Handle incoming tracks
+    pc.ontrack = (event) => {
+      console.log('Received remote track from', targetUserId);
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        newMap.set(targetUserId, event.streams[0]);
+        return newMap;
+      });
+      setIsConnecting(false);
+    };
+
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate && channelRef.current && user) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'ice-candidate',
+          payload: { 
+            candidate: event.candidate, 
+            to: targetUserId, 
+            from: user.id,
+            callId 
+          }
+        });
+      }
+    };
+
+    // Connection state
+    pc.onconnectionstatechange = () => {
+      console.log(`Connection to ${targetUserId}:`, pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setIsConnecting(false);
+      }
+    };
+
+    return pc;
   };
 
   const initializeCall = async () => {
@@ -187,75 +123,11 @@ export function WebRTCCall({
         localVideoRef.current.srcObject = stream;
       }
 
-      // Create peer connection
-      const configuration = {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' }
-        ]
-      };
-
-      const peerConnection = new RTCPeerConnection(configuration);
-      peerConnectionRef.current = peerConnection;
-
-      // Add tracks to peer connection
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-
-      // Handle incoming tracks
-      peerConnection.ontrack = (event) => {
-        console.log('Received remote track:', event);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-          setIsConnecting(false);
-        }
-      };
-
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate && signalingChannelRef.current && user) {
-          console.log('Sending ICE candidate:', event.candidate);
-          signalingChannelRef.current.send({
-            type: 'broadcast',
-            event: 'ice-candidate',
-            payload: { candidate: event.candidate, to: recipientId, from: user.id }
-          });
-        }
-      };
-
-      // Connection state changes
-      peerConnection.onconnectionstatechange = () => {
-        console.log('Connection state:', peerConnection.connectionState);
-        if (peerConnection.connectionState === 'connected') {
-          setIsConnecting(false);
-          toast({
-            title: 'Connected',
-            description: `${callType === 'video' ? 'Video' : 'Voice'} call connected`
-          });
-        } else if (peerConnection.connectionState === 'failed') {
-          toast({
-            title: 'Connection Failed',
-            description: 'Failed to establish connection. Please try again.',
-            variant: 'destructive'
-          });
-        }
-      };
-
-      // If initiator, create offer
-      if (isInitiator && user && recipientId !== 'public') {
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        
-        if (signalingChannelRef.current) {
-          console.log('Sending offer:', offer);
-          signalingChannelRef.current.send({
-            type: 'broadcast',
-            event: 'offer',
-            payload: { offer, to: recipientId, from: user.id, callId }
-          });
-        }
+      // Setup signaling channel
+      if (recipientId === 'public') {
+        setupPublicCall();
+      } else {
+        setupPrivateCall();
       }
 
       setIsConnecting(false);
@@ -266,6 +138,175 @@ export function WebRTCCall({
         description: 'Failed to access camera/microphone. Please check permissions.',
         variant: 'destructive'
       });
+    }
+  };
+
+  const setupPublicCall = () => {
+    if (!user) return;
+
+    const channel = supabase.channel(`public-call-${callType}`);
+    channelRef.current = channel;
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const participantsList: Array<{ user_id: string; name: string }> = [];
+        
+        Object.keys(state).forEach(key => {
+          const presences = state[key];
+          presences.forEach((presence: any) => {
+            if (presence.user_id !== user.id) {
+              participantsList.push({
+                user_id: presence.user_id,
+                name: presence.name
+              });
+              
+              // Create peer connection for new participant if not exists
+              if (!peerConnectionsRef.current.has(presence.user_id)) {
+                createOfferForPeer(presence.user_id);
+              }
+            }
+          });
+        });
+        
+        setParticipants(participantsList);
+      })
+      .on('broadcast', { event: 'offer' }, async ({ payload }) => {
+        if (payload.to === user.id) {
+          await handleOffer(payload);
+        }
+      })
+      .on('broadcast', { event: 'answer' }, async ({ payload }) => {
+        if (payload.to === user.id) {
+          await handleAnswer(payload);
+        }
+      })
+      .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+        if (payload.to === user.id) {
+          await handleIceCandidate(payload);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', user.id)
+            .single();
+
+          await channel.track({
+            user_id: user.id,
+            name: profile?.name || 'Unknown',
+            call_type: callType
+          });
+        }
+      });
+  };
+
+  const setupPrivateCall = () => {
+    if (!user) return;
+
+    const channel = supabase.channel(`private-call-${callId}`);
+    channelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'offer' }, async ({ payload }) => {
+        if (payload.to === user.id) {
+          await handleOffer(payload);
+        }
+      })
+      .on('broadcast', { event: 'answer' }, async ({ payload }) => {
+        if (payload.to === user.id) {
+          await handleAnswer(payload);
+        }
+      })
+      .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+        if (payload.to === user.id) {
+          await handleIceCandidate(payload);
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED' && isInitiator) {
+          createOfferForPeer(recipientId);
+        }
+      });
+  };
+
+  const createOfferForPeer = async (targetUserId: string) => {
+    try {
+      const pc = createPeerConnection(targetUserId);
+      peerConnectionsRef.current.set(targetUserId, pc);
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      if (channelRef.current && user) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'offer',
+          payload: { 
+            offer, 
+            to: targetUserId, 
+            from: user.id,
+            callId 
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error creating offer:', error);
+    }
+  };
+
+  const handleOffer = async (payload: any) => {
+    try {
+      const { from, offer } = payload;
+      
+      const pc = createPeerConnection(from);
+      peerConnectionsRef.current.set(from, pc);
+
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      if (channelRef.current && user) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'answer',
+          payload: { 
+            answer, 
+            to: from, 
+            from: user.id 
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error handling offer:', error);
+    }
+  };
+
+  const handleAnswer = async (payload: any) => {
+    try {
+      const { from, answer } = payload;
+      const pc = peerConnectionsRef.current.get(from);
+      
+      if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      }
+    } catch (error) {
+      console.error('Error handling answer:', error);
+    }
+  };
+
+  const handleIceCandidate = async (payload: any) => {
+    try {
+      const { from, candidate } = payload;
+      const pc = peerConnectionsRef.current.get(from);
+      
+      if (pc && candidate) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    } catch (error) {
+      console.error('Error adding ICE candidate:', error);
     }
   };
 
@@ -290,18 +331,19 @@ export function WebRTCCall({
   };
 
   const cleanup = () => {
-    // Stop all tracks
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
     }
 
-    // Close peer connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
+    peerConnectionsRef.current.forEach(pc => pc.close());
+    peerConnectionsRef.current.clear();
+
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
     }
 
     localStreamRef.current = null;
-    peerConnectionRef.current = null;
+    setRemoteStreams(new Map());
   };
 
   const handleEndCall = () => {
@@ -321,7 +363,7 @@ export function WebRTCCall({
             {recipientId === 'public' && participants.length > 0 && (
               <Badge variant="secondary" className="flex items-center gap-1.5">
                 <Users className="h-3 w-3" />
-                <span>{participants.length}</span>
+                <span>{participants.length + 1}</span>
               </Badge>
             )}
           </DialogTitle>
@@ -329,24 +371,31 @@ export function WebRTCCall({
         
         <div className="flex-1 flex flex-col bg-muted relative overflow-hidden">
           {callType === 'video' ? (
-            <>
-              {/* Remote video (main) */}
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover bg-gray-900"
-              />
-              
-              {/* Local video (picture-in-picture) */}
+            <div className="w-full h-full grid grid-cols-2 gap-2 p-2">
+              {/* Local video */}
               <video
                 ref={localVideoRef}
                 autoPlay
                 playsInline
                 muted
-                className="absolute top-4 right-4 w-48 h-36 object-cover rounded-lg border-2 border-white shadow-lg bg-gray-800"
+                className="w-full h-full object-cover rounded-lg border-2 border-primary shadow-lg bg-gray-800"
               />
-            </>
+              
+              {/* Remote videos */}
+              {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
+                <video
+                  key={userId}
+                  autoPlay
+                  playsInline
+                  ref={(el) => {
+                    if (el && el.srcObject !== stream) {
+                      el.srcObject = stream;
+                    }
+                  }}
+                  className="w-full h-full object-cover rounded-lg border-2 border-white shadow-lg bg-gray-900"
+                />
+              ))}
+            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <div className="text-center">
@@ -368,9 +417,13 @@ export function WebRTCCall({
             <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm rounded-lg p-3 max-w-xs shadow-lg">
               <div className="flex items-center gap-2 mb-2 text-sm font-medium">
                 <Users className="h-4 w-4" />
-                <span>In Call ({participants.length})</span>
+                <span>In Call ({participants.length + 1})</span>
               </div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <span className="truncate">You</span>
+                </div>
                 {participants.map((participant) => (
                   <div key={participant.user_id} className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <div className="h-2 w-2 rounded-full bg-green-500" />

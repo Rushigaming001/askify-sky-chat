@@ -10,14 +10,18 @@ import { LiveVideoCall } from '@/components/LiveVideoCall';
 import { VideoGenerator } from '@/components/VideoGenerator';
 import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
 import CapCutPro from '@/components/CapCutPro';
+import DeadshotGame from '@/components/DeadshotGame';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { callAI } from '@/services/chatService';
 import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard } from 'lucide-react';
+import { useDailyMessageLimit } from '@/hooks/useDailyMessageLimit';
+import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, AlertCircle } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
@@ -30,6 +34,7 @@ const Chat = () => {
   const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'nvidia'>('gemini');
   const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { used, remaining, total, canSend, loading: limitLoading, refresh: refreshLimit } = useDailyMessageLimit();
 
   useEffect(() => {
     if (!user) {
@@ -75,6 +80,17 @@ const Chat = () => {
   const handleSendMessage = async (content: string, image?: string) => {
     if (!currentChat) return;
 
+    // Check daily limit
+    if (!canSend) {
+      toast({
+        title: '📅 Daily Limit Reached',
+        description: `You've used all ${total} messages for today. Your limit resets at midnight.`,
+        variant: 'destructive',
+        duration: 6000
+      });
+      return;
+    }
+
     addMessage({ role: 'user', content, image });
     setIsLoading(true);
 
@@ -86,6 +102,9 @@ const Chat = () => {
 
       const response = await callAI(messages, selectedModel, currentChat.mode);
       addMessage({ role: 'assistant', content: response });
+      
+      // Refresh limit after successful message
+      setTimeout(() => refreshLimit(), 500);
     } catch (error: any) {
       console.error('Error calling AI:', error);
       
@@ -147,6 +166,14 @@ const Chat = () => {
             <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
               ASKIFY
             </h1>
+            {!limitLoading && (
+              <Badge 
+                variant={remaining <= 5 ? "destructive" : remaining <= 10 ? "secondary" : "default"}
+                className="ml-2 hidden sm:flex items-center gap-1"
+              >
+                <span className="text-xs">{remaining}/{total}</span>
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0">
             <Dialog>
@@ -239,6 +266,24 @@ const Chat = () => {
                 <CapCutPro />
               </DialogContent>
             </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
+                  title="Deadshot Game"
+                >
+                  <Target className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
+                <DialogHeader>
+                  <DialogTitle>Deadshot Game</DialogTitle>
+                </DialogHeader>
+                <DeadshotGame />
+              </DialogContent>
+            </Dialog>
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'nvidia') => handleModelChange(v)}>
               <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
@@ -290,6 +335,24 @@ const Chat = () => {
             </Select>
           </div>
         </header>
+
+        {/* Warning Banners */}
+        {!limitLoading && remaining <= 5 && remaining > 0 && (
+          <Alert variant="destructive" className="m-4 animate-fade-in">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              ⚠️ Only {remaining} messages remaining today! Your limit resets at midnight.
+            </AlertDescription>
+          </Alert>
+        )}
+        {['gpt', 'askify'].includes(selectedModel) && (
+          <Alert className="m-4 bg-amber-500/10 border-amber-500/50 text-amber-600 dark:text-amber-400 animate-fade-in">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              💰 You're using a premium model. Consider switching to Gemini Flash to save credits.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           {showWelcome ? (

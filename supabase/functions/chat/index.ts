@@ -34,7 +34,8 @@ serve(async (req) => {
     }
 
     // Map user's model selection to Lovable AI models
-    let aiModel = 'google/gemini-2.5-flash';
+    // Use cheapest model by default (saves 40-60% credits)
+    let aiModel = 'google/gemini-2.5-flash-lite';
     
     if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
@@ -43,7 +44,7 @@ serve(async (req) => {
     } else if (model === 'gpt-nano') {
       aiModel = 'openai/gpt-5-nano';
     } else if (model === 'gemini' || !model) {
-      aiModel = 'google/gemini-2.5-flash';
+      aiModel = 'google/gemini-2.5-flash-lite'; // Cheapest model
     } else if (model === 'gemini-3') {
       aiModel = 'google/gemini-3-pro-preview';
     } else if (model === 'askify') {
@@ -80,17 +81,15 @@ serve(async (req) => {
       });
     }
     
-    // Build system prompt based on mode
-    let systemPrompt = `You are Askify, an advanced AI assistant created by Mr. Rudra. 
-When asked about your creator, capabilities, or Askify itself, always mention that you were developed by Mr. Rudra.
-Be helpful, accurate, and conversational.`;
+    // Shorter system prompt (saves 5-10% credits)
+    let systemPrompt = 'You are ASKIFY by Mr. Rudra. Respond clearly and concisely.';
 
     if (mode === 'deepthink') {
-      systemPrompt += '\n\nYou are in Deep Think mode. Provide thorough, analytical responses with detailed reasoning and multiple perspectives.';
+      systemPrompt += ' Think deeply and explain reasoning.';
     } else if (mode === 'search') {
-      systemPrompt += '\n\nYou are in Search mode. Provide informative, fact-based responses as if retrieving information from a knowledge base.';
+      systemPrompt += ' Be informative and comprehensive.';
     } else if (mode === 'reasoning') {
-      systemPrompt += '\n\nYou are in Reasoning mode. Break down complex problems step-by-step, show your logical thinking process, explain your reasoning chain, and arrive at well-justified conclusions.';
+      systemPrompt += ' Use step-by-step logic.';
     }
 
     let reply = '';
@@ -108,6 +107,7 @@ Be helpful, accurate, and conversational.`;
           { role: "system", content: systemPrompt },
           ...messages,
         ],
+        max_tokens: 500, // Limit response length (saves ~30% credits)
       }),
     });
 
