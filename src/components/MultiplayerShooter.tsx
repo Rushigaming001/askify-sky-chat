@@ -70,6 +70,8 @@ export function MultiplayerShooter() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<'red' | 'blue'>('red');
+  const [touchControls, setTouchControls] = useState({ moveX: 0, moveY: 0, lookX: 0, lookY: 0 });
+  const [isMobile, setIsMobile] = useState(false);
   
   const moveSpeed = 0.15;
   const rotationSpeed = 0.002;
@@ -82,6 +84,8 @@ export function MultiplayerShooter() {
     if (user) {
       ensureGlobalRoom();
     }
+    // Detect mobile
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
   }, [user]);
 
   useEffect(() => {
@@ -195,7 +199,7 @@ export function MultiplayerShooter() {
       window.addEventListener('click', handleClick);
 
       document.addEventListener('pointerlockchange', () => {
-        setCrosshairVisible(!!document.pointerLockElement);
+        setCrosshairVisible(!!document.pointerLockElement || isMobile);
       });
 
       return () => {
@@ -214,9 +218,14 @@ export function MultiplayerShooter() {
         updateBullets();
       }, 1000 / 60);
 
+      // Mobile crosshair always visible
+      if (isMobile) {
+        setCrosshairVisible(true);
+      }
+
       return () => clearInterval(gameLoop);
     }
-  }, [view, currentRoom, participants]);
+  }, [view, currentRoom, participants, isMobile]);
 
   useEffect(() => {
     if (view === 'game' && currentRoom?.status === 'playing') {
@@ -456,10 +465,17 @@ export function MultiplayerShooter() {
     let rotationChanged = false;
     let newRotation = myParticipant.rotation_y;
 
+    // Desktop controls
     if (keysPressed.current.has('w')) dz -= moveSpeed;
     if (keysPressed.current.has('s')) dz += moveSpeed;
     if (keysPressed.current.has('a')) dx -= moveSpeed;
     if (keysPressed.current.has('d')) dx += moveSpeed;
+
+    // Mobile touch controls
+    if (isMobile && (touchControls.moveX !== 0 || touchControls.moveY !== 0)) {
+      dx = touchControls.moveX * moveSpeed * 0.7;
+      dz = touchControls.moveY * moveSpeed * 0.7;
+    }
 
     if (Math.abs(mouseMovement.current.x) > 0 || Math.abs(mouseMovement.current.y) > 0) {
       newRotation = cameraRotation.y;
@@ -481,7 +497,8 @@ export function MultiplayerShooter() {
       const boundedZ = Math.max(-29, Math.min(29, newZ));
 
       const now = Date.now();
-      if (now - lastSyncTime.current > 100) {
+      // Reduced sync frequency for better performance (200ms instead of 100ms)
+      if (now - lastSyncTime.current > 200) {
         await supabase
           .from('room_participants')
           .update({
@@ -847,7 +864,84 @@ export function MultiplayerShooter() {
             </Button>
           )}
 
-          <Canvas shadows camera={{ fov: 75, position: [0, 2, 5] }}>
+          {/* Mobile Touch Controls */}
+          {isMobile && (
+            <>
+              {/* Movement Joystick - Left Side */}
+              <div className="fixed bottom-20 left-4 z-50 w-32 h-32 bg-black/30 rounded-full border-2 border-white/50">
+                <div 
+                  className="w-full h-full relative"
+                  onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const deltaX = (touch.clientX - centerX) / (rect.width / 2);
+                    const deltaY = (touch.clientY - centerY) / (rect.height / 2);
+                    setTouchControls(prev => ({ ...prev, moveX: deltaX, moveY: deltaY }));
+                  }}
+                  onTouchMove={(e) => {
+                    const touch = e.touches[0];
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const deltaX = Math.max(-1, Math.min(1, (touch.clientX - centerX) / (rect.width / 2)));
+                    const deltaY = Math.max(-1, Math.min(1, (touch.clientY - centerY) / (rect.height / 2)));
+                    setTouchControls(prev => ({ ...prev, moveX: deltaX, moveY: deltaY }));
+                  }}
+                  onTouchEnd={() => {
+                    setTouchControls(prev => ({ ...prev, moveX: 0, moveY: 0 }));
+                  }}
+                >
+                  <div 
+                    className="absolute w-12 h-12 bg-white/70 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                      transform: `translate(calc(-50% + ${touchControls.moveX * 30}px), calc(-50% + ${touchControls.moveY * 30}px))`
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Shoot Button - Right Side */}
+              <Button
+                className="fixed bottom-20 right-4 z-50 w-24 h-24 rounded-full bg-red-600 hover:bg-red-700 text-white"
+                onTouchStart={shoot}
+              >
+                SHOOT
+              </Button>
+
+              {/* Look Control - Right Middle */}
+              <div 
+                className="fixed top-20 right-4 z-50 w-32 h-32 bg-black/30 rounded-full border-2 border-white/50"
+                onTouchMove={(e) => {
+                  if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const deltaX = (touch.clientX - centerX) * 0.01;
+                    const deltaY = (touch.clientY - centerY) * 0.01;
+                    
+                    setCameraRotation(prev => ({
+                      x: Math.max(-Math.PI / 3, Math.min(Math.PI / 3, prev.x - deltaY)),
+                      y: prev.y - deltaX
+                    }));
+                  }
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center text-white text-xs">
+                  LOOK
+                </div>
+              </div>
+            </>
+          )}
+
+          <Canvas 
+            shadows={false} 
+            camera={{ fov: 75, position: [0, 2, 5] }}
+            performance={{ min: 0.5 }}
+            dpr={isMobile ? [0.5, 1] : [1, 2]}
+          >
             <FirstPersonCamera
               position={[
                 myParticipant?.position_x || 0,
@@ -856,16 +950,8 @@ export function MultiplayerShooter() {
               ]}
               rotation={cameraRotation}
             />
-
-            <ambientLight intensity={0.3} />
-            <directionalLight
-              position={[10, 20, 10]}
-              intensity={0.8}
-              castShadow
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-            />
             
+            {/* Simplified lighting for performance */}
             <Sky sunPosition={[100, 20, 100]} />
             <GameArena />
 
@@ -884,7 +970,8 @@ export function MultiplayerShooter() {
               )
             ))}
 
-            {bullets.map((bullet) => (
+            {/* Limit bullets rendered for performance */}
+            {bullets.slice(0, 50).map((bullet) => (
               <Bullet key={bullet.id} position={bullet.position} color={bullet.color} />
             ))}
           </Canvas>
@@ -901,6 +988,17 @@ export function MultiplayerShooter() {
               blueScore={blueScore}
               onWeaponChange={changeWeapon}
             />
+          )}
+
+          {/* Crosshair */}
+          {crosshairVisible && (
+            <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-30">
+              <div className="relative">
+                <div className="absolute w-6 h-0.5 bg-white -translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute h-6 w-0.5 bg-white -translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute w-2 h-2 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+              </div>
+            </div>
           )}
 
           {/* In-game voice/video chat placeholder */}
