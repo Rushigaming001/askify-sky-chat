@@ -69,6 +69,7 @@ export function MultiplayerShooter() {
   const [gameTime, setGameTime] = useState(300);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<'red' | 'blue'>('red');
   
   const moveSpeed = 0.15;
   const rotationSpeed = 0.002;
@@ -282,15 +283,6 @@ export function MultiplayerShooter() {
       return joinGlobalLobby();
     }
 
-    const { data: existingParticipants } = await supabase
-      .from('room_participants')
-      .select('team')
-      .eq('room_id', room.id);
-
-    const redCount = existingParticipants?.filter(p => p.team === 'red').length || 0;
-    const blueCount = existingParticipants?.filter(p => p.team === 'blue').length || 0;
-    const assignedTeam: 'red' | 'blue' = redCount <= blueCount ? 'red' : 'blue';
-
     const { data: profile } = await supabase
       .from('profiles')
       .select('name')
@@ -303,7 +295,7 @@ export function MultiplayerShooter() {
         room_id: room.id,
         user_id: user.id,
         player_name: profile?.name || 'Player',
-        team: assignedTeam,
+        team: selectedTeam,
         position_x: Math.random() * 40 - 20,
         position_y: 0.5,
         position_z: Math.random() * 40 - 20
@@ -323,7 +315,7 @@ export function MultiplayerShooter() {
     setView('lobby');
     setIsJoining(false);
     toast({
-      title: `Joined ${assignedTeam.toUpperCase()} Team!`,
+      title: `Joined ${selectedTeam.toUpperCase()} Team!`,
       description: 'Waiting for game to start...'
     });
   };
@@ -724,11 +716,39 @@ export function MultiplayerShooter() {
               <h1 className="text-6xl font-bold text-white tracking-wider">DEADSHOT</h1>
               <p className="text-xl text-gray-400">Team-Based Multiplayer FPS</p>
             </div>
+
+            <div className="space-y-4">
+              <p className="text-lg font-semibold text-gray-300">Choose Your Team</p>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  size="lg"
+                  onClick={() => setSelectedTeam('red')}
+                  className={`px-8 py-6 text-xl font-bold transition-all transform hover:scale-105 ${
+                    selectedTeam === 'red' 
+                      ? 'bg-red-600 hover:bg-red-700 border-2 border-red-400' 
+                      : 'bg-red-900/30 hover:bg-red-800/50 border border-red-700'
+                  }`}
+                >
+                  🔴 RED TEAM
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setSelectedTeam('blue')}
+                  className={`px-8 py-6 text-xl font-bold transition-all transform hover:scale-105 ${
+                    selectedTeam === 'blue' 
+                      ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400' 
+                      : 'bg-blue-900/30 hover:bg-blue-800/50 border border-blue-700'
+                  }`}
+                >
+                  🔵 BLUE TEAM
+                </Button>
+              </div>
+            </div>
             
             <Button 
               onClick={joinGlobalLobby}
               disabled={isJoining}
-              className="px-16 py-8 text-3xl font-bold bg-blue-600 hover:bg-blue-700 transition-all transform hover:scale-105"
+              className="px-16 py-8 text-3xl font-bold bg-green-600 hover:bg-green-700 transition-all transform hover:scale-105"
             >
               {isJoining ? 'JOINING...' : 'PLAY'}
             </Button>
