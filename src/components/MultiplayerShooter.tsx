@@ -17,6 +17,8 @@ import { GameArena } from './game/GameArena';
 import { FirstPersonCamera } from './game/FirstPersonCamera';
 import { GameHUD } from './game/GameHUD';
 import { WeaponType, WEAPONS } from './game/WeaponSystem';
+import { WeaponViewModel } from './game/WeaponViewModel';
+import { MuzzleFlash } from './game/MuzzleFlash';
 
 interface GameRoom {
   id: string;
@@ -72,14 +74,18 @@ export function MultiplayerShooter() {
   const [selectedTeam, setSelectedTeam] = useState<'red' | 'blue'>('red');
   const [touchControls, setTouchControls] = useState({ moveX: 0, moveY: 0, lookX: 0, lookY: 0 });
   const [isMobile, setIsMobile] = useState(false);
+  const [isShooting, setIsShooting] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
   
-  const moveSpeed = 0.2; // Increased for smoother movement
-  const rotationSpeed = 0.0025; // Slightly increased
+  const moveSpeed = 0.35; // Much faster movement
+  const sprintMultiplier = 1.5; // Sprint speed
+  const rotationSpeed = 0.003;
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseMovement = useRef({ x: 0, y: 0 });
   const lastSyncTime = useRef(Date.now());
   const lastShotTime = useRef(0);
-  const velocity = useRef({ x: 0, z: 0 }); // For smooth acceleration
+  const velocity = useRef({ x: 0, z: 0 });
+  const isSprinting = useRef(false);
 
   useEffect(() => {
     // Detect mobile
@@ -490,6 +496,10 @@ export function MultiplayerShooter() {
     let rotationChanged = false;
     let newRotation = myParticipant.rotation_y;
 
+    // Check for sprint (Shift key)
+    const hasShift = keysPressed.current.has('shift') || keysPressed.current.has('Shift');
+    isSprinting.current = hasShift;
+
     // Desktop controls - check for both lowercase and uppercase
     const hasW = keysPressed.current.has('w') || keysPressed.current.has('W');
     const hasS = keysPressed.current.has('s') || keysPressed.current.has('S');
@@ -501,14 +511,21 @@ export function MultiplayerShooter() {
     if (hasA) targetVelX -= 1;
     if (hasD) targetVelX += 1;
 
-    // Mobile touch controls
-    if (isMobile && (touchControls.moveX !== 0 || touchControls.moveY !== 0)) {
-      targetVelX = touchControls.moveX * 0.7;
-      targetVelZ = touchControls.moveY * 0.7;
+    // Normalize diagonal movement
+    if (targetVelX !== 0 && targetVelZ !== 0) {
+      const magnitude = Math.sqrt(targetVelX * targetVelX + targetVelZ * targetVelZ);
+      targetVelX /= magnitude;
+      targetVelZ /= magnitude;
     }
 
-    // Smooth acceleration/deceleration
-    const acceleration = 0.3;
+    // Mobile touch controls
+    if (isMobile && (touchControls.moveX !== 0 || touchControls.moveY !== 0)) {
+      targetVelX = touchControls.moveX;
+      targetVelZ = touchControls.moveY;
+    }
+
+    // Faster acceleration
+    const acceleration = 0.5;
     velocity.current.x += (targetVelX - velocity.current.x) * acceleration;
     velocity.current.z += (targetVelZ - velocity.current.z) * acceleration;
 
@@ -524,25 +541,58 @@ export function MultiplayerShooter() {
     }
 
     if (velocity.current.x !== 0 || velocity.current.z !== 0 || rotationChanged) {
+      const currentSpeed = moveSpeed * (isSprinting.current ? sprintMultiplier : 1);
       const cos = Math.cos(newRotation);
       const sin = Math.sin(newRotation);
-      const rotatedDx = velocity.current.x * moveSpeed * cos - velocity.current.z * moveSpeed * sin;
-      const rotatedDz = velocity.current.x * moveSpeed * sin + velocity.current.z * moveSpeed * cos;
+      const rotatedDx = velocity.current.x * currentSpeed * cos - velocity.current.z * currentSpeed * sin;
+      const rotatedDz = velocity.current.x * currentSpeed * sin + velocity.current.z * currentSpeed * cos;
 
-      const newX = myParticipant.position_x + rotatedDx;
-      const newZ = myParticipant.position_z + rotatedDz;
+      let newX = myParticipant.position_x + rotatedDx;
+      let newZ = myParticipant.position_z + rotatedDz;
 
-      const boundedX = Math.max(-29, Math.min(29, newX));
-      const boundedZ = Math.max(-29, Math.min(29, newZ));
+      // Collision detection with map boundaries
+      const playerRadius = 0.5;
+      newX = Math.max(-28 + playerRadius, Math.min(28 - playerRadius, newX));
+      newZ = Math.max(-28 + playerRadius, Math.min(28 - playerRadius, newZ));
+
+      // Collision with buildings (simplified AABB collision)
+      const buildings = [
+        { x: -20, z: -18, w: 10, d: 10 },
+        { x: 20, z: -18, w: 12, d: 12 },
+        { x: -20, z: 18, w: 9, d: 9 },
+        { x: 20, z: 18, w: 11, d: 11 },
+        { x: 0, z: -22, w: 14, d: 6 },
+        { x: 0, z: 22, w: 12, d: 7 },
+        { x: -15, z: 0, w: 8, d: 8 },
+        { x: 15, z: 0, w: 8, d: 8 },
+      ];
+
+      for (const building of buildings) {
+        const halfW = building.w / 2 + playerRadius;
+        const halfD = building.d / 2 + playerRadius;
+        
+        if (Math.abs(newX - building.x) < halfW && Math.abs(newZ - building.z) < halfD) {
+          // Collision detected, prevent movement
+          const prevX = myParticipant.position_x;
+          const prevZ = myParticipant.position_z;
+          
+          // Try sliding along walls
+          if (Math.abs(newX - building.x) < halfW) {
+            newX = prevX;
+          }
+          if (Math.abs(newZ - building.z) < halfD) {
+            newZ = prevZ;
+          }
+        }
+      }
 
       const now = Date.now();
-      // Reduced sync frequency for better performance (200ms instead of 100ms)
-      if (now - lastSyncTime.current > 200) {
+      if (now - lastSyncTime.current > 150) {
         await supabase
           .from('room_participants')
           .update({
-            position_x: boundedX,
-            position_z: boundedZ,
+            position_x: newX,
+            position_z: newZ,
             rotation_y: newRotation
           })
           .eq('id', myParticipant.id);
@@ -553,9 +603,9 @@ export function MultiplayerShooter() {
           event: 'player-move',
           payload: {
             user_id: user.id,
-            x: boundedX,
+            x: newX,
             y: myParticipant.position_y,
-            z: boundedZ,
+            z: newZ,
             rotation: newRotation
           }
         });
@@ -565,7 +615,7 @@ export function MultiplayerShooter() {
 
       setParticipants(prev => prev.map(p =>
         p.user_id === user.id
-          ? { ...p, position_x: boundedX, position_z: boundedZ, rotation_y: newRotation }
+          ? { ...p, position_x: newX, position_z: newZ, rotation_y: newRotation }
           : p
       ));
     }
@@ -583,6 +633,10 @@ export function MultiplayerShooter() {
 
     if (now - lastShotTime.current < fireDelay) return;
     lastShotTime.current = now;
+
+    // Trigger shooting animation
+    setIsShooting(true);
+    setTimeout(() => setIsShooting(false), 100);
 
     // Create bullets based on weapon stats
     for (let i = 0; i < weaponStats.bulletCount; i++) {
@@ -1023,6 +1077,15 @@ export function MultiplayerShooter() {
             {bullets.slice(0, 50).map((bullet) => (
               <Bullet key={bullet.id} position={bullet.position} color={bullet.color} />
             ))}
+
+            {/* First-person weapon viewmodel */}
+            {myParticipant && (
+              <WeaponViewModel 
+                weaponType={currentWeapon}
+                isShooting={isShooting}
+                isReloading={isReloading}
+              />
+            )}
           </Canvas>
 
           {myParticipant && (
