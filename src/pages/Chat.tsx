@@ -9,6 +9,7 @@ import { MathSolver } from '@/components/MathSolver';
 import { LiveVideoCall } from '@/components/LiveVideoCall';
 import { VideoGenerator } from '@/components/VideoGenerator';
 import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
+import CapCutPro from '@/components/CapCutPro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -16,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { callAI } from '@/services/chatService';
 import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calculator, Lock, Video, Film, Box } from 'lucide-react';
+import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
@@ -212,6 +213,24 @@ const Chat = () => {
                   <DialogTitle>Minecraft Plugin Maker</DialogTitle>
                 </DialogHeader>
                 <MinecraftPluginMaker />
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
+                  title="CapCut Pro - Video Editor"
+                >
+                  <Clapperboard className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
+                <DialogHeader>
+                  <DialogTitle>CapCut Pro - Video Editor</DialogTitle>
+                </DialogHeader>
+                <CapCutPro />
               </DialogContent>
             </Dialog>
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>

@@ -92,7 +92,7 @@ const Settings = () => {
       title: 'Social',
       items: [
         { icon: User, label: 'Public Chat', subtitle: 'Chat with friends', onClick: () => navigate('/public-chat') },
-        { icon: Info, label: 'About', onClick: () => toast({ title: 'About Askify', description: 'Made by Mr. Rudra Yenurkar' }) },
+        { icon: Info, label: 'About', onClick: () => toast({ title: 'About Askify', description: 'Made by Mr. Rudra' }) },
       ]
     }
   ];
