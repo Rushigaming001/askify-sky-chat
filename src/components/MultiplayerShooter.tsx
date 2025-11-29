@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sky, Text } from '@react-three/drei';
+import { Sky } from '@react-three/drei';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import * as THREE from 'three';
 import { Player } from './game/Player';
 import { Bullet } from './game/Bullet';
 import { GameArena } from './game/GameArena';
+import { WebRTCCall } from './WebRTCCall';
+import { FirstPersonCamera } from './game/FirstPersonCamera';
 
 interface GameRoom {
   id: string;
@@ -58,9 +60,11 @@ export function MultiplayerShooter() {
   const [playerName, setPlayerName] = useState('');
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [crosshairVisible, setCrosshairVisible] = useState(false);
+  const [cameraRotation, setCameraRotation] = useState({ x: 0, y: 0 });
+  const [inGameCall, setInGameCall] = useState(false);
   
-  const moveSpeed = 0.1;
-  const rotationSpeed = 0.05;
+  const moveSpeed = 0.15;
+  const rotationSpeed = 0.002;
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseMovement = useRef({ x: 0, y: 0 });
   const lastSyncTime = useRef(Date.now());
@@ -156,6 +160,11 @@ export function MultiplayerShooter() {
         if (document.pointerLockElement) {
           mouseMovement.current.x += e.movementX;
           mouseMovement.current.y += e.movementY;
+          
+          setCameraRotation(prev => ({
+            x: Math.max(-Math.PI / 3, Math.min(Math.PI / 3, prev.x - e.movementY * rotationSpeed)),
+            y: prev.y - e.movementX * rotationSpeed
+          }));
         }
       };
 
@@ -264,9 +273,9 @@ export function MultiplayerShooter() {
         room_id: room.id,
         user_id: user.id,
         player_name: playerName,
-        position_x: Math.random() * 20 - 10,
+        position_x: Math.random() * 40 - 20, // Spread out in larger arena
         position_y: 0.5,
-        position_z: Math.random() * 20 - 10
+        position_z: Math.random() * 40 - 20
       });
 
     if (error) {
@@ -335,9 +344,10 @@ export function MultiplayerShooter() {
 
     if (!error) {
       setView('game');
+      setInGameCall(true);
       toast({
         title: '🎮 Game Started!',
-        description: 'Click to lock mouse and shoot!'
+        description: 'Click to lock mouse and shoot! WASD to move, mouse to aim.'
       });
     }
   };
@@ -354,6 +364,7 @@ export function MultiplayerShooter() {
       .eq('id', currentRoom.id);
 
     if (!error) {
+      setInGameCall(false);
       setView('room');
     }
   };
@@ -376,9 +387,10 @@ export function MultiplayerShooter() {
     if (keysPressed.current.has('d')) dx += moveSpeed;
 
     // Rotation from mouse
-    if (Math.abs(mouseMovement.current.x) > 0) {
-      newRotation += mouseMovement.current.x * rotationSpeed * 0.01;
+    if (Math.abs(mouseMovement.current.x) > 0 || Math.abs(mouseMovement.current.y) > 0) {
+      newRotation = cameraRotation.y;
       mouseMovement.current.x = 0;
+      mouseMovement.current.y = 0;
       rotationChanged = true;
     }
 
@@ -392,9 +404,9 @@ export function MultiplayerShooter() {
       const newX = myParticipant.position_x + rotatedDx;
       const newZ = myParticipant.position_z + rotatedDz;
 
-      // Boundary check
-      const boundedX = Math.max(-25, Math.min(25, newX));
-      const boundedZ = Math.max(-25, Math.min(25, newZ));
+      // Boundary check (larger arena)
+      const boundedX = Math.max(-30, Math.min(30, newX));
+      const boundedZ = Math.max(-30, Math.min(30, newZ));
 
       // Update in database periodically (every 100ms)
       const now = Date.now();
@@ -441,22 +453,24 @@ export function MultiplayerShooter() {
     if (!myParticipant || !myParticipant.is_alive) return;
 
     const bulletId = `bullet-${Date.now()}-${Math.random()}`;
-    const speed = 0.8;
+    const speed = 1.2;
+    
+    // Use camera rotation for shooting direction (first-person)
     const direction = new THREE.Vector3(
-      Math.sin(myParticipant.rotation_y),
-      0,
-      Math.cos(myParticipant.rotation_y)
+      -Math.sin(cameraRotation.y) * Math.cos(cameraRotation.x),
+      Math.sin(cameraRotation.x),
+      -Math.cos(cameraRotation.y) * Math.cos(cameraRotation.x)
     ).normalize();
 
     const startPos: [number, number, number] = [
       myParticipant.position_x + direction.x * 0.5,
-      myParticipant.position_y + 0.3,
+      myParticipant.position_y + 1.5 + direction.y * 0.5, // Eye level
       myParticipant.position_z + direction.z * 0.5
     ];
 
     const velocity: [number, number, number] = [
       direction.x * speed,
-      0,
+      direction.y * speed,
       direction.z * speed
     ];
 
@@ -501,12 +515,14 @@ export function MultiplayerShooter() {
       updated.forEach(bullet => {
         participants.forEach(p => {
           if (p.user_id !== bullet.ownerId && p.is_alive) {
+            // Check 3D distance including Y coordinate (height)
             const dist = Math.sqrt(
               Math.pow(bullet.position[0] - p.position_x, 2) +
+              Math.pow(bullet.position[1] - (p.position_y + 1.0), 2) + // Center of mass
               Math.pow(bullet.position[2] - p.position_z, 2)
             );
             
-            if (dist < 0.5) {
+            if (dist < 0.8) { // Hit radius
               handlePlayerHit(bullet.ownerId, p.user_id);
             }
           }
@@ -565,8 +581,8 @@ export function MultiplayerShooter() {
           .update({
             health: 100,
             is_alive: true,
-            position_x: Math.random() * 20 - 10,
-            position_z: Math.random() * 20 - 10
+            position_x: Math.random() * 40 - 20,
+            position_z: Math.random() * 40 - 20
           })
           .eq('id', participant.id);
       }, 3000);
@@ -713,10 +729,15 @@ export function MultiplayerShooter() {
       )}
 
       {view === 'game' && currentRoom && (
-        <div className="relative w-full h-screen">
+        <div className="relative w-full h-screen bg-black">
           {crosshairVisible && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-              <Crosshair className="h-8 w-8 text-red-500" strokeWidth={3} />
+              <div className="relative">
+                <Crosshair className="h-6 w-6 text-red-500" strokeWidth={2} />
+                <div className="absolute inset-0 animate-ping">
+                  <Crosshair className="h-6 w-6 text-red-500/50" strokeWidth={2} />
+                </div>
+              </div>
             </div>
           )}
 
@@ -767,24 +788,39 @@ export function MultiplayerShooter() {
           </div>
 
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-            <Card className="px-4 py-2 bg-background/80 backdrop-blur text-xs text-muted-foreground">
-              WASD: Move | Mouse: Look | Click: Shoot | ESC: Unlock Mouse
+            <Card className="px-4 py-2 bg-black/80 backdrop-blur text-xs font-semibold text-white border-primary">
+              <div className="flex items-center gap-6">
+                <span className="flex items-center gap-1">
+                  <span className="text-primary">W/A/S/D:</span> Move
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="text-primary">Mouse:</span> Look Around
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="text-primary">Click:</span> Shoot
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="text-primary">ESC:</span> Unlock Mouse
+                </span>
+              </div>
             </Card>
           </div>
 
-          <Canvas camera={{ position: [0, 8, 8], fov: 75 }}>
+          <Canvas camera={{ position: [0, 1.6, 0], fov: 75 }}>
             <Sky sunPosition={[100, 20, 100]} />
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+            <ambientLight intensity={0.3} />
+            <directionalLight position={[10, 10, 5]} intensity={0.8} castShadow />
+            <pointLight position={[0, 5, 0]} intensity={0.3} />
             
             <GameArena />
             
-            {participants.map(participant => (
+            {/* Render other players (not yourself) */}
+            {participants.filter(p => p.user_id !== user?.id).map(participant => (
               <Player
                 key={participant.id}
                 position={[participant.position_x, participant.position_y, participant.position_z]}
                 rotation={participant.rotation_y}
-                color={participant.user_id === user?.id ? '#00ff00' : '#ff0000'}
+                color="#ff4444"
                 name={participant.player_name}
                 health={participant.health}
                 isAlive={participant.is_alive}
@@ -795,8 +831,30 @@ export function MultiplayerShooter() {
               <Bullet key={bullet.id} position={bullet.position} />
             ))}
 
-            <OrbitControls enabled={false} />
+            {/* First-person camera controller */}
+            {participants.find(p => p.user_id === user?.id) && (
+              <FirstPersonCamera
+                position={[
+                  participants.find(p => p.user_id === user?.id)!.position_x,
+                  participants.find(p => p.user_id === user?.id)!.position_y,
+                  participants.find(p => p.user_id === user?.id)!.position_z
+                ]}
+                rotation={cameraRotation}
+              />
+            )}
           </Canvas>
+
+          {/* In-game voice and video chat */}
+          {inGameCall && currentRoom && (
+            <WebRTCCall
+              isOpen={inGameCall}
+              onClose={() => setInGameCall(false)}
+              callType="video"
+              recipientName={currentRoom.name}
+              recipientId="public"
+              isInitiator={true}
+            />
+          )}
         </div>
       )}
     </div>
