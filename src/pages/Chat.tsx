@@ -85,12 +85,17 @@ const Chat = () => {
 
       const response = await callAI(messages, selectedModel, currentChat.mode);
       addMessage({ role: 'assistant', content: response });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error calling AI:', error);
+      
+      // Show specific error message if available
+      const errorMessage = error?.message || 'Failed to get response from AI. Please try again.';
+      
       toast({
-        title: 'Error',
-        description: 'Failed to get response from AI. Please try again.',
-        variant: 'destructive'
+        title: error?.message?.includes('credits') ? '💳 Out of Credits' : 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+        duration: error?.message?.includes('credits') ? 8000 : 5000
       });
     } finally {
       setIsLoading(false);
