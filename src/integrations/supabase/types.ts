@@ -117,6 +117,39 @@ export type Database = {
           },
         ]
       }
+      game_rooms: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          max_players: number
+          name: string
+          owner_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          max_players?: number
+          name: string
+          owner_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          max_players?: number
+          name?: string
+          owner_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
@@ -347,6 +380,65 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_participants: {
+        Row: {
+          deaths: number | null
+          health: number | null
+          id: string
+          is_alive: boolean | null
+          joined_at: string | null
+          kills: number | null
+          player_name: string
+          position_x: number | null
+          position_y: number | null
+          position_z: number | null
+          room_id: string
+          rotation_y: number | null
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          deaths?: number | null
+          health?: number | null
+          id?: string
+          is_alive?: boolean | null
+          joined_at?: string | null
+          kills?: number | null
+          player_name: string
+          position_x?: number | null
+          position_y?: number | null
+          position_z?: number | null
+          room_id: string
+          rotation_y?: number | null
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          deaths?: number | null
+          health?: number | null
+          id?: string
+          is_alive?: boolean | null
+          joined_at?: string | null
+          kills?: number | null
+          player_name?: string
+          position_x?: number | null
+          position_y?: number | null
+          position_z?: number | null
+          room_id?: string
+          rotation_y?: number | null
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
             referencedColumns: ["id"]
           },
         ]

@@ -11,6 +11,7 @@ import { VideoGenerator } from '@/components/VideoGenerator';
 import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
 import CapCutPro from '@/components/CapCutPro';
 import DeadshotGame from '@/components/DeadshotGame';
+import { MultiplayerShooter } from '@/components/MultiplayerShooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -272,16 +273,13 @@ const Chat = () => {
                   variant="outline" 
                   size="icon"
                   className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="Deadshot Game"
+                  title="Multiplayer Shooter"
                 >
                   <Target className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                <DialogHeader>
-                  <DialogTitle>Deadshot Game</DialogTitle>
-                </DialogHeader>
-                <DeadshotGame />
+              <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 animate-scale-in">
+                <MultiplayerShooter />
               </DialogContent>
             </Dialog>
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'nvidia') => handleModelChange(v)}>
