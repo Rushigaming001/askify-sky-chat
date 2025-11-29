@@ -44,12 +44,16 @@ serve(async (req) => {
       aiModel = 'openai/gpt-5-nano';
       openAIModel = 'gpt-5-nano-2025-08-07';
     } else if (model === 'gemini' || !model) {
+      aiModel = 'google/gemini-2.5-flash';
       geminiModel = 'gemini-2.0-flash-exp';
     } else if (model === 'gemini-3') {
+      aiModel = 'google/gemini-3-pro-preview';
       geminiModel = 'gemini-exp-1206';
     } else if (model === 'askify') {
+      aiModel = 'google/gemini-2.5-pro';
       geminiModel = 'gemini-2.0-pro-exp';
     } else if (model === 'nvidia') {
+      aiModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
       nvidiaModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
     }
 
