@@ -23,16 +23,18 @@ serve(async (req) => {
       });
     }
 
-    // Check if model is GPT (use OpenRouter), Gemini (use Google AI), or NVIDIA NIM
+    // Check if model is GPT (use OpenRouter), Gemini (use Google AI), NVIDIA NIM, or Lovable AI
     const isGPTModel = model === 'gpt' || model === 'gpt-mini' || model === 'gpt-nano';
-    const isGeminiModel = model === 'gemini' || model === 'gemini-3' || model === 'askify';
+    const isGeminiModel = model === 'gemini' || model === 'gemini-3';
     const isNvidiaModel = model === 'nvidia';
+    const isLovableAI = model === 'askify'; // Uses Lovable AI Gateway
     
     // Map user's model selection
     let aiModel = 'gemini-2.0-flash-exp';
     let openAIModel = '';
     let geminiModel = '';
     let nvidiaModel = '';
+    let lovableAIModel = '';
     
     if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
@@ -49,12 +51,12 @@ serve(async (req) => {
     } else if (model === 'gemini-3') {
       aiModel = 'google/gemini-3-pro-preview';
       geminiModel = 'gemini-exp-1206';
-    } else if (model === 'askify') {
-      aiModel = 'google/gemini-2.5-pro';
-      geminiModel = 'gemini-2.0-pro-exp';
     } else if (model === 'nvidia') {
       aiModel = 'meta/llama-3.1-8b-instruct';
       nvidiaModel = 'meta/llama-3.1-8b-instruct';
+    } else if (model === 'askify') {
+      aiModel = 'google/gemini-2.5-pro';
+      lovableAIModel = 'google/gemini-2.5-pro'; // Lovable AI Gateway
     }
 
     // Initialize Supabase client
@@ -261,6 +263,55 @@ Be helpful, accurate, and conversational.`;
         }
         
         throw new Error(`NVIDIA NIM API request failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+      reply = data.choices?.[0]?.message?.content || "No response generated";
+    } else if (isLovableAI) {
+      // Use Lovable AI Gateway (auto-provisioned API key, no credits from user)
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      
+      if (!LOVABLE_API_KEY) {
+        return new Response(JSON.stringify({ error: "Lovable AI not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: lovableAIModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Lovable AI error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "Out of Lovable AI credits. Add credits in Settings → Workspace → Usage or use models with your own API keys (GPT, Gemini, NVIDIA)." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        throw new Error(`Lovable AI request failed: ${errorText}`);
       }
 
       const data = await response.json();
