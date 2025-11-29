@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -135,6 +135,19 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           >
             <MessageCircle className="h-5 w-5 mr-2" />
             Public Chat
+          </Button>
+
+          <Button 
+            onClick={() => {
+              navigate('/ai-features');
+              onToggle();
+            }}
+            variant="outline"
+            className="w-full hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg" 
+            size="lg"
+          >
+            <Sparkles className="h-5 w-5 mr-2" />
+            AI Features
           </Button>
         </div>
         

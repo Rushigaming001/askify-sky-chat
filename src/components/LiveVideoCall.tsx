@@ -10,10 +10,21 @@ export function LiveVideoCall() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [analysis, setAnalysis] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [quality, setQuality] = useState<'fast' | 'normal' | 'detailed'>('normal');
+  const [isManualMode, setIsManualMode] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  const getIntervalTime = () => {
+    switch (quality) {
+      case 'fast': return 30000; // 30s - saves 90% credits
+      case 'normal': return 15000; // 15s - saves 80% credits
+      case 'detailed': return 5000; // 5s
+      default: return 15000;
+    }
+  };
 
   const startVideo = async () => {
     try {
@@ -28,14 +39,16 @@ export function LiveVideoCall() {
       }
       setIsActive(true);
       
-      // Start analyzing frames every 3 seconds
-      intervalRef.current = setInterval(() => {
-        captureAndAnalyze();
-      }, 3000);
+      // Only start auto-capture if not in manual mode
+      if (!isManualMode) {
+        intervalRef.current = setInterval(() => {
+          captureAndAnalyze();
+        }, getIntervalTime());
+      }
 
       toast({
         title: 'Camera Started',
-        description: 'AI is now watching and analyzing what you show it'
+        description: isManualMode ? 'Click "Capture Frame" to analyze' : `AI analyzing every ${getIntervalTime() / 1000}s`
       });
     } catch (error) {
       console.error('Error accessing camera:', error);
@@ -120,6 +133,73 @@ export function LiveVideoCall() {
 
   return (
     <div className="space-y-4">
+      {/* Credit Warning Banner */}
+      {!isActive && (
+        <div className="bg-amber-500/10 border border-amber-500/50 rounded-lg p-3 text-amber-600 dark:text-amber-400 text-sm">
+          💰 <strong>Credit Tip:</strong> Use Manual mode and Fast quality to minimize AI gateway usage. Auto mode at Detailed quality uses the most credits.
+        </div>
+      )}
+
+      {/* Quality & Mode Controls */}
+      {isActive && (
+        <div className="flex gap-2 items-center justify-between bg-muted/30 p-3 rounded-lg border border-border">
+          <div className="flex gap-2 items-center">
+            <label className="text-sm font-medium">Mode:</label>
+            <Button
+              size="sm"
+              variant={isManualMode ? "default" : "outline"}
+              onClick={() => {
+                setIsManualMode(true);
+                if (intervalRef.current) {
+                  clearInterval(intervalRef.current);
+                  intervalRef.current = null;
+                }
+              }}
+            >
+              Manual
+            </Button>
+            <Button
+              size="sm"
+              variant={!isManualMode ? "default" : "outline"}
+              onClick={() => {
+                setIsManualMode(false);
+                if (!intervalRef.current) {
+                  intervalRef.current = setInterval(() => {
+                    captureAndAnalyze();
+                  }, getIntervalTime());
+                }
+              }}
+            >
+              Auto
+            </Button>
+          </div>
+          <div className="flex gap-2 items-center">
+            <label className="text-sm font-medium">Quality:</label>
+            <Button
+              size="sm"
+              variant={quality === 'fast' ? "default" : "outline"}
+              onClick={() => setQuality('fast')}
+            >
+              Fast (30s)
+            </Button>
+            <Button
+              size="sm"
+              variant={quality === 'normal' ? "default" : "outline"}
+              onClick={() => setQuality('normal')}
+            >
+              Normal (15s)
+            </Button>
+            <Button
+              size="sm"
+              variant={quality === 'detailed' ? "default" : "outline"}
+              onClick={() => setQuality('detailed')}
+            >
+              Detailed (5s)
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="relative rounded-lg overflow-hidden border border-border bg-black aspect-video">
           <video
@@ -148,23 +228,42 @@ export function LiveVideoCall() {
           )}
         </div>
 
-        <Button 
-          onClick={isActive ? stopVideo : startVideo}
-          variant={isActive ? "destructive" : "default"}
-          className="w-full"
-        >
-          {isActive ? (
-            <>
-              <VideoOff className="mr-2 h-4 w-4" />
-              Stop Video Call
-            </>
-          ) : (
-            <>
-              <Video className="mr-2 h-4 w-4" />
-              Start Live Video Call
-            </>
+        <div className="flex gap-2">
+          <Button 
+            onClick={isActive ? stopVideo : startVideo}
+            variant={isActive ? "destructive" : "default"}
+            className="flex-1"
+          >
+            {isActive ? (
+              <>
+                <VideoOff className="mr-2 h-4 w-4" />
+                Stop Video Call
+              </>
+            ) : (
+              <>
+                <Video className="mr-2 h-4 w-4" />
+                Start Live Video Call
+              </>
+            )}
+          </Button>
+          {isActive && isManualMode && (
+            <Button 
+              onClick={captureAndAnalyze}
+              disabled={isAnalyzing}
+              variant="outline"
+              className="flex-1"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                'Capture Frame'
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
 
       {analysis && (
@@ -181,10 +280,11 @@ export function LiveVideoCall() {
       <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border">
         <p className="font-medium mb-1">💡 How it works:</p>
         <ul className="space-y-1 list-disc list-inside">
-          <li>AI analyzes what your camera sees every 3 seconds</li>
-          <li>Show objects, text, or anything to get information</li>
-          <li>Real-time descriptions and helpful insights</li>
-          <li>Point camera at what you want to learn about</li>
+          <li><strong>Manual Mode:</strong> Click "Capture Frame" to analyze (saves most credits)</li>
+          <li><strong>Auto Mode:</strong> AI analyzes continuously based on quality setting</li>
+          <li><strong>Fast (30s):</strong> Great for slow-moving scenes, saves 90% credits</li>
+          <li><strong>Normal (15s):</strong> Balanced mode, saves 80% credits</li>
+          <li><strong>Detailed (5s):</strong> Best for fast action, uses more credits</li>
         </ul>
       </div>
     </div>
