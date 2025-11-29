@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Target, Users, Play, StopCircle, Trophy, Crosshair } from 'lucide-react';
+import { Target, Users, Play, StopCircle, Trophy, Crosshair, Trash2 } from 'lucide-react';
 import * as THREE from 'three';
 import { Player } from './game/Player';
 import { Bullet } from './game/Bullet';
@@ -285,6 +285,27 @@ export function MultiplayerShooter() {
     } else {
       setCurrentRoom(room);
       setView('room');
+    }
+  };
+
+  const deleteRoom = async (roomId: string) => {
+    const { error } = await supabase
+      .from('game_rooms')
+      .delete()
+      .eq('id', roomId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete room',
+        variant: 'destructive'
+      });
+    } else {
+      toast({
+        title: 'Room Deleted',
+        description: 'Room has been deleted successfully'
+      });
+      loadRooms();
     }
   };
 
@@ -589,32 +610,46 @@ export function MultiplayerShooter() {
           <div className="space-y-4">
             <h3 className="text-xl font-semibold">Available Rooms</h3>
             <ScrollArea className="h-[400px]">
-              <div className="space-y-3">
-                {rooms.map(room => (
-                  <Card key={room.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-lg">{room.name}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant={room.status === 'waiting' ? 'default' : room.status === 'playing' ? 'secondary' : 'outline'}>
-                            {room.status}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {participants.filter(p => p.room_id === room.id).length}/{room.max_players}
-                          </span>
+                <div className="space-y-3">
+                  {rooms.map(room => {
+                    const isRoomOwner = user && room.owner_id === user.id;
+                    return (
+                      <Card key={room.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg">{room.name}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant={room.status === 'waiting' ? 'default' : room.status === 'playing' ? 'secondary' : 'outline'}>
+                                {room.status}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {participants.filter(p => p.room_id === room.id).length}/{room.max_players}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => joinRoom(room)}
+                              disabled={room.status !== 'waiting' || !playerName.trim()}
+                              size="sm"
+                            >
+                              Join
+                            </Button>
+                            {isRoomOwner && room.status === 'waiting' && (
+                              <Button 
+                                onClick={() => deleteRoom(room.id)}
+                                variant="destructive"
+                                size="sm"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <Button 
-                        onClick={() => joinRoom(room)}
-                        disabled={room.status !== 'waiting' || !playerName.trim()}
-                        size="sm"
-                      >
-                        Join
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+                      </Card>
+                    );
+                  })}
                 {rooms.length === 0 && (
                   <p className="text-center text-muted-foreground py-8">
                     No rooms available. Create one!
