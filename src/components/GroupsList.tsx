@@ -4,8 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Plus, MessageSquare } from 'lucide-react';
+import { Users, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +34,7 @@ interface Group {
   created_by: string;
   created_at: string;
   member_count?: number;
+  is_admin?: boolean;
 }
 
 interface GroupsListProps {
@@ -40,6 +51,7 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -77,11 +89,13 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
   };
 
   const loadGroups = async () => {
+    if (!user) return;
+    
     const { data: groupsData, error } = await supabase
       .from('groups')
       .select(`
         *,
-        group_members(count)
+        group_members(count, role, user_id)
       `)
       .order('created_at', { ascending: false });
 
@@ -90,10 +104,15 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
       return;
     }
 
-    const groupsWithCount = groupsData?.map(g => ({
-      ...g,
-      member_count: g.group_members?.[0]?.count || 0
-    })) || [];
+    const groupsWithCount = groupsData?.map(g => {
+      const members = Array.isArray(g.group_members) ? g.group_members : [g.group_members];
+      const userMember = members.find((m: any) => m.user_id === user.id);
+      return {
+        ...g,
+        member_count: g.group_members?.[0]?.count || 0,
+        is_admin: g.created_by === user.id || userMember?.role === 'admin'
+      };
+    }) || [];
 
     setGroups(groupsWithCount);
   };
@@ -167,6 +186,32 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
     );
   };
 
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete || !user) return;
+
+    const { error } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupToDelete.id);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete group',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    toast({
+      title: 'Success',
+      description: 'Group deleted successfully'
+    });
+
+    setGroupToDelete(null);
+    loadGroups();
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -223,13 +268,25 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
                     </div>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onOpenGroupChat(group.id, group.name)}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onOpenGroupChat(group.id, group.name)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                  {group.is_admin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setGroupToDelete(group)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -298,6 +355,27 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!groupToDelete} onOpenChange={() => setGroupToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{groupToDelete?.name}"? This action cannot be undone.
+              All messages and members will be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteGroup}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
