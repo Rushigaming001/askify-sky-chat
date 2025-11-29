@@ -91,12 +91,10 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
   const loadGroups = async () => {
     if (!user) return;
     
+    // First, get all groups the user can access
     const { data: groupsData, error } = await supabase
       .from('groups')
-      .select(`
-        *,
-        group_members(count, role, user_id)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -104,17 +102,32 @@ export function GroupsList({ onOpenGroupChat }: GroupsListProps) {
       return;
     }
 
-    const groupsWithCount = groupsData?.map(g => {
-      const members = Array.isArray(g.group_members) ? g.group_members : [g.group_members];
-      const userMember = members.find((m: any) => m.user_id === user.id);
-      return {
-        ...g,
-        member_count: g.group_members?.[0]?.count || 0,
-        is_admin: g.created_by === user.id || userMember?.role === 'admin'
-      };
-    }) || [];
+    // Then, get member info for each group
+    const groupsWithInfo = await Promise.all(
+      (groupsData || []).map(async (group) => {
+        // Get member count
+        const { count } = await supabase
+          .from('group_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', group.id);
 
-    setGroups(groupsWithCount);
+        // Check if user is admin
+        const { data: memberData } = await supabase
+          .from('group_members')
+          .select('role')
+          .eq('group_id', group.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        return {
+          ...group,
+          member_count: count || 0,
+          is_admin: group.created_by === user.id || memberData?.role === 'admin'
+        };
+      })
+    );
+
+    setGroups(groupsWithInfo);
   };
 
   const handleCreateGroup = async () => {
