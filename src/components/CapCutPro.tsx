@@ -159,26 +159,28 @@ export default function CapCutPro() {
 
             <TabsContent value="edit" className="space-y-4">
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Trim Start (%): {trimStart[0]}%</Label>
-                  <Slider
-                    value={trimStart}
-                    onValueChange={setTrimStart}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Trim Start (%): {trimStart[0]}%</Label>
+                    <Slider
+                      value={trimStart}
+                      onValueChange={setTrimStart}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Trim End (%): {trimEnd[0]}%</Label>
-                  <Slider
-                    value={trimEnd}
-                    onValueChange={setTrimEnd}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
+                  <div className="space-y-2">
+                    <Label>Trim End (%): {trimEnd[0]}%</Label>
+                    <Slider
+                      value={trimEnd}
+                      onValueChange={setTrimEnd}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -193,23 +195,110 @@ export default function CapCutPro() {
                     onChange={(e) => setTextOverlay(e.target.value)}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Playback Speed</Label>
+                    <select className="w-full h-9 px-3 rounded-md border border-input bg-background">
+                      <option value="0.5">0.5x (Slow Motion)</option>
+                      <option value="1" selected>1x (Normal)</option>
+                      <option value="1.5">1.5x (Fast)</option>
+                      <option value="2">2x (Very Fast)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Video Filter</Label>
+                    <select className="w-full h-9 px-3 rounded-md border border-input bg-background">
+                      <option value="none" selected>None</option>
+                      <option value="cinematic">Cinematic</option>
+                      <option value="vintage">Vintage</option>
+                      <option value="vibrant">Vibrant</option>
+                      <option value="black-white">Black & White</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Rotate & Flip</Label>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1">Rotate 90°</Button>
+                    <Button variant="outline" size="sm" className="flex-1">Flip Horizontal</Button>
+                    <Button variant="outline" size="sm" className="flex-1">Flip Vertical</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Crop & Aspect Ratio</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    <Button variant="outline" size="sm">16:9</Button>
+                    <Button variant="outline" size="sm">9:16</Button>
+                    <Button variant="outline" size="sm">1:1</Button>
+                    <Button variant="outline" size="sm">4:3</Button>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
             <TabsContent value="enhance" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ai-prompt" className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  AI Enhancement Prompt
-                </Label>
-                <Textarea
-                  id="ai-prompt"
-                  placeholder="Describe how you want to edit your video (e.g., 'Add cinematic color grading', 'Increase brightness', 'Add smooth transitions', 'Stabilize shaky footage')"
-                  value={editPrompt}
-                  onChange={(e) => setEditPrompt(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ai-prompt" className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    AI Enhancement Prompt
+                  </Label>
+                  <Textarea
+                    id="ai-prompt"
+                    placeholder="Describe how you want to edit your video (e.g., 'Add cinematic color grading', 'Increase brightness', 'Add smooth transitions', 'Stabilize shaky footage', 'Remove background noise')"
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Music className="h-4 w-4" />
+                    Audio Enhancements
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm">Auto Enhance Audio</Button>
+                    <Button variant="outline" size="sm">Remove Noise</Button>
+                    <Button variant="outline" size="sm">Add Background Music</Button>
+                    <Button variant="outline" size="sm">Normalize Volume</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Video Effects</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button variant="outline" size="sm">Stabilize</Button>
+                    <Button variant="outline" size="sm">Blur Background</Button>
+                    <Button variant="outline" size="sm">Auto Frame</Button>
+                    <Button variant="outline" size="sm">Add Transitions</Button>
+                    <Button variant="outline" size="sm">Color Grade</Button>
+                    <Button variant="outline" size="sm">Sharpen</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Smart Features</Label>
+                  <div className="space-y-2">
+                    <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Auto Subtitle Generation
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI Object Tracking
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Smart Scene Detection
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <Button
