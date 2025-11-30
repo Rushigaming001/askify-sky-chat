@@ -47,7 +47,7 @@ const Chat = () => {
 
   const checkModelAccess = async () => {
     const modelMap: Record<string, string> = {
-      'gemini': 'google/gemini-2.5-flash',
+      'gemini': 'google/gemini-2.5-flash-lite',
       'gpt': 'openai/gpt-5',
       'gpt-mini': 'openai/gpt-5-mini',
       'gpt-nano': 'openai/gpt-5-nano',
