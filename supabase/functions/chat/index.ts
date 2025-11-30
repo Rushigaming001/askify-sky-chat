@@ -94,6 +94,22 @@ serve(async (req) => {
 
     let reply = '';
 
+    // Prepare request body with correct token parameter based on model
+    const requestBody: any = {
+      model: aiModel,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages,
+      ],
+    };
+
+    // Use max_completion_tokens for OpenAI GPT-5+ models, max_tokens for others
+    if (aiModel.includes('gpt-5') || aiModel.includes('gpt-4.1') || aiModel.includes('o3') || aiModel.includes('o4')) {
+      requestBody.max_completion_tokens = 500;
+    } else {
+      requestBody.max_tokens = 500;
+    }
+
     // All models now use Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -101,14 +117,7 @@ serve(async (req) => {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: aiModel,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        max_tokens: 500, // Limit response length (saves ~30% credits)
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
