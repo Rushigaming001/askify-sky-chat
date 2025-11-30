@@ -1,347 +1,206 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Download, Scissors, Sparkles, Music, Type, Film } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Upload, Download, Save, Film
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { VideoPlayer } from './capcut/VideoPlayer';
+import { VideoTimeline } from './capcut/VideoTimeline';
+import { EffectsPanel } from './capcut/EffectsPanel';
+import { AIPanel } from './capcut/AIPanel';
+
+interface Track {
+  id: string;
+  type: 'video' | 'audio' | 'text' | 'effect';
+  src?: string;
+  start: number;
+  duration: number;
+  content?: string;
+  volume?: number;
+  locked?: boolean;
+  muted?: boolean;
+}
 
 export default function CapCutPro() {
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string>('');
-  const [trimStart, setTrimStart] = useState([0]);
-  const [trimEnd, setTrimEnd] = useState([100]);
-  const [editPrompt, setEditPrompt] = useState('');
-  const [textOverlay, setTextOverlay] = useState('');
-  const [processedVideoUrl, setProcessedVideoUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState('Untitled Project');
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+  
+  // Playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  
+  // Timeline state
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [activePanel, setActivePanel] = useState<'effects' | 'ai'>('effects');
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('video/')) {
       setVideoFile(file);
       const url = URL.createObjectURL(file);
-      setVideoPreview(url);
-      toast({ title: 'Video uploaded successfully!' });
-    } else {
-      toast({ title: 'Please upload a valid video file', variant: 'destructive' });
-    }
-  };
-
-  const handleAIEdit = async () => {
-    if (!videoFile) {
-      toast({ title: 'Please upload a video first', variant: 'destructive' });
-      return;
-    }
-
-    if (!editPrompt.trim()) {
-      toast({ title: 'Please describe what edits you want', variant: 'destructive' });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(videoFile);
-      reader.onload = async () => {
-        const base64Video = reader.result as string;
-
-        const { data, error } = await supabase.functions.invoke('video-editor', {
-          body: {
-            videoData: base64Video.split(',')[1],
-            prompt: editPrompt,
-            trimStart: trimStart[0],
-            trimEnd: trimEnd[0],
-            textOverlay: textOverlay,
-            fileName: videoFile.name
-          }
-        });
-
-        if (error) throw error;
-
-        if (data?.videoUrl) {
-          setProcessedVideoUrl(data.videoUrl);
-          toast({ 
-            title: 'Video edited successfully!',
-            description: 'Your edited video is ready to download.'
-          });
-        }
+      setVideoUrl(url);
+      
+      // Add video as first track
+      const videoTrack: Track = {
+        id: `video-${Date.now()}`,
+        type: 'video',
+        src: url,
+        start: 0,
+        duration: 0, // Will be updated when metadata loads
+        volume: 1,
       };
-    } catch (error: any) {
-      console.error('Error editing video:', error);
-      toast({
-        title: 'Error editing video',
-        description: error.message || 'Failed to process video. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsProcessing(false);
+      setTracks([videoTrack]);
+      
+      toast.success('Video uploaded successfully!');
+    } else {
+      toast.error('Please upload a valid video file');
     }
   };
 
-  const handleDownload = () => {
-    if (processedVideoUrl) {
-      const link = document.createElement('a');
-      link.href = processedVideoUrl;
-      link.download = `edited_video_${Date.now()}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast({ title: 'Video download started!' });
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (time: number) => {
+    setCurrentTime(time);
+    setIsPlaying(false);
+  };
+
+  const handleDurationChange = (newDuration: number) => {
+    setDuration(newDuration);
+    // Update video track duration
+    if (tracks.length > 0 && tracks[0].type === 'video') {
+      const updatedTracks = [...tracks];
+      updatedTracks[0].duration = newDuration;
+      setTracks(updatedTracks);
     }
+  };
+
+  const handleSaveProject = () => {
+    const project = {
+      name: projectName,
+      aspectRatio,
+      tracks,
+      duration,
+    };
+    localStorage.setItem('capcut-project', JSON.stringify(project));
+    toast.success('Project saved successfully!');
+  };
+
+  const handleExport = () => {
+    toast.info('Export feature coming soon! This will render your final video.');
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Film className="h-5 w-5 text-primary" />
-            CapCut Pro - AI Video Editor
-          </CardTitle>
-          <CardDescription>
-            Upload, edit, and enhance your videos with AI-powered tools
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="upload">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </TabsTrigger>
-              <TabsTrigger value="edit">
-                <Scissors className="h-4 w-4 mr-2" />
-                Edit
-              </TabsTrigger>
-              <TabsTrigger value="enhance">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Enhance
-              </TabsTrigger>
-            </TabsList>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Top Bar */}
+      <div className="h-14 border-b border-border flex items-center px-4 gap-4">
+        <div className="flex items-center gap-2">
+          <Film className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-semibold">CapCut Pro</h1>
+        </div>
+        
+        <Input
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          className="max-w-xs"
+        />
 
-            <TabsContent value="upload" className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  className="hidden"
-                  id="video-upload"
-                />
-                <label htmlFor="video-upload" className="cursor-pointer space-y-4 block">
-                  <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Click to upload video</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      MP4, AVI, MOV, MKV (Max 100MB)
-                    </p>
-                  </div>
-                </label>
-              </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <Select value={aspectRatio} onValueChange={setAspectRatio}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="16:9">16:9</SelectItem>
+              <SelectItem value="9:16">9:16</SelectItem>
+              <SelectItem value="1:1">1:1</SelectItem>
+              <SelectItem value="4:5">4:5</SelectItem>
+            </SelectContent>
+          </Select>
 
-              {videoPreview && (
-                <div className="space-y-2">
-                  <Label>Video Preview</Label>
-                  <video
-                    src={videoPreview}
-                    controls
-                    className="w-full rounded-lg border border-border"
-                  />
-                </div>
-              )}
-            </TabsContent>
+          <label htmlFor="video-upload">
+            <Button variant="outline" asChild>
+              <span className="cursor-pointer flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Import
+              </span>
+            </Button>
+            <input
+              id="video-upload"
+              type="file"
+              accept="video/*"
+              onChange={handleVideoUpload}
+              className="hidden"
+            />
+          </label>
 
-            <TabsContent value="edit" className="space-y-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Trim Start (%): {trimStart[0]}%</Label>
-                    <Slider
-                      value={trimStart}
-                      onValueChange={setTrimStart}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
+          <Button variant="outline" onClick={handleSaveProject}>
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
 
-                  <div className="space-y-2">
-                    <Label>Trim End (%): {trimEnd[0]}%</Label>
-                    <Slider
-                      value={trimEnd}
-                      onValueChange={setTrimEnd}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
+          <Button onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
+      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="text-overlay" className="flex items-center gap-2">
-                    <Type className="h-4 w-4" />
-                    Text Overlay
-                  </Label>
-                  <Input
-                    id="text-overlay"
-                    placeholder="Enter text to overlay on video"
-                    value={textOverlay}
-                    onChange={(e) => setTextOverlay(e.target.value)}
-                  />
-                </div>
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Video Player Section */}
+        <div className="flex-1 flex flex-col">
+          <VideoPlayer
+            videoUrl={videoUrl}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            volume={volume}
+            onPlayPause={handlePlayPause}
+            onTimeUpdate={setCurrentTime}
+            onVolumeChange={setVolume}
+            onDurationChange={handleDurationChange}
+          />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Playback Speed</Label>
-                    <select className="w-full h-9 px-3 rounded-md border border-input bg-background">
-                      <option value="0.5">0.5x (Slow Motion)</option>
-                      <option value="1" selected>1x (Normal)</option>
-                      <option value="1.5">1.5x (Fast)</option>
-                      <option value="2">2x (Very Fast)</option>
-                    </select>
-                  </div>
+          {/* Timeline */}
+          <VideoTimeline
+            tracks={tracks}
+            onTracksUpdate={setTracks}
+            currentTime={currentTime}
+            totalDuration={duration || 100}
+            onSeek={handleSeek}
+          />
+        </div>
 
-                  <div className="space-y-2">
-                    <Label>Video Filter</Label>
-                    <select className="w-full h-9 px-3 rounded-md border border-input bg-background">
-                      <option value="none" selected>None</option>
-                      <option value="cinematic">Cinematic</option>
-                      <option value="vintage">Vintage</option>
-                      <option value="vibrant">Vibrant</option>
-                      <option value="black-white">Black & White</option>
-                    </select>
-                  </div>
-                </div>
+        {/* Right Panel */}
+        <div className="w-80 flex flex-col border-l border-border">
+          <div className="flex border-b border-border">
+            <Button
+              variant={activePanel === 'effects' ? 'default' : 'ghost'}
+              className="flex-1 rounded-none"
+              onClick={() => setActivePanel('effects')}
+            >
+              Effects
+            </Button>
+            <Button
+              variant={activePanel === 'ai' ? 'default' : 'ghost'}
+              className="flex-1 rounded-none"
+              onClick={() => setActivePanel('ai')}
+            >
+              AI Tools
+            </Button>
+          </div>
 
-                <div className="space-y-2">
-                  <Label>Rotate & Flip</Label>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">Rotate 90°</Button>
-                    <Button variant="outline" size="sm" className="flex-1">Flip Horizontal</Button>
-                    <Button variant="outline" size="sm" className="flex-1">Flip Vertical</Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Crop & Aspect Ratio</Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    <Button variant="outline" size="sm">16:9</Button>
-                    <Button variant="outline" size="sm">9:16</Button>
-                    <Button variant="outline" size="sm">1:1</Button>
-                    <Button variant="outline" size="sm">4:3</Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="enhance" className="space-y-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ai-prompt" className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    AI Enhancement Prompt
-                  </Label>
-                  <Textarea
-                    id="ai-prompt"
-                    placeholder="Describe how you want to edit your video (e.g., 'Add cinematic color grading', 'Increase brightness', 'Add smooth transitions', 'Stabilize shaky footage', 'Remove background noise')"
-                    value={editPrompt}
-                    onChange={(e) => setEditPrompt(e.target.value)}
-                    rows={4}
-                    className="resize-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Music className="h-4 w-4" />
-                    Audio Enhancements
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm">Auto Enhance Audio</Button>
-                    <Button variant="outline" size="sm">Remove Noise</Button>
-                    <Button variant="outline" size="sm">Add Background Music</Button>
-                    <Button variant="outline" size="sm">Normalize Volume</Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Video Effects</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" size="sm">Stabilize</Button>
-                    <Button variant="outline" size="sm">Blur Background</Button>
-                    <Button variant="outline" size="sm">Auto Frame</Button>
-                    <Button variant="outline" size="sm">Add Transitions</Button>
-                    <Button variant="outline" size="sm">Color Grade</Button>
-                    <Button variant="outline" size="sm">Sharpen</Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Smart Features</Label>
-                  <div className="space-y-2">
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Auto Subtitle Generation
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI Object Tracking
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Smart Scene Detection
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleAIEdit}
-                disabled={isProcessing || !videoFile}
-                className="w-full"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Processing Video...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5 mr-2" />
-                    Apply AI Edits
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
-
-          {processedVideoUrl && (
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="pt-6 space-y-4">
-                <div className="space-y-2">
-                  <Label>Edited Video</Label>
-                  <video
-                    src={processedVideoUrl}
-                    controls
-                    className="w-full rounded-lg border border-border"
-                  />
-                </div>
-                <Button onClick={handleDownload} className="w-full" size="lg">
-                  <Download className="h-5 w-5 mr-2" />
-                  Download Edited Video
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </CardContent>
-      </Card>
+          {activePanel === 'effects' ? <EffectsPanel /> : <AIPanel />}
+        </div>
+      </div>
     </div>
   );
 }
