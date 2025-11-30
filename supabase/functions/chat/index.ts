@@ -49,8 +49,6 @@ serve(async (req) => {
       aiModel = 'google/gemini-3-pro-preview';
     } else if (model === 'askify') {
       aiModel = 'google/gemini-2.5-pro';
-    } else if (model === 'nvidia') {
-      aiModel = 'meta/llama-3.1-8b-instruct';
     }
 
     // Initialize Supabase client
