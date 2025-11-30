@@ -14,7 +14,7 @@ export interface Chat {
   title: string;
   messages: Message[];
   createdAt: number;
-  model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'nvidia';
+  model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3';
   mode: 'normal' | 'deepthink' | 'search' | 'reasoning';
   pinned?: boolean;
 }
@@ -28,7 +28,7 @@ interface ChatContextType {
   renameChat: (chatId: string, newTitle: string) => void;
   togglePinChat: (chatId: string) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
-  updateChatSettings: (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'nvidia', mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => void;
+  updateChatSettings: (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3', mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -118,10 +118,41 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       const updatedMessages = [...targetChat.messages, newMessage];
       
-      // Auto-rename chat based on first user message
+      // Smart auto-rename based on first user message
       let updatedTitle = targetChat.title;
       if (targetChat.messages.length === 0 && message.role === 'user') {
-        updatedTitle = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
+        const content = message.content.toLowerCase().trim();
+        
+        // Intelligent title generation based on message content
+        if (content.includes('hello') || content.includes('hi ') || content === 'hi' || content.includes('hey')) {
+          updatedTitle = 'Greetings Exchange';
+        } else if (content.includes('help') || content.includes('how to') || content.includes('assist')) {
+          updatedTitle = 'Help Request';
+        } else if (content.includes('code') || content.includes('program') || content.includes('debug')) {
+          updatedTitle = 'Coding Assistance';
+        } else if (content.includes('write') || content.includes('create') || content.includes('generate')) {
+          updatedTitle = 'Content Creation';
+        } else if (content.includes('explain') || content.includes('what is') || content.includes('tell me about')) {
+          updatedTitle = 'Information Query';
+        } else if (content.includes('solve') || content.includes('calculate') || content.includes('math')) {
+          updatedTitle = 'Problem Solving';
+        } else if (content.includes('translate') || content.includes('language')) {
+          updatedTitle = 'Translation Request';
+        } else if (content.includes('design') || content.includes('ui') || content.includes('layout')) {
+          updatedTitle = 'Design Discussion';
+        } else {
+          // Extract key words from the message for a meaningful title
+          const words = content.split(' ').filter(w => w.length > 3);
+          if (words.length > 0) {
+            const title = words.slice(0, 3).join(' ');
+            updatedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+            if (updatedTitle.length > 30) {
+              updatedTitle = updatedTitle.slice(0, 30) + '...';
+            }
+          } else {
+            updatedTitle = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
+          }
+        }
       }
 
       const updatedChat = {
@@ -135,7 +166,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const updateChatSettings = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'nvidia', mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => {
+  const updateChatSettings = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3', mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => {
     if (!currentChat) return;
     const updatedChat = { ...currentChat, model, mode };
     setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
