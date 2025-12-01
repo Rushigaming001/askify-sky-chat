@@ -21,31 +21,47 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const isAQISubdomain = window.location.hostname.startsWith('aqi.');
+  const isAQIRoute = window.location.pathname === '/aqi' || isAQISubdomain;
   
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <ChatProvider>
+        {isAQIRoute ? (
+          // AQI page doesn't require authentication
+          <>
             <Toaster />
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={isAQISubdomain ? <AQI /> : <Chat />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/ai-features" element={<AIFeatures />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/public-chat" element={<PublicChat />} />
-                <Route path="/admin" element={<AdminPanel />} />
-                <Route path="/game" element={<Game />} />
-                <Route path="/skribbl" element={<Skribbl />} />
+                <Route path="/" element={<AQI />} />
                 <Route path="/aqi" element={<AQI />} />
-                <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
-                <Route path="*" element={<NotFound />} />
+                <Route path="*" element={<AQI />} />
               </Routes>
             </BrowserRouter>
-          </ChatProvider>
-        </AuthProvider>
+          </>
+        ) : (
+          // All other pages require authentication
+          <AuthProvider>
+            <ChatProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Chat />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/ai-features" element={<AIFeatures />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/public-chat" element={<PublicChat />} />
+                  <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="/game" element={<Game />} />
+                  <Route path="/skribbl" element={<Skribbl />} />
+                  <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ChatProvider>
+          </AuthProvider>
+        )}
       </TooltipProvider>
     </QueryClientProvider>
   );
