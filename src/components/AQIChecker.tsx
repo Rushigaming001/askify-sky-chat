@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Wind, AlertTriangle, CheckCircle, MapPin, Loader2 } from 'lucide-react';
+import { Wind, AlertTriangle, CheckCircle, MapPin, Loader2, Activity } from 'lucide-react';
 import { useToast } from './ui/use-toast';
+import aqiBackground from '@/assets/aqi-background.png';
 
 export const AQIChecker = () => {
   const { toast } = useToast();
@@ -114,119 +115,141 @@ export const AQIChecker = () => {
   };
 
   return (
-    <Card className="p-6 max-w-md mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Wind className="h-6 w-6" />
-          AQI Checker
-        </h2>
-        <div className="flex gap-2">
+    <div className="relative w-full max-w-2xl mx-auto">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 rounded-3xl overflow-hidden"
+        style={{
+          backgroundImage: `url(${aqiBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70 backdrop-blur-sm" />
+      </div>
+
+      {/* Content */}
+      <Card className="relative bg-transparent border-white/20 backdrop-blur-md shadow-2xl p-8">
+        <div className="flex flex-col items-center mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
+              <Wind className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-4xl font-bold text-white bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+              AQI Checker
+            </h2>
+          </div>
+          <p className="text-white/70 text-center text-sm">Real-time Air Quality Monitoring</p>
+        </div>
+
+        <div className="flex justify-center gap-3 mb-8">
           <Button
             variant={isPro ? 'default' : 'outline'}
-            size="sm"
+            size="lg"
             onClick={() => {
               setIsPro(true);
               setCheckCount(0);
               setAqi(null);
+              setLocation('');
             }}
+            className={isPro 
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-lg hover:shadow-purple-500/50 transition-all' 
+              : 'border-white/30 text-white hover:bg-white/10'
+            }
           >
-            Pro
+            <Activity className="h-4 w-4 mr-2" />
+            Pro Mode
           </Button>
           <Button
             variant={!isPro ? 'default' : 'outline'}
-            size="sm"
+            size="lg"
             onClick={() => {
               setIsPro(false);
               setCheckCount(0);
               setAqi(null);
+              setLocation('');
             }}
+            className={!isPro 
+              ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-lg hover:shadow-green-500/50 transition-all' 
+              : 'border-white/30 text-white hover:bg-white/10'
+            }
           >
-            Premium
+            <MapPin className="h-4 w-4 mr-2" />
+            Premium Mode
           </Button>
         </div>
-      </div>
 
-      <div className="space-y-4">
-        <div className="text-center">
-          <Badge variant="secondary" className="mb-2">
-            {isPro ? 'Pro Mode (Simulated)' : 'Premium Mode (Real Data)'}
-          </Badge>
-          {isPro && checkCount > 0 && (
-            <div className="text-sm text-muted-foreground">
-              Check #{checkCount} - Cycle position: {(checkCount % 3) || 3}/3
-            </div>
-          )}
-          {!isPro && location && (
-            <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1">
-              <MapPin className="h-3 w-3" />
-              {location}
-            </div>
-          )}
-        </div>
-
-        {aqi !== null && (
-          <div className="text-center space-y-4">
-            <div className="text-6xl font-bold text-primary">{aqi}</div>
-            <div className={`inline-block px-4 py-2 rounded-full text-white ${getAQICategory(aqi).color}`}>
-              {category}
-            </div>
-            
-            {isPro ? (
-              <div className="flex items-start gap-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded">
-                {(checkCount % 3) === 1 ? (
-                  <>
-                    <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>High pollution detected in simulation cycle.</div>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <div>Air quality improved in simulation cycle.</div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950 p-3 rounded flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                <div>Real-time air quality data from monitoring stations based on your actual GPS location</div>
+        <div className="space-y-6">
+          <div className="text-center">
+            {!isPro && location && (
+              <div className="flex items-center justify-center gap-2 text-white/90 mb-2">
+                <MapPin className="h-4 w-4" />
+                <span className="font-medium">{location}</span>
               </div>
             )}
           </div>
-        )}
 
-        <Button 
-          onClick={handleCheck} 
-          className="w-full"
-          size="lg"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Getting Location...
-            </>
-          ) : (
-            <>
-              <Wind className="h-4 w-4 mr-2" />
-              Check Air Quality
-            </>
+          {aqi !== null && (
+            <div className="text-center space-y-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 blur-3xl rounded-full" />
+                <div className="relative text-8xl font-bold text-white drop-shadow-2xl">{aqi}</div>
+              </div>
+              <div className={`inline-block px-6 py-3 rounded-2xl text-white text-lg font-semibold shadow-lg ${getAQICategory(aqi).color}`}>
+                {category}
+              </div>
+              
+              {isPro ? (
+                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+                  {(checkCount % 3) === 1 ? (
+                    <>
+                      <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>High pollution detected in simulation</div>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      <div>Air quality improved in simulation</div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+                  <MapPin className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>Real-time air quality data from global monitoring stations based on your GPS location</div>
+                </div>
+              )}
+            </div>
           )}
-        </Button>
 
-        <div className="text-xs text-muted-foreground text-center space-y-1">
-          {isPro ? (
-            <>
-              <p className="font-medium">Pro mode: Simulated AQI cycle</p>
-              <p>Check 1: High (300-350) → Checks 2-3: Good (20-25) → Repeat</p>
-            </>
-          ) : (
-            <>
-              <p className="font-medium">Premium mode: 100% Real AQI Data</p>
-              <p>Uses GPS location + global air quality monitoring network</p>
-            </>
-          )}
+          <Button 
+            onClick={handleCheck} 
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+            size="lg"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Getting Location...
+              </>
+            ) : (
+              <>
+                <Wind className="h-5 w-5 mr-2" />
+                Check Air Quality
+              </>
+            )}
+          </Button>
+
+          <div className="text-xs text-white/60 text-center space-y-1 mt-4">
+            {isPro ? (
+              <p>Simulated air quality monitoring for testing purposes</p>
+            ) : (
+              <p>Powered by global air quality monitoring network</p>
+            )}
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };
