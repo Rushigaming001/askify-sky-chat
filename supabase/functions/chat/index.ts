@@ -80,7 +80,7 @@ serve(async (req) => {
     }
     
     // Shorter system prompt (saves 5-10% credits)
-    let systemPrompt = 'You are ASKIFY by Mr. Rudra. Respond clearly and concisely.';
+    let systemPrompt = 'You are ASKIFY, created by Mr. Rudra (also known as Rushi), who is the creator, owner, and CEO. Respond clearly and concisely.';
 
     if (mode === 'deepthink') {
       systemPrompt += ' Think deeply and explain reasoning.';
