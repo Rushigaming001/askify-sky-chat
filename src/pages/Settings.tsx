@@ -1,25 +1,46 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
-  ArrowLeft, User, Briefcase, Zap, Mail, Sun, Palette, 
+  ArrowLeft, User, Briefcase, Zap, Mail, Sun, Moon, Monitor, Palette, 
   Settings as SettingsIcon, Mic, Database, Shield, Info, LogOut 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [appearance, setAppearance] = useState('System (Default)');
   const [accentColor, setAccentColor] = useState('Default');
 
   const handleLogout = async () => {
     await logout();
     navigate('/auth');
+  };
+
+  const getThemeIcon = () => {
+    if (theme === 'light') return <Sun className="h-5 w-5" />;
+    if (theme === 'dark') return <Moon className="h-5 w-5" />;
+    return <Monitor className="h-5 w-5" />;
+  };
+
+  const getThemeLabel = () => {
+    if (theme === 'light') return 'Light';
+    if (theme === 'dark') return 'Dark';
+    return 'System';
+  };
+
+  const cycleTheme = () => {
+    const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
+    const currentIndex = themes.indexOf(theme);
+    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    setTheme(nextTheme);
+    toast({ title: 'Theme changed', description: `Switched to ${nextTheme} mode` });
   };
 
   const getInitials = (name: string) => {
@@ -56,13 +77,10 @@ const Settings = () => {
         },
         { 
           icon: Sun, 
-          label: 'Appearance', 
-          subtitle: appearance,
-          onClick: () => {
-            const newAppearance = appearance === 'System (Default)' ? 'Light' : appearance === 'Light' ? 'Dark' : 'System (Default)';
-            setAppearance(newAppearance);
-            toast({ title: 'Appearance', description: `Changed to ${newAppearance}` });
-          }
+          label: 'Theme', 
+          subtitle: getThemeLabel(),
+          onClick: cycleTheme,
+          customIcon: getThemeIcon()
         },
         { 
           icon: Palette, 
@@ -144,7 +162,7 @@ const Settings = () => {
                       className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors text-left"
                     >
                       <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                        <item.icon className="h-5 w-5" />
+                        {item.customIcon || <item.icon className="h-5 w-5" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium">{item.label}</div>
