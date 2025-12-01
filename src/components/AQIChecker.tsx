@@ -115,7 +115,7 @@ export const AQIChecker = () => {
   };
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto">
+    <div className="relative w-full max-w-2xl mx-auto animate-fade-in">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 rounded-3xl overflow-hidden"
@@ -129,10 +129,10 @@ export const AQIChecker = () => {
       </div>
 
       {/* Content */}
-      <Card className="relative bg-transparent border-white/20 backdrop-blur-md shadow-2xl p-8">
-        <div className="flex flex-col items-center mb-8">
+      <Card className="relative bg-transparent border-white/20 backdrop-blur-md shadow-2xl p-8 animate-scale-in">
+        <div className="flex flex-col items-center mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
+            <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg hover:scale-110 transition-transform duration-300">
               <Wind className="h-8 w-8 text-white" />
             </div>
             <h2 className="text-4xl font-bold text-white bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
@@ -142,7 +142,7 @@ export const AQIChecker = () => {
           <p className="text-white/70 text-center text-sm">Real-time Air Quality Monitoring</p>
         </div>
 
-        <div className="flex justify-center gap-3 mb-8">
+        <div className="flex justify-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
           <Button
             variant={isPro ? 'default' : 'outline'}
             size="lg"
@@ -153,8 +153,8 @@ export const AQIChecker = () => {
               setLocation('');
             }}
             className={isPro 
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-lg hover:shadow-purple-500/50 transition-all' 
-              : 'border-white/30 text-white hover:bg-white/10'
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-lg hover:shadow-purple-500/50 transition-all hover:scale-105 duration-300' 
+              : 'border-white/30 text-white hover:bg-white/10 transition-all duration-300'
             }
           >
             <Activity className="h-4 w-4 mr-2" />
@@ -170,8 +170,8 @@ export const AQIChecker = () => {
               setLocation('');
             }}
             className={!isPro 
-              ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-lg hover:shadow-green-500/50 transition-all' 
-              : 'border-white/30 text-white hover:bg-white/10'
+              ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-lg hover:shadow-green-500/50 transition-all hover:scale-105 duration-300' 
+              : 'border-white/30 text-white hover:bg-white/10 transition-all duration-300'
             }
           >
             <MapPin className="h-4 w-4 mr-2" />
@@ -182,28 +182,28 @@ export const AQIChecker = () => {
         <div className="space-y-6">
           <div className="text-center">
             {!isPro && location && (
-              <div className="flex items-center justify-center gap-2 text-white/90 mb-2">
-                <MapPin className="h-4 w-4" />
+              <div className="flex items-center justify-center gap-2 text-white/90 mb-2 animate-fade-in">
+                <MapPin className="h-4 w-4 animate-pulse" />
                 <span className="font-medium">{location}</span>
               </div>
             )}
           </div>
 
           {aqi !== null && (
-            <div className="text-center space-y-6">
+            <div className="text-center space-y-6 animate-scale-in">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 blur-3xl rounded-full" />
-                <div className="relative text-8xl font-bold text-white drop-shadow-2xl">{aqi}</div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 blur-3xl rounded-full animate-pulse" />
+                <div className="relative text-8xl font-bold text-white drop-shadow-2xl hover:scale-110 transition-transform duration-500">{aqi}</div>
               </div>
-              <div className={`inline-block px-6 py-3 rounded-2xl text-white text-lg font-semibold shadow-lg ${getAQICategory(aqi).color}`}>
+              <div className={`inline-block px-6 py-3 rounded-2xl text-white text-lg font-semibold shadow-lg ${getAQICategory(aqi).color} hover:scale-105 transition-transform duration-300`}>
                 {category}
               </div>
               
               {isPro ? (
-                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20 animate-fade-in hover:bg-white/15 transition-all duration-300">
                   {(checkCount % 3) === 1 ? (
                     <>
-                      <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
                       <div>High pollution detected in simulation</div>
                     </>
                   ) : (
@@ -214,7 +214,7 @@ export const AQIChecker = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20 animate-fade-in hover:bg-white/15 transition-all duration-300">
                   <MapPin className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                   <div>Real-time air quality data from global monitoring stations based on your GPS location</div>
                 </div>
@@ -224,9 +224,10 @@ export const AQIChecker = () => {
 
           <Button 
             onClick={handleCheck} 
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in"
             size="lg"
             disabled={isLoading}
+            style={{ animationDelay: '300ms' }}
           >
             {isLoading ? (
               <>
@@ -242,7 +243,7 @@ export const AQIChecker = () => {
           </Button>
 
           {!isPro && (
-            <div className="text-xs text-white/60 text-center mt-4">
+            <div className="text-xs text-white/60 text-center mt-4 animate-fade-in" style={{ animationDelay: '400ms' }}>
               <p>Powered by global air quality monitoring network</p>
             </div>
           )}
