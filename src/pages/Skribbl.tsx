@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { SkribblGame } from '@/components/SkribblGame';
-import { AQIChecker } from '@/components/AQIChecker';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -17,7 +16,6 @@ const Skribbl = () => {
   const [roomCode, setRoomCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
-  const [showAQI, setShowAQI] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -95,22 +93,6 @@ const Skribbl = () => {
 
   if (!user) return null;
 
-  if (showAQI) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowAQI(false)}
-          className="mb-4 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <AQIChecker />
-      </div>
-    );
-  }
-
   if (currentRoomId) {
     return (
       <div className="relative">
@@ -179,19 +161,6 @@ const Skribbl = () => {
               Join Room
             </Button>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Extra Features</span>
-            </div>
-          </div>
-
-          <Button onClick={() => setShowAQI(true)} className="w-full" variant="outline">
-            AQI Checker (Pro/Premium)
-          </Button>
         </div>
       </Card>
     </div>
