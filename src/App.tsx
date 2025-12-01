@@ -19,32 +19,36 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <ChatProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Chat />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/ai-features" element={<AIFeatures />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/public-chat" element={<PublicChat />} />
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/game" element={<Game />} />
-              <Route path="/skribbl" element={<Skribbl />} />
-              <Route path="/aqi" element={<AQI />} />
-              <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </ChatProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const isAQISubdomain = window.location.hostname.startsWith('aqi.');
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={isAQISubdomain ? <AQI /> : <Chat />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/ai-features" element={<AIFeatures />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/public-chat" element={<PublicChat />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/game" element={<Game />} />
+                <Route path="/skribbl" element={<Skribbl />} />
+                <Route path="/aqi" element={<AQI />} />
+                <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </ChatProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
