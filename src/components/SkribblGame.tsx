@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
-import { Mic, MicOff, Video, VideoOff, Trash2, Clock } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Trash2, Clock, Play, UserX, Crown } from 'lucide-react';
 import { useToast } from './ui/use-toast';
 
 interface Player {
@@ -14,6 +14,7 @@ interface Player {
   score: number;
   has_guessed: boolean;
   is_connected: boolean;
+  user_id: string;
 }
 
 interface DrawEvent {
@@ -29,7 +30,8 @@ const WORD_BANK = [
   'phone', 'computer', 'pizza', 'apple', 'banana', 'guitar', 'piano', 'drum',
   'camera', 'mountain', 'ocean', 'beach', 'forest', 'rainbow', 'cloud', 'bird',
   'fish', 'butterfly', 'elephant', 'lion', 'tiger', 'bear', 'rabbit', 'snake',
-  'umbrella', 'hat', 'shoe', 'glasses', 'watch', 'key', 'door', 'window', 'chair'
+  'umbrella', 'hat', 'shoe', 'glasses', 'watch', 'key', 'door', 'window', 'chair',
+  'table', 'lamp', 'clock', 'bottle', 'cup', 'plate', 'spoon', 'knife', 'fork'
 ];
 
 const POINTS_FOR_CORRECT = 100;
@@ -53,6 +55,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
   const [wordChoices, setWordChoices] = useState<string[]>([]);
   const [showWordChoice, setShowWordChoice] = useState(false);
   const [hint, setHint] = useState('');
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,7 +74,6 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
 
   useEffect(() => {
     if (gameState?.status === 'playing' && gameState?.current_drawer_id === user?.id && !gameState?.current_word) {
-      // Show word choices to drawer
       const choices = getRandomWords(3);
       setWordChoices(choices);
       setShowWordChoice(true);
@@ -79,14 +81,13 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
   }, [gameState, user]);
 
   useEffect(() => {
-    if (gameState?.current_word) {
+    if (gameState?.current_word && gameState?.status === 'playing') {
       setHint(generateHint(gameState.current_word));
     }
-  }, [gameState?.current_word]);
+  }, [gameState?.current_word, gameState?.status]);
 
   useEffect(() => {
-    // Timer countdown
-    if (gameState?.status === 'playing' && timeLeft > 0) {
+    if (gameState?.status === 'playing' && gameState?.current_word && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
@@ -101,7 +102,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [gameState?.status, timeLeft]);
+  }, [gameState?.status, gameState?.current_word, timeLeft]);
 
   const getRandomWords = (count: number) => {
     const shuffled = [...WORD_BANK].sort(() => Math.random() - 0.5);
@@ -110,7 +111,11 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
 
   const generateHint = (word: string) => {
     if (!word) return '';
-    return word.split('').map((char, idx) => idx === 0 || idx === word.length - 1 ? char : '_').join(' ');
+    return word.split('').map((char, idx) => {
+      if (idx === 0 || idx === word.length - 1) return char;
+      if (Math.random() < 0.3) return char; // Reveal 30% of middle letters
+      return '_';
+    }).join(' ');
   };
 
   const selectWord = async (word: string) => {
@@ -121,6 +126,34 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
     
     setShowWordChoice(false);
     setTimeLeft(gameState?.round_time || 80);
+  };
+
+  const startGame = async () => {
+    if (gameState?.host_id !== user?.id) {
+      toast({ title: 'Only the host can start the game', variant: 'destructive' });
+      return;
+    }
+
+    if (players.length < 2) {
+      toast({ title: 'Need at least 2 players to start', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await supabase
+        .from('skribbl_rooms')
+        .update({
+          status: 'playing',
+          current_round: 1,
+          current_drawer_id: players[0]?.id
+        })
+        .eq('id', roomId);
+
+      toast({ title: 'Game started!', description: 'Let the drawing begin!' });
+    } catch (error) {
+      console.error('Error starting game:', error);
+      toast({ title: 'Failed to start game', variant: 'destructive' });
+    }
   };
 
   const endRound = async () => {
@@ -190,6 +223,27 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
     }
   };
 
+  const kickPlayer = async (playerId: string, playerName: string) => {
+    if (gameState?.host_id !== user?.id) {
+      toast({ title: 'Only the host can kick players', variant: 'destructive' });
+      return;
+    }
+
+    if (!confirm(`Kick ${playerName} from the game?`)) return;
+
+    try {
+      await supabase
+        .from('skribbl_players')
+        .delete()
+        .eq('id', playerId);
+
+      toast({ title: `${playerName} has been kicked` });
+    } catch (error) {
+      console.error('Error kicking player:', error);
+      toast({ title: 'Failed to kick player', variant: 'destructive' });
+    }
+  };
+
   const loadGameData = async () => {
     const { data: room } = await supabase
       .from('skribbl_rooms')
@@ -205,7 +259,11 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
       .eq('room_id', roomId)
       .order('score', { ascending: false });
 
-    if (playerData) setPlayers(playerData);
+    if (playerData) {
+      setPlayers(playerData);
+      const myPlayer = playerData.find(p => p.user_id === user?.id);
+      setCurrentPlayer(myPlayer || null);
+    }
 
     const { data: guessData } = await supabase
       .from('skribbl_guesses')
@@ -226,6 +284,9 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
       .on('broadcast', { event: 'draw' }, ({ payload }) => {
         drawOnCanvas(payload as DrawEvent);
       })
+      .on('broadcast', { event: 'clear' }, () => {
+        clearCanvas();
+      })
       .subscribe();
 
     return () => {
@@ -234,7 +295,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameState?.current_drawer_id !== user?.id) return;
+    if (gameState?.current_drawer_id !== currentPlayer?.id || gameState?.status !== 'playing') return;
     setIsDrawing(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -253,7 +314,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || gameState?.current_drawer_id !== user?.id) return;
+    if (!isDrawing || gameState?.current_drawer_id !== currentPlayer?.id) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -276,7 +337,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
 
   const stopDrawing = () => {
     setIsDrawing(false);
-    if (gameState?.current_drawer_id === user?.id) {
+    if (gameState?.current_drawer_id === currentPlayer?.id) {
       broadcastDraw({ x: 0, y: 0, type: 'end', color: currentColor, width: brushSize });
     }
   };
@@ -318,10 +379,25 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
     }
   };
 
+  const broadcastClear = async () => {
+    const channel = supabase.channel(`skribbl-${roomId}`);
+    await channel.send({
+      type: 'broadcast',
+      event: 'clear',
+      payload: {},
+    });
+    clearCanvas();
+  };
+
   const handleGuess = async () => {
     if (!guessInput.trim()) return;
 
-    const currentPlayer = players.find(p => p.id === user?.id);
+    if (gameState?.current_drawer_id === currentPlayer?.id) {
+      toast({ title: "Drawer can't guess!", variant: 'default' });
+      setGuessInput('');
+      return;
+    }
+
     if (currentPlayer?.has_guessed) {
       toast({ title: 'You already guessed correctly!', variant: 'default' });
       setGuessInput('');
@@ -409,6 +485,8 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
     }
   };
 
+  const isHost = gameState?.host_id === user?.id;
+
   return (
     <div className="h-screen w-full bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-4 flex gap-4">
       {/* Word Choice Modal */}
@@ -436,7 +514,26 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
       <Card className="w-64 p-4 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="text-xl font-bold">Round {gameState?.current_round || 1}/{gameState?.max_rounds || 3}</div>
+          {gameState?.status === 'waiting' && isHost && (
+            <Button size="sm" onClick={startGame} className="gap-1">
+              <Play className="h-4 w-4" />
+              Start
+            </Button>
+          )}
         </div>
+        
+        {gameState?.status === 'waiting' && (
+          <div className="mb-4 p-3 bg-yellow-500/20 rounded-lg text-sm text-center">
+            Waiting for host to start...
+          </div>
+        )}
+
+        {gameState?.status === 'finished' && (
+          <div className="mb-4 p-3 bg-green-500/20 rounded-lg text-sm text-center font-bold">
+            Game Over!
+          </div>
+        )}
+
         <div className="space-y-2">
           {players.map((player, idx) => (
             <div
@@ -447,15 +544,31 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
             >
               <div className="text-sm font-bold">#{idx + 1}</div>
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs"
                 style={{ backgroundColor: player.avatar_color }}
               >
                 {gameState?.current_drawer_id === player.id && '✏️'}
+                {gameState?.host_id === player.user_id && <Crown className="h-4 w-4" />}
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium">{player.player_name}</div>
+                <div className="text-sm font-medium flex items-center gap-1">
+                  {player.player_name}
+                  {gameState?.host_id === player.user_id && (
+                    <Crown className="h-3 w-3 text-yellow-500" />
+                  )}
+                </div>
                 <div className="text-xs text-muted-foreground">{player.score} pts</div>
               </div>
+              {isHost && player.user_id !== user?.id && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => kickPlayer(player.id, player.player_name)}
+                >
+                  <UserX className="h-4 w-4 text-red-500" />
+                </Button>
+              )}
             </div>
           ))}
         </div>
@@ -468,7 +581,9 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="text-2xl font-bold">
-                {gameState?.current_drawer_id === user?.id ? (
+                {gameState?.status === 'waiting' ? (
+                  <span className="text-muted-foreground">Waiting to start...</span>
+                ) : gameState?.current_drawer_id === currentPlayer?.id ? (
                   <span className="text-green-600">Draw: {gameState?.current_word}</span>
                 ) : (
                   <span className="text-blue-600 tracking-widest">{hint || 'Waiting...'}</span>
@@ -477,10 +592,12 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-2xl font-bold">
-                <Clock className="h-6 w-6" />
-                <span className={timeLeft <= 10 ? 'text-red-600' : ''}>{timeLeft}s</span>
-              </div>
+              {gameState?.status === 'playing' && gameState?.current_word && (
+                <div className="flex items-center gap-2 text-2xl font-bold">
+                  <Clock className="h-6 w-6" />
+                  <span className={timeLeft <= 10 ? 'text-red-600' : ''}>{timeLeft}s</span>
+                </div>
+              )}
               
               <div className="flex gap-2">
                 <Button
@@ -504,7 +621,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
 
         {/* Drawing Tools and Canvas */}
         <Card className="p-4 flex-1">
-          {gameState?.current_drawer_id === user?.id && (
+          {gameState?.current_drawer_id === currentPlayer?.id && gameState?.status === 'playing' && (
             <>
               <div className="flex gap-2 mb-4">
                 {colors.map(color => (
@@ -517,7 +634,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
                     onClick={() => setCurrentColor(color)}
                   />
                 ))}
-                <Button variant="outline" size="icon" onClick={clearCanvas}>
+                <Button variant="outline" size="icon" onClick={broadcastClear}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -542,7 +659,7 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
             width={800}
             height={500}
             className={`w-full bg-white rounded border-2 border-border ${
-              gameState?.current_drawer_id === user?.id ? 'cursor-crosshair' : 'cursor-default'
+              gameState?.current_drawer_id === currentPlayer?.id && gameState?.status === 'playing' ? 'cursor-crosshair' : 'cursor-default'
             }`}
             onMouseDown={startDrawing}
             onMouseMove={draw}
@@ -578,11 +695,14 @@ export const SkribblGame = ({ roomId }: { roomId: string }) => {
           <Input
             value={guessInput}
             onChange={(e) => setGuessInput(e.target.value)}
-            placeholder="Type your guess..."
+            placeholder={gameState?.status !== 'playing' ? 'Game not started' : 'Type your guess...'}
             onKeyPress={(e) => e.key === 'Enter' && handleGuess()}
-            disabled={gameState?.current_drawer_id === user?.id}
+            disabled={gameState?.current_drawer_id === currentPlayer?.id || gameState?.status !== 'playing'}
           />
-          <Button onClick={handleGuess} disabled={gameState?.current_drawer_id === user?.id}>
+          <Button 
+            onClick={handleGuess} 
+            disabled={gameState?.current_drawer_id === currentPlayer?.id || gameState?.status !== 'playing'}
+          >
             Send
           </Button>
         </div>
