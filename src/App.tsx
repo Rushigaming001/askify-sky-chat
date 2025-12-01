@@ -14,6 +14,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Game from "./pages/Game";
 import Skribbl from "./pages/Skribbl";
 import AQI from "./pages/AQI";
+import DataAnalyzerPage from "./pages/DataAnalyzer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/game" element={<Game />} />
               <Route path="/skribbl" element={<Skribbl />} />
               <Route path="/aqi" element={<AQI />} />
+              <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
