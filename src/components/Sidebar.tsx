@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -148,6 +148,32 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           >
             <Sparkles className="h-5 w-5 mr-2" />
             AI Features
+          </Button>
+
+          <Button 
+            onClick={() => {
+              navigate('/skribbl');
+              onToggle();
+            }}
+            variant="outline"
+            className="w-full hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg" 
+            size="lg"
+          >
+            <Pencil className="h-5 w-5 mr-2" />
+            Skribbl Game
+          </Button>
+
+          <Button 
+            onClick={() => {
+              navigate('/game');
+              onToggle();
+            }}
+            variant="outline"
+            className="w-full hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg" 
+            size="lg"
+          >
+            <Gamepad2 className="h-5 w-5 mr-2" />
+            FPS Shooter
           </Button>
         </div>
         
