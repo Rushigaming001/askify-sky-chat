@@ -241,13 +241,11 @@ export const AQIChecker = () => {
             )}
           </Button>
 
-          <div className="text-xs text-white/60 text-center space-y-1 mt-4">
-            {isPro ? (
-              <p>Simulated air quality monitoring for testing purposes</p>
-            ) : (
+          {!isPro && (
+            <div className="text-xs text-white/60 text-center mt-4">
               <p>Powered by global air quality monitoring network</p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </Card>
     </div>
