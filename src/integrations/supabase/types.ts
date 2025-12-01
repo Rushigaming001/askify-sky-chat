@@ -449,6 +449,169 @@ export type Database = {
           },
         ]
       }
+      skribbl_drawings: {
+        Row: {
+          created_at: string
+          drawing_data: Json
+          id: string
+          room_id: string
+          round_number: number
+        }
+        Insert: {
+          created_at?: string
+          drawing_data: Json
+          id?: string
+          room_id: string
+          round_number: number
+        }
+        Update: {
+          created_at?: string
+          drawing_data?: Json
+          id?: string
+          room_id?: string
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skribbl_drawings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "skribbl_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skribbl_guesses: {
+        Row: {
+          created_at: string
+          guess: string
+          id: string
+          is_correct: boolean
+          player_id: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          guess: string
+          id?: string
+          is_correct?: boolean
+          player_id: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          guess?: string
+          id?: string
+          is_correct?: boolean
+          player_id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skribbl_guesses_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "skribbl_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skribbl_guesses_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "skribbl_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skribbl_players: {
+        Row: {
+          avatar_color: string
+          has_guessed: boolean
+          id: string
+          is_connected: boolean
+          joined_at: string
+          player_name: string
+          room_id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          avatar_color: string
+          has_guessed?: boolean
+          id?: string
+          is_connected?: boolean
+          joined_at?: string
+          player_name: string
+          room_id: string
+          score?: number
+          user_id: string
+        }
+        Update: {
+          avatar_color?: string
+          has_guessed?: boolean
+          id?: string
+          is_connected?: boolean
+          joined_at?: string
+          player_name?: string
+          room_id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skribbl_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "skribbl_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skribbl_rooms: {
+        Row: {
+          created_at: string
+          current_drawer_id: string | null
+          current_round: number
+          current_word: string | null
+          host_id: string
+          id: string
+          max_players: number
+          max_rounds: number
+          room_code: string
+          round_time: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_drawer_id?: string | null
+          current_round?: number
+          current_word?: string | null
+          host_id: string
+          id?: string
+          max_players?: number
+          max_rounds?: number
+          room_code: string
+          round_time?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_drawer_id?: string | null
+          current_round?: number
+          current_word?: string | null
+          host_id?: string
+          id?: string
+          max_players?: number
+          max_rounds?: number
+          room_code?: string
+          round_time?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       usage_logs: {
         Row: {
           created_at: string
