@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { SkribblGame } from '@/components/SkribblGame';
-import { ArrowLeft, Users, Crown } from 'lucide-react';
+import { Users, Crown, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 
@@ -27,11 +27,13 @@ const Skribbl = () => {
   const [playerName, setPlayerName] = useState('');
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     if (!user) {
       navigate('/auth');
     } else {
+      checkOwnerStatus();
       loadAvailableRooms();
       
       // Subscribe to room changes
@@ -51,6 +53,16 @@ const Skribbl = () => {
       };
     }
   }, [user, navigate]);
+
+  const checkOwnerStatus = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .single();
+    
+    setIsOwner(data?.role === 'owner');
+  };
 
   const loadAvailableRooms = async () => {
     const { data: rooms } = await supabase
@@ -148,44 +160,52 @@ const Skribbl = () => {
     toast({ title: 'Joined room successfully!' });
   };
 
+  const deleteRoom = async (roomId: string, roomCode: string) => {
+    if (!isOwner) {
+      toast({ title: 'Only owners can delete rooms', variant: 'destructive' });
+      return;
+    }
+
+    if (!confirm(`Delete room ${roomCode}?`)) return;
+
+    try {
+      await supabase.from('skribbl_rooms').delete().eq('id', roomId);
+      toast({ title: 'Room deleted successfully' });
+      loadAvailableRooms();
+    } catch (error) {
+      toast({ title: 'Failed to delete room', variant: 'destructive' });
+    }
+  };
+
   if (!user) return null;
 
   if (currentRoomId) {
-    return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            setCurrentRoomId(null);
-            navigate('/');
-          }}
-          className="absolute top-4 left-4 z-50 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <SkribblGame roomId={currentRoomId} />
-      </div>
-    );
+    return <SkribblGame roomId={currentRoomId} onLeave={() => setCurrentRoomId(null)} />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex items-center justify-center p-4">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => navigate('/')}
-        className="absolute top-4 left-4 z-50 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-      >
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
+    <div className="min-h-screen bg-[#5089EC] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Blue Doodle Pattern Background */}
+      <div className="absolute inset-0 opacity-10">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="doodles" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+              <path d="M50,50 Q60,30 70,50" stroke="white" fill="none" strokeWidth="2"/>
+              <circle cx="150" cy="50" r="15" stroke="white" fill="none" strokeWidth="2"/>
+              <path d="M30,150 L50,130 L70,150 L50,170 Z" stroke="white" fill="none" strokeWidth="2"/>
+              <path d="M130,130 Q140,110 150,130 Q160,150 150,170 Q140,150 130,130" stroke="white" fill="none" strokeWidth="2"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#doodles)"/>
+        </svg>
+      </div>
 
-      <Card className="max-w-4xl w-full p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+      <Card className="max-w-4xl w-full p-8 space-y-6 max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+          <h1 className="text-5xl font-bold" style={{ color: '#5B6DCD', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
             skribbl.io
           </h1>
-          <p className="text-muted-foreground">Free multiplayer drawing and guessing game</p>
+          <p className="text-muted-foreground text-lg">Free multiplayer drawing and guessing game</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -266,19 +286,33 @@ const Skribbl = () => {
                           {room.player_count}/{room.max_players}
                         </Badge>
                       </div>
-                      <Button 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!playerName.trim()) {
-                            toast({ title: 'Please enter your name first', variant: 'destructive' });
-                            return;
-                          }
-                          joinRoomWithCode(room.room_code);
-                        }}
-                      >
-                        Join
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {isOwner && (
+                          <Button 
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteRoom(room.id, room.room_code);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!playerName.trim()) {
+                              toast({ title: 'Please enter your name first', variant: 'destructive' });
+                              return;
+                            }
+                            joinRoomWithCode(room.room_code);
+                          }}
+                        >
+                          Join
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))
