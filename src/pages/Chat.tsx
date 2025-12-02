@@ -31,7 +31,7 @@ const Chat = () => {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3'>('gemini');
+  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana'>('gemini');
   const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const { used, remaining, total, canSend, loading: limitLoading, refresh: refreshLimit } = useDailyMessageLimit();
@@ -47,12 +47,14 @@ const Chat = () => {
 
   const checkModelAccess = async () => {
     const modelMap: Record<string, string> = {
-      'gemini': 'google/gemini-2.5-flash-lite',
+      'gemini': 'google/gemini-2.5-flash',
+      'gemini-lite': 'google/gemini-2.5-flash-lite',
       'gpt': 'openai/gpt-5',
       'gpt-mini': 'openai/gpt-5-mini',
       'gpt-nano': 'openai/gpt-5-nano',
       'gemini-3': 'google/gemini-3-pro-preview',
-      'askify': 'google/gemini-2.5-pro'
+      'askify': 'google/gemini-2.5-pro',
+      'nano-banana': 'google/gemini-2.5-flash-image-preview'
     };
 
     const access: Record<string, boolean> = {};
@@ -127,7 +129,7 @@ const Chat = () => {
     }
   };
 
-  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => {
+  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana') => {
     if (!modelAccess[model]) {
       toast({
         title: 'Access Denied',
@@ -278,7 +280,7 @@ const Chat = () => {
                 </Button>
               </DialogTrigger>
             </Dialog>
-            <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3') => handleModelChange(v)}>
+            <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana') => handleModelChange(v)}>
               <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
@@ -287,6 +289,12 @@ const Chat = () => {
                   <div className="flex items-center gap-2">
                     {!modelAccess.gemini && <Lock className="h-3 w-3 text-muted-foreground" />}
                     <span>Gemini Flash</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gemini-lite" disabled={!modelAccess['gemini-lite']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gemini-lite'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Gemini Lite</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="gpt" disabled={!modelAccess.gpt}>
@@ -311,6 +319,12 @@ const Chat = () => {
                   <div className="flex items-center gap-2">
                     {!modelAccess['gemini-3'] && <Lock className="h-3 w-3 text-muted-foreground" />}
                     <span>Gemini 3 Pro</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="nano-banana" disabled={!modelAccess['nano-banana']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['nano-banana'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>🍌 Nano Banana</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="askify" disabled={!modelAccess.askify}>

@@ -189,30 +189,30 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Animated background with moving orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large animated orbs with vibrant colors */}
         <div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-3xl opacity-60 animate-orb-1"
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-3xl opacity-60 dark:opacity-30 animate-orb-1"
           style={{
             background: 'radial-gradient(circle, hsl(217 91% 80%) 0%, hsl(217 91% 90%) 30%, transparent 70%)'
           }}
         />
         <div 
-          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] rounded-full blur-3xl opacity-50 animate-orb-2"
+          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] rounded-full blur-3xl opacity-50 dark:opacity-25 animate-orb-2"
           style={{
             background: 'radial-gradient(circle, hsl(280 100% 85%) 0%, hsl(280 100% 92%) 30%, transparent 70%)'
           }}
         />
         <div 
-          className="absolute bottom-1/4 left-1/3 w-[650px] h-[650px] rounded-full blur-3xl opacity-55 animate-orb-3"
+          className="absolute bottom-1/4 left-1/3 w-[650px] h-[650px] rounded-full blur-3xl opacity-55 dark:opacity-25 animate-orb-3"
           style={{
             background: 'radial-gradient(circle, hsl(340 82% 85%) 0%, hsl(340 82% 92%) 30%, transparent 70%)'
           }}
         />
         <div 
-          className="absolute bottom-1/3 right-1/3 w-[550px] h-[550px] rounded-full blur-3xl opacity-45 animate-orb-1"
+          className="absolute bottom-1/3 right-1/3 w-[550px] h-[550px] rounded-full blur-3xl opacity-45 dark:opacity-20 animate-orb-1"
           style={{
             background: 'radial-gradient(circle, hsl(160 84% 75%) 0%, hsl(160 84% 88%) 30%, transparent 70%)',
             animationDelay: '5s'
@@ -220,16 +220,16 @@ const Auth = () => {
         />
         
         {/* Additional smaller floating elements */}
-        <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-blue-300/30 rounded-full blur-2xl animate-float" />
-        <div className="absolute top-1/4 right-1/3 w-36 h-36 bg-purple-300/30 rounded-full blur-xl animate-float-slow" />
-        <div className="absolute bottom-1/3 left-1/4 w-56 h-56 bg-pink-300/25 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-2/3 right-1/2 w-40 h-40 bg-cyan-300/30 rounded-full blur-xl animate-float-slow" style={{ animationDelay: '3s' }} />
+        <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-blue-300/30 dark:bg-blue-500/20 rounded-full blur-2xl animate-float" />
+        <div className="absolute top-1/4 right-1/3 w-36 h-36 bg-purple-300/30 dark:bg-purple-500/20 rounded-full blur-xl animate-float-slow" />
+        <div className="absolute bottom-1/3 left-1/4 w-56 h-56 bg-pink-300/25 dark:bg-pink-500/15 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-2/3 right-1/2 w-40 h-40 bg-cyan-300/30 dark:bg-cyan-500/20 rounded-full blur-xl animate-float-slow" style={{ animationDelay: '3s' }} />
       </div>
 
       {/* Glass card with content */}
-      <Card className="w-full max-w-md shadow-2xl border-primary/20 backdrop-blur-2xl bg-white/95 relative z-10 overflow-hidden animate-scale-in">
+      <Card className="w-full max-w-md shadow-2xl border-primary/20 backdrop-blur-2xl bg-white/95 dark:bg-slate-900/95 relative z-10 overflow-hidden animate-scale-in">
         {/* Gradient overlay on card */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-purple-100/30 to-pink-100/50 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-purple-100/30 to-pink-100/50 dark:from-blue-900/20 dark:via-purple-900/10 dark:to-pink-900/20 pointer-events-none" />
         
         <CardHeader className="text-center space-y-6 pb-8 relative">
           <div className="flex justify-center animate-float">
@@ -277,7 +277,7 @@ const Auth = () => {
                     placeholder="you@example.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                    className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                   />
                 </div>
               </div>
@@ -328,7 +328,7 @@ const Auth = () => {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
@@ -351,7 +351,7 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
@@ -379,7 +379,7 @@ const Auth = () => {
                       <span className="w-full border-t border-primary/20" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+                      <span className="bg-white dark:bg-slate-900 px-2 text-muted-foreground">Or continue with</span>
                     </div>
                   </div>
 
@@ -388,7 +388,7 @@ const Auth = () => {
                     variant="outline"
                     onClick={handleGoogleSignIn}
                     disabled={isLoading}
-                    className="w-full h-12 border-primary/20 bg-white/80 hover:bg-white hover:border-primary/40 transition-all"
+                    className="w-full h-12 border-primary/20 bg-background/80 hover:bg-background hover:border-primary/40 transition-all"
                   >
                     <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                       <path
@@ -425,7 +425,7 @@ const Auth = () => {
                         placeholder="Your name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
@@ -439,7 +439,7 @@ const Auth = () => {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
@@ -453,7 +453,7 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                     {password && (
@@ -525,7 +525,7 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
@@ -539,7 +539,7 @@ const Auth = () => {
                         placeholder="Your age"
                         value={age}
                         onChange={(e) => setAge(e.target.value)}
-                        className="pl-12 h-12 bg-white/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-white backdrop-blur-sm transition-all"
+                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
@@ -592,7 +592,7 @@ const Auth = () => {
                       <span className="w-full border-t border-primary/20" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+                      <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
                     </div>
                   </div>
 
@@ -601,7 +601,7 @@ const Auth = () => {
                     variant="outline"
                     onClick={handleGoogleSignIn}
                     disabled={isLoading}
-                    className="w-full h-12 border-primary/20 bg-white/80 hover:bg-white hover:border-primary/40 transition-all"
+                    className="w-full h-12 border-primary/20 bg-background/80 hover:bg-background hover:border-primary/40 transition-all"
                   >
                     <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                       <path
