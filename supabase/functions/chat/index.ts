@@ -35,7 +35,7 @@ serve(async (req) => {
 
     // Map user's model selection to Lovable AI models
     // Use cheapest model by default (saves 40-60% credits)
-    let aiModel = 'google/gemini-2.5-flash-lite';
+    let aiModel = 'google/gemini-2.5-flash';
     
     if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
@@ -44,9 +44,13 @@ serve(async (req) => {
     } else if (model === 'gpt-nano') {
       aiModel = 'openai/gpt-5-nano';
     } else if (model === 'gemini' || !model) {
-      aiModel = 'google/gemini-2.5-flash-lite'; // Cheapest model
+      aiModel = 'google/gemini-2.5-flash';
+    } else if (model === 'gemini-lite') {
+      aiModel = 'google/gemini-2.5-flash-lite';
     } else if (model === 'gemini-3') {
       aiModel = 'google/gemini-3-pro-preview';
+    } else if (model === 'nano-banana') {
+      aiModel = 'google/gemini-2.5-flash-image-preview';
     } else if (model === 'askify') {
       aiModel = 'google/gemini-2.5-pro';
     }
