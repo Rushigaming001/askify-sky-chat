@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Wind, MapPin, Loader2, Activity } from 'lucide-react';
-import { useToast } from './ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import aqiBackground from '@/assets/aqi-background.png';
 
-export const AQIChecker = () => {
+interface AQICheckerProps {
+  region?: 'india' | 'worldwide';
+}
+
+export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
   const { toast } = useToast();
   const [isPro, setIsPro] = useState(true);
   const [checkCount, setCheckCount] = useState(0);
@@ -47,18 +50,67 @@ export const AQIChecker = () => {
     });
   };
 
+  const getExactLocation = async (latitude: number, longitude: number): Promise<string> => {
+    try {
+      // Use Nominatim reverse geocoding for exact location
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=14&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'AQI-Checker-App'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const address = data.address;
+        
+        // Build location string from most specific to least specific
+        const parts = [];
+        if (address.suburb || address.neighbourhood) {
+          parts.push(address.suburb || address.neighbourhood);
+        }
+        if (address.city || address.town || address.village || address.municipality) {
+          parts.push(address.city || address.town || address.village || address.municipality);
+        }
+        if (address.state) {
+          parts.push(address.state);
+        }
+        if (address.country && region === 'worldwide') {
+          parts.push(address.country);
+        }
+        
+        if (parts.length > 0) {
+          return parts.slice(0, 3).join(', ');
+        }
+      }
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+    }
+    
+    return 'Your Location';
+  };
+
   const checkPremiumAQI = async () => {
     setIsLoading(true);
     
     try {
       // Get user's location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
       });
 
       const { latitude, longitude } = position.coords;
 
-      // Fetch real AQI data from AQICN API (free, no key required for basic use)
+      // Get exact location name via reverse geocoding
+      const exactLocation = await getExactLocation(latitude, longitude);
+
+      // Fetch real AQI data from AQICN API
       const response = await fetch(
         `https://api.waqi.info/feed/geo:${latitude};${longitude}/?token=demo`
       );
@@ -71,16 +123,15 @@ export const AQIChecker = () => {
       
       if (data.status === 'ok' && data.data?.aqi) {
         const realAQI = data.data.aqi;
-        const cityName = data.data.city?.name || 'Your Location';
         
         setAqi(realAQI);
-        setLocation(cityName);
+        setLocation(exactLocation);
         const aqiInfo = getAQICategory(realAQI);
         setCategory(aqiInfo.label);
 
         toast({
           title: 'Real AQI Retrieved',
-          description: `${cityName}: ${realAQI} AQI (${aqiInfo.label})`,
+          description: `${exactLocation}: ${realAQI} AQI (${aqiInfo.label})`,
         });
       } else {
         throw new Error('Invalid AQI data received');
