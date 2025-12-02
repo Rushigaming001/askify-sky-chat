@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Wind, AlertTriangle, CheckCircle, MapPin, Loader2, Activity } from 'lucide-react';
+import { Wind, MapPin, Loader2, Activity } from 'lucide-react';
 import { useToast } from './ui/use-toast';
 import aqiBackground from '@/assets/aqi-background.png';
 
@@ -144,7 +144,7 @@ export const AQIChecker = () => {
 
         <div className="flex justify-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
           <Button
-            variant={isPro ? 'default' : 'outline'}
+            variant="default"
             size="lg"
             onClick={() => {
               setIsPro(true);
@@ -154,14 +154,14 @@ export const AQIChecker = () => {
             }}
             className={isPro 
               ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-lg hover:shadow-purple-500/50 transition-all hover:scale-105 duration-300' 
-              : 'border-white/30 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300'
+              : 'bg-white/10 border border-white/30 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300'
             }
           >
             <Activity className="h-4 w-4 mr-2" />
             Pro Mode
           </Button>
           <Button
-            variant={!isPro ? 'default' : 'outline'}
+            variant="default"
             size="lg"
             onClick={() => {
               setIsPro(false);
@@ -171,7 +171,7 @@ export const AQIChecker = () => {
             }}
             className={!isPro 
               ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-lg hover:shadow-green-500/50 transition-all hover:scale-105 duration-300' 
-              : 'border-white/30 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300'
+              : 'bg-white/10 border border-white/30 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300'
             }
           >
             <MapPin className="h-4 w-4 mr-2" />
@@ -199,21 +199,7 @@ export const AQIChecker = () => {
                 {category}
               </div>
               
-              {isPro ? (
-                <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20 animate-fade-in hover:bg-white/15 transition-all duration-300">
-                  {(checkCount % 3) === 1 ? (
-                    <>
-                      <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
-                      <div>High pollution detected</div>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                      <div>Air quality improved</div>
-                    </>
-                  )}
-                </div>
-              ) : (
+              {!isPro && (
                 <div className="flex items-start gap-3 text-sm text-white/80 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20 animate-fade-in hover:bg-white/15 transition-all duration-300">
                   <MapPin className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                   <div>Real-time air quality data from global monitoring stations based on your GPS location</div>
