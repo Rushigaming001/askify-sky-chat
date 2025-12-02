@@ -1,31 +1,60 @@
+import { useState } from 'react';
 import { AQIChecker } from '@/components/AQIChecker';
+import { Globe } from 'lucide-react';
 
 const AQI = () => {
+  const [region, setRegion] = useState<'india' | 'worldwide'>('india');
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* India Flag Badge - Top Right */}
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-full border border-white/30 shadow-xl animate-fade-in hover:scale-105 transition-transform duration-300">
-        <div className="relative w-10 h-7 rounded overflow-hidden shadow-md">
-          <div className="absolute inset-0 flex flex-col">
-            <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-600" />
-            <div className="h-1/3 bg-white relative flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-blue-900 rounded-full relative">
-                {[...Array(24)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-px h-1.5 bg-blue-900 left-1/2 top-1/2"
-                    style={{
-                      transform: `translate(-50%, -50%) rotate(${i * 15}deg)`,
-                      transformOrigin: 'center 6px',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-700" />
-          </div>
+      {/* AQI Header - Top Left */}
+      <div className="absolute top-6 left-6 z-20 flex items-center gap-2 animate-fade-in">
+        <span className="text-3xl md:text-4xl font-bold text-amber-400 tracking-tight" style={{ fontFamily: 'serif' }}>
+          AQI
+        </span>
+        <span className="text-xl md:text-2xl font-medium text-amber-400/80 tracking-wide" style={{ fontFamily: 'serif' }}>
+          {region === 'india' ? 'INDIA' : 'WORLDWIDE'}
+        </span>
+        <div className="ml-2 flex flex-col gap-0.5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="w-4 h-0.5 bg-amber-400/80" />
+          ))}
         </div>
-        <span className="text-white font-semibold text-base tracking-wide">India</span>
+      </div>
+
+      {/* Region Toggle - Top Right */}
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-2 animate-fade-in">
+        <button
+          onClick={() => setRegion('india')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 hover:scale-105 ${
+            region === 'india'
+              ? 'bg-white/20 border-white/50 text-white shadow-lg'
+              : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'
+          }`}
+        >
+          <div className="relative w-6 h-4 rounded overflow-hidden shadow-sm">
+            <div className="absolute inset-0 flex flex-col">
+              <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-600" />
+              <div className="h-1/3 bg-white relative flex items-center justify-center">
+                <div className="w-2 h-2 border border-blue-900 rounded-full" />
+              </div>
+              <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-700" />
+            </div>
+          </div>
+          <span className="font-medium text-sm">India</span>
+        </button>
+        
+        <button
+          onClick={() => setRegion('worldwide')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 hover:scale-105 ${
+            region === 'worldwide'
+              ? 'bg-white/20 border-white/50 text-white shadow-lg'
+              : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'
+          }`}
+        >
+          <Globe className="w-5 h-5" />
+          <span className="font-medium text-sm">Worldwide</span>
+        </button>
       </div>
 
       {/* Animated background effects */}
@@ -46,8 +75,8 @@ const AQI = () => {
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-slate-900/30 pointer-events-none" />
       
-      <div className="relative z-10 w-full animate-fade-in">
-        <AQIChecker />
+      <div className="relative z-10 w-full animate-fade-in pt-16 md:pt-0">
+        <AQIChecker region={region} />
       </div>
     </div>
   );
