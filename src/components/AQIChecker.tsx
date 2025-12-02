@@ -29,8 +29,8 @@ export const AQIChecker = () => {
     const cyclePosition = checkCount % 3;
     
     if (cyclePosition === 0) {
-      // First check in cycle: 300-350
-      value = Math.floor(Math.random() * (350 - 300 + 1)) + 300;
+      // First check in cycle: 100-160
+      value = Math.floor(Math.random() * (160 - 100 + 1)) + 100;
     } else {
       // Second and third check in cycle: 20-25
       value = Math.floor(Math.random() * (25 - 20 + 1)) + 20;
