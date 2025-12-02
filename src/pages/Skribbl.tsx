@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { SkribblGame } from '@/components/SkribblGame';
-import { Users, Crown, Trash2 } from 'lucide-react';
+import { Users, Crown, Trash2, Copy, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
 
 interface Room {
   id: string;
@@ -35,88 +33,45 @@ const Skribbl = () => {
     } else {
       checkOwnerStatus();
       loadAvailableRooms();
-      
-      // Subscribe to room changes
       const channel = supabase
         .channel('skribbl_rooms_list')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'skribbl_rooms' 
-        }, () => {
-          loadAvailableRooms();
-        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'skribbl_rooms' }, () => loadAvailableRooms())
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => { supabase.removeChannel(channel); };
     }
   }, [user, navigate]);
 
   const checkOwnerStatus = async () => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user?.id)
-      .single();
-    
+    const { data } = await supabase.from('user_roles').select('role').eq('user_id', user?.id).single();
     setIsOwner(data?.role === 'owner');
   };
 
   const loadAvailableRooms = async () => {
-    const { data: rooms } = await supabase
-      .from('skribbl_rooms')
-      .select('*')
-      .eq('status', 'waiting')
-      .order('created_at', { ascending: false });
-
+    const { data: rooms } = await supabase.from('skribbl_rooms').select('*').eq('status', 'waiting').order('created_at', { ascending: false });
     if (rooms) {
-      // Get player count for each room
       const roomsWithCount = await Promise.all(
         rooms.map(async (room) => {
-          const { count } = await supabase
-            .from('skribbl_players')
-            .select('*', { count: 'exact', head: true })
-            .eq('room_id', room.id)
-            .eq('is_connected', true);
-          
-          return {
-            ...room,
-            player_count: count || 0,
-          };
+          const { count } = await supabase.from('skribbl_players').select('*', { count: 'exact', head: true }).eq('room_id', room.id).eq('is_connected', true);
+          return { ...room, player_count: count || 0 };
         })
       );
-      
       setAvailableRooms(roomsWithCount);
     }
   };
 
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-  };
+  const generateRoomCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
   const createRoom = async () => {
     if (!playerName.trim()) {
       toast({ title: 'Please enter your name', variant: 'destructive' });
       return;
     }
-
     const code = generateRoomCode();
-    const { data: room, error } = await supabase
-      .from('skribbl_rooms')
-      .insert({
-        room_code: code,
-        host_id: user?.id,
-      })
-      .select()
-      .single();
-
+    const { error } = await supabase.from('skribbl_rooms').insert({ room_code: code, host_id: user?.id });
     if (error) {
       toast({ title: 'Failed to create room', variant: 'destructive' });
       return;
     }
-
     await joinRoomWithCode(code);
   };
 
@@ -125,202 +80,157 @@ const Skribbl = () => {
       toast({ title: 'Please enter room code and name', variant: 'destructive' });
       return;
     }
-
     await joinRoomWithCode(roomCode.toUpperCase());
   };
 
   const joinRoomWithCode = async (code: string) => {
-    const { data: room } = await supabase
-      .from('skribbl_rooms')
-      .select('*')
-      .eq('room_code', code)
-      .single();
-
+    const { data: room } = await supabase.from('skribbl_rooms').select('*').eq('room_code', code).single();
     if (!room) {
       toast({ title: 'Room not found', variant: 'destructive' });
       return;
     }
-
-    const avatarColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+    const avatarColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#E74C3C', '#3498DB', '#2ECC71', '#9B59B6'];
     const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
-
     const { error } = await supabase.from('skribbl_players').insert({
       room_id: room.id,
       user_id: user?.id,
       player_name: playerName,
       avatar_color: randomColor,
     });
-
     if (error) {
       toast({ title: 'Failed to join room', variant: 'destructive' });
       return;
     }
-
     setCurrentRoomId(room.id);
-    toast({ title: 'Joined room successfully!' });
   };
 
   const deleteRoom = async (roomId: string, roomCode: string) => {
-    if (!isOwner) {
-      toast({ title: 'Only owners can delete rooms', variant: 'destructive' });
-      return;
-    }
-
+    if (!isOwner) return;
     if (!confirm(`Delete room ${roomCode}?`)) return;
+    await supabase.from('skribbl_rooms').delete().eq('id', roomId);
+    loadAvailableRooms();
+  };
 
-    try {
-      await supabase.from('skribbl_rooms').delete().eq('id', roomId);
-      toast({ title: 'Room deleted successfully' });
-      loadAvailableRooms();
-    } catch (error) {
-      toast({ title: 'Failed to delete room', variant: 'destructive' });
-    }
+  const copyRoomCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: 'Room code copied!' });
   };
 
   if (!user) return null;
-
-  if (currentRoomId) {
-    return <SkribblGame roomId={currentRoomId} onLeave={() => setCurrentRoomId(null)} />;
-  }
+  if (currentRoomId) return <SkribblGame roomId={currentRoomId} onLeave={() => setCurrentRoomId(null)} />;
 
   return (
-    <div className="min-h-screen bg-[#5089EC] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Blue Doodle Pattern Background */}
-      <div className="absolute inset-0 opacity-10">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="doodles" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
-              <path d="M50,50 Q60,30 70,50" stroke="white" fill="none" strokeWidth="2"/>
-              <circle cx="150" cy="50" r="15" stroke="white" fill="none" strokeWidth="2"/>
-              <path d="M30,150 L50,130 L70,150 L50,170 Z" stroke="white" fill="none" strokeWidth="2"/>
-              <path d="M130,130 Q140,110 150,130 Q160,150 150,170 Q140,150 130,130" stroke="white" fill="none" strokeWidth="2"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#doodles)"/>
-        </svg>
-      </div>
-
-      <Card className="max-w-4xl w-full p-8 space-y-6 max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl">
-        <div className="text-center space-y-2">
-          <h1 className="text-5xl font-bold" style={{ color: '#5B6DCD', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
-            skribbl.io
-          </h1>
-          <p className="text-muted-foreground text-lg">Free multiplayer drawing and guessing game</p>
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #6B8DD6 0%, #8E37D7 100%)' }}>
+      <div className="max-w-4xl w-full">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <img src="/skribbl/logo.gif" alt="skribbl.io" className="h-24 mx-auto mb-4" />
+          <p className="text-white/80 text-lg">Free Multiplayer Drawing & Guessing Game</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Create/Join Section */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Create or Join</h2>
-            <Input
-              placeholder="Enter your name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-            />
+          {/* Left Panel - Create/Join */}
+          <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4">
+            <h2 className="text-xl font-black text-gray-800 mb-4">Play!</h2>
+            
+            <div>
+              <label className="block text-sm font-bold text-gray-600 mb-1">Your Name</label>
+              <Input
+                placeholder="Enter your nickname"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="h-12 text-lg"
+              />
+            </div>
 
-            <Button onClick={createRoom} className="w-full" size="lg">
+            <Button onClick={createRoom} className="w-full h-14 text-lg font-bold bg-green-500 hover:bg-green-600">
               Create Private Room
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or use room code</span>
-              </div>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-300" /></div>
+              <div className="relative flex justify-center"><span className="bg-white px-3 text-sm text-gray-500">or join with code</span></div>
             </div>
 
-            <div className="space-y-2">
+            <div className="flex gap-2">
               <Input
-                placeholder="Enter room code"
+                placeholder="Room code"
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                className="h-12 text-lg font-mono uppercase"
               />
-              <Button onClick={joinRoom} className="w-full" variant="secondary">
-                Join with Code
+              <Button onClick={joinRoom} className="h-12 px-6 bg-blue-500 hover:bg-blue-600">
+                Join
               </Button>
             </div>
           </div>
 
-          {/* Available Rooms Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Available Rooms</h2>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={loadAvailableRooms}
-                className="h-8"
-              >
-                Refresh
+          {/* Right Panel - Available Rooms */}
+          <div className="bg-white rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black text-gray-800">Available Rooms</h2>
+              <Button variant="ghost" size="sm" onClick={loadAvailableRooms} className="gap-1">
+                <RefreshCw className="h-4 w-4" /> Refresh
               </Button>
             </div>
-            
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+
+            <div className="space-y-2 max-h-[350px] overflow-y-auto">
               {availableRooms.length === 0 ? (
-                <Card className="p-4 text-center text-muted-foreground">
-                  No rooms available. Create one!
-                </Card>
+                <div className="text-center py-8 text-gray-400">
+                  <p className="text-lg">No rooms available</p>
+                  <p className="text-sm">Create one to start playing!</p>
+                </div>
               ) : (
                 availableRooms.map((room) => (
-                  <Card 
-                    key={room.id} 
-                    className="p-4 hover:bg-accent transition-colors cursor-pointer"
-                    onClick={() => {
-                      if (!playerName.trim()) {
-                        toast({ title: 'Please enter your name first', variant: 'destructive' });
-                        return;
-                      }
-                      joinRoomWithCode(room.room_code);
-                    }}
+                  <div
+                    key={room.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <Crown className="h-4 w-4 text-yellow-500" />
-                          <span className="font-mono font-bold text-lg">{room.room_code}</span>
-                        </div>
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {room.player_count}/{room.max_players}
-                        </Badge>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 text-yellow-500">
+                        <Crown className="h-4 w-4" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        {isOwner && (
-                          <Button 
-                            size="sm"
-                            variant="destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteRoom(room.id, room.room_code);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!playerName.trim()) {
-                              toast({ title: 'Please enter your name first', variant: 'destructive' });
-                              return;
-                            }
-                            joinRoomWithCode(room.room_code);
-                          }}
-                        >
-                          Join
-                        </Button>
+                      <span className="font-mono font-bold text-lg">{room.room_code}</span>
+                      <div className="flex items-center gap-1 text-gray-500 text-sm">
+                        <Users className="h-4 w-4" />
+                        <span>{room.player_count}/{room.max_players}</span>
                       </div>
                     </div>
-                  </Card>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => copyRoomCode(room.room_code)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      {isOwner && (
+                        <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => deleteRoom(room.id, room.room_code)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        className="bg-green-500 hover:bg-green-600"
+                        onClick={() => {
+                          if (!playerName.trim()) {
+                            toast({ title: 'Enter your name first', variant: 'destructive' });
+                            return;
+                          }
+                          joinRoomWithCode(room.room_code);
+                        }}
+                      >
+                        Join
+                      </Button>
+                    </div>
+                  </div>
                 ))
               )}
             </div>
           </div>
         </div>
-      </Card>
+
+        {/* Footer */}
+        <p className="text-center text-white/60 text-sm mt-6">
+          Draw, guess, and have fun with friends!
+        </p>
+      </div>
     </div>
   );
 };
