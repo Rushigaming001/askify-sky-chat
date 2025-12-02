@@ -21,31 +21,26 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const isAQISubdomain = window.location.hostname.startsWith('aqi.');
-  const isAQIRoute = window.location.pathname === '/aqi' || isAQISubdomain;
   
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {isAQIRoute ? (
-          // AQI page doesn't require authentication
-          <>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<AQI />} />
-                <Route path="/aqi" element={<AQI />} />
-                <Route path="*" element={<AQI />} />
-              </Routes>
-            </BrowserRouter>
-          </>
-        ) : (
-          // All other pages require authentication
-          <AuthProvider>
-            <ChatProvider>
+        <BrowserRouter>
+          {isAQISubdomain ? (
+            // AQI subdomain doesn't require authentication
+            <>
               <Toaster />
               <Sonner />
-              <BrowserRouter>
+              <Routes>
+                <Route path="*" element={<AQI />} />
+              </Routes>
+            </>
+          ) : (
+            // Main app with authentication
+            <AuthProvider>
+              <ChatProvider>
+                <Toaster />
+                <Sonner />
                 <Routes>
                   <Route path="/" element={<Chat />} />
                   <Route path="/auth" element={<Auth />} />
@@ -55,13 +50,14 @@ const App = () => {
                   <Route path="/admin" element={<AdminPanel />} />
                   <Route path="/game" element={<Game />} />
                   <Route path="/skribbl" element={<Skribbl />} />
+                  <Route path="/aqi" element={<AQI />} />
                   <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </ChatProvider>
-          </AuthProvider>
-        )}
+              </ChatProvider>
+            </AuthProvider>
+          )}
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
