@@ -154,7 +154,7 @@ export const AQIChecker = () => {
             }}
             className={isPro 
               ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-lg hover:shadow-purple-500/50 transition-all hover:scale-105 duration-300' 
-              : 'border-white/30 text-white hover:bg-white/10 transition-all duration-300'
+              : 'border-white/30 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300'
             }
           >
             <Activity className="h-4 w-4 mr-2" />
@@ -171,7 +171,7 @@ export const AQIChecker = () => {
             }}
             className={!isPro 
               ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-lg hover:shadow-green-500/50 transition-all hover:scale-105 duration-300' 
-              : 'border-white/30 text-white hover:bg-white/10 transition-all duration-300'
+              : 'border-white/30 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300'
             }
           >
             <MapPin className="h-4 w-4 mr-2" />
