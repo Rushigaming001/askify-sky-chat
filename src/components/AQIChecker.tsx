@@ -204,12 +204,12 @@ export const AQIChecker = () => {
                   {(checkCount % 3) === 1 ? (
                     <>
                       <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
-                      <div>High pollution detected in simulation</div>
+                      <div>High pollution detected</div>
                     </>
                   ) : (
                     <>
                       <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                      <div>Air quality improved in simulation</div>
+                      <div>Air quality improved</div>
                     </>
                   )}
                 </div>
