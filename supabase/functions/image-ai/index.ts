@@ -12,83 +12,24 @@ serve(async (req) => {
 
   try {
     const { action, prompt, imageUrl, style } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!GROQ_API_KEY) {
+      throw new Error("GROQ_API_KEY is not configured");
     }
 
-    // Image generation
-    if (action === 'generate') {
-      let fullPrompt = prompt;
-      
-      // Add style-specific prompts
-      if (style === 'ghibli') {
-        fullPrompt = `Studio Ghibli style, anime art style, hand-drawn animation aesthetic, whimsical and dreamy: ${prompt}`;
-      } else if (style === 'realistic') {
-        fullPrompt = `Photorealistic, highly detailed, 8k quality: ${prompt}`;
-      } else if (style === 'artistic') {
-        fullPrompt = `Digital art, artistic painting style, vibrant colors: ${prompt}`;
-      } else if (style === 'abstract') {
-        fullPrompt = `Abstract art style, creative interpretation: ${prompt}`;
-      }
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-image',
-          messages: [
-            { role: "user", content: fullPrompt }
-          ],
-          modalities: ["image", "text"]
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        const errorText = await response.text();
-        console.error("AI gateway error:", response.status, errorText);
-        throw new Error("AI gateway request failed");
-      }
-
-      const data = await response.json();
-      const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      
-      if (!imageData) {
-        throw new Error("No image data received");
-      }
-
-      return new Response(JSON.stringify({ imageUrl: imageData }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    
-    // Image analysis
+    // Image analysis using Groq's vision model
     if (action === 'analyze' && imageUrl) {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      console.log("Analyzing image with Groq vision...");
+      
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: "llama-3.2-90b-vision-preview",
           messages: [
             {
               role: "user",
@@ -104,19 +45,76 @@ serve(async (req) => {
               ]
             }
           ],
+          max_tokens: 1024,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("AI gateway error:", response.status, errorText);
-        throw new Error("AI gateway request failed");
+        console.error("Groq API error:", response.status, errorText);
+        throw new Error("Groq API request failed");
       }
 
       const data = await response.json();
       const analysis = data.choices?.[0]?.message?.content || "No analysis generated";
 
       return new Response(JSON.stringify({ analysis }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Image generation - use description-based response since Groq doesn't generate images
+    if (action === 'generate') {
+      console.log("Generating image description with Groq...");
+      
+      let fullPrompt = prompt;
+      if (style === 'ghibli') {
+        fullPrompt = `Studio Ghibli style: ${prompt}`;
+      } else if (style === 'realistic') {
+        fullPrompt = `Photorealistic: ${prompt}`;
+      } else if (style === 'artistic') {
+        fullPrompt = `Digital art: ${prompt}`;
+      } else if (style === 'abstract') {
+        fullPrompt = `Abstract art: ${prompt}`;
+      }
+
+      // Generate a placeholder image URL or use a fallback
+      // Since Groq doesn't generate images, we'll provide a helpful message
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            {
+              role: "system",
+              content: "You are an AI that describes images. Generate a detailed visual description for the following prompt that could be used to create an image."
+            },
+            {
+              role: "user",
+              content: fullPrompt
+            }
+          ],
+          max_tokens: 500,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Groq API error:", response.status, errorText);
+        throw new Error("Groq API request failed");
+      }
+
+      // Return a placeholder since Groq doesn't generate images
+      // The frontend will need to handle this appropriately
+      return new Response(JSON.stringify({ 
+        imageUrl: `https://via.placeholder.com/512x512.png?text=${encodeURIComponent(prompt.substring(0, 30))}`,
+        description: "Image generation via Groq is not available. Please use text-based AI features.",
+        error: "Image generation requires a dedicated image model. Current Groq integration supports image analysis only."
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

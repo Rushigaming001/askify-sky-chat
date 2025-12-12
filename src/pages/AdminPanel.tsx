@@ -268,30 +268,31 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-2 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/')}
+            className="h-8 w-8 sm:h-10 sm:w-10"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Admin Panel</h1>
+            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Admin Panel</h1>
           </div>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="controls">User Controls</TabsTrigger>
-            <TabsTrigger value="limits">Message Limits</TabsTrigger>
-            <TabsTrigger value="roles">Role Permissions</TabsTrigger>
-            <TabsTrigger value="models">Models</TabsTrigger>
-            <TabsTrigger value="usage">Usage</TabsTrigger>
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+            <TabsTrigger value="users" className="text-xs sm:text-sm px-2 sm:px-3">Users</TabsTrigger>
+            <TabsTrigger value="controls" className="text-xs sm:text-sm px-2 sm:px-3">Controls</TabsTrigger>
+            <TabsTrigger value="limits" className="text-xs sm:text-sm px-2 sm:px-3">Limits</TabsTrigger>
+            <TabsTrigger value="roles" className="text-xs sm:text-sm px-2 sm:px-3">Roles</TabsTrigger>
+            <TabsTrigger value="models" className="text-xs sm:text-sm px-2 sm:px-3">Models</TabsTrigger>
+            <TabsTrigger value="usage" className="text-xs sm:text-sm px-2 sm:px-3">Usage</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
