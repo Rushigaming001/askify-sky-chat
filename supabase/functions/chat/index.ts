@@ -48,11 +48,11 @@ serve(async (req) => {
       externalApiKey = Deno.env.get('GROQ_API_KEY') || '';
       aiModel = 'llama-3.3-70b-versatile';
     } else if (model === 'cohere') {
-      // Cohere API (Pro)
+      // Cohere API (Pro) - using command-r-08-2024 (command-r-plus was deprecated)
       useExternalApi = true;
-      externalApiUrl = 'https://api.cohere.ai/v1/chat';
+      externalApiUrl = 'https://api.cohere.ai/v2/chat';
       externalApiKey = Deno.env.get('COHERE_API_KEY') || '';
-      aiModel = 'command-r-plus';
+      aiModel = 'command-r-08-2024';
     } else if (model === 'deepseek') {
       // DeepSeek API (Lite)
       useExternalApi = true;
@@ -132,7 +132,15 @@ serve(async (req) => {
       let response;
       
       if (model === 'cohere') {
-        // Cohere uses a different API format
+        // Cohere v2 API format
+        const cohereMessages = [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m: { role: string; content: string }) => ({
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content
+          }))
+        ];
+        
         response = await fetch(externalApiUrl, {
           method: "POST",
           headers: {
@@ -141,12 +149,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: aiModel,
-            message: messages[messages.length - 1]?.content || '',
-            preamble: systemPrompt,
-            chat_history: messages.slice(0, -1).map((m: { role: string; content: string }) => ({
-              role: m.role === 'assistant' ? 'CHATBOT' : 'USER',
-              message: m.content
-            }))
+            messages: cohereMessages
           }),
         });
 
@@ -157,7 +160,7 @@ serve(async (req) => {
         }
 
         const data = await response.json();
-        reply = data.text || "No response generated";
+        reply = data.message?.content?.[0]?.text || "No response generated";
       } else {
         // Groq and DeepSeek use OpenAI-compatible format
         response = await fetch(externalApiUrl, {
