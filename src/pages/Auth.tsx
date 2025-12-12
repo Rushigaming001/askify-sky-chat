@@ -189,7 +189,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-2 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Animated background with moving orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large animated orbs with vibrant colors */}
@@ -227,7 +227,7 @@ const Auth = () => {
       </div>
 
       {/* Glass card with content */}
-      <Card className="w-full max-w-md shadow-2xl border-primary/20 backdrop-blur-2xl bg-white/95 dark:bg-slate-900/95 relative z-10 overflow-hidden animate-scale-in">
+      <Card className="w-full max-w-md mx-2 sm:mx-0 shadow-2xl border-primary/20 backdrop-blur-2xl bg-white/95 dark:bg-slate-900/95 relative z-10 overflow-hidden animate-scale-in">
         {/* Gradient overlay on card */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-purple-100/30 to-pink-100/50 dark:from-blue-900/20 dark:via-purple-900/10 dark:to-pink-900/20 pointer-events-none" />
         

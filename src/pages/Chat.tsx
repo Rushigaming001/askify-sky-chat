@@ -164,17 +164,17 @@ const Chat = () => {
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="flex-1 flex flex-col min-w-0 animate-fade-in">
-        <header className="border-b border-border px-3 py-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative z-50 animate-fade-in">
-          <div className="flex items-center gap-2 min-w-0">
+        <header className="border-b border-border px-2 py-2 sm:px-3 sm:py-3 md:p-4 flex items-center justify-between gap-1 sm:gap-2 md:gap-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 relative z-50 animate-fade-in">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200"
+              className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 hover:scale-110 transition-all duration-200"
             >
-              <span className="text-2xl">☰</span>
+              <span className="text-lg sm:text-xl md:text-2xl">☰</span>
             </Button>
-            <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
+            <h1 className="text-base sm:text-lg md:text-2xl lg:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
               ASKIFY
             </h1>
             {!limitLoading && (
@@ -186,7 +186,7 @@ const Chat = () => {
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0 overflow-x-auto">
             <Dialog>
               <DialogTrigger asChild>
                 <Button 
@@ -291,7 +291,7 @@ const Chat = () => {
               </DialogTrigger>
             </Dialog>
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek') => handleModelChange(v)}>
-              <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
+              <SelectTrigger className="w-[70px] sm:w-[90px] md:w-[140px] h-6 sm:h-7 md:h-9 text-[9px] sm:text-[10px] md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background/95 backdrop-blur-sm">
