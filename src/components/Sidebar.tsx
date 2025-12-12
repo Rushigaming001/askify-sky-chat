@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3 } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -200,6 +200,19 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
           >
             <BarChart3 className="h-5 w-5 mr-2" />
             Data Analyzer
+          </Button>
+
+          <Button 
+            onClick={() => {
+              navigate('/youtube');
+              onToggle();
+            }}
+            variant="ghost"
+            className="w-full justify-start hover:bg-accent transition-all duration-200" 
+            size="lg"
+          >
+            <Play className="h-5 w-5 mr-2 text-red-500" />
+            YouTube
           </Button>
         </div>
         
