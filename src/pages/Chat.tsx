@@ -352,7 +352,7 @@ const Chat = () => {
                 <SelectItem value="nano-banana" disabled={!modelAccess['nano-banana']}>
                   <div className="flex items-center gap-2">
                     {!modelAccess['nano-banana'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>🍌 Nano Banana</span>
+                    <span>Nano Banana</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="askify" disabled={!modelAccess.askify}>
