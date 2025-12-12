@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Mail, Lock, User, Zap, Shield, Check, X } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, Zap, Shield, Check, X, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
@@ -22,6 +22,8 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -351,12 +353,19 @@ const Auth = () => {
                       </div>
                       <Input
                         id="login-password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
+                        className="pl-12 pr-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                   </div>
                   <Button 
@@ -453,12 +462,19 @@ const Auth = () => {
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
                         id="register-password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
+                        className="pl-12 pr-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                     {password && (
                       <div className="space-y-2">
@@ -525,12 +541,19 @@ const Auth = () => {
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
                         id="register-confirm-password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
+                        className="pl-12 pr-12 h-12 bg-background/80 border-primary/20 text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background backdrop-blur-sm transition-all"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                   </div>
                   <div className="space-y-2">

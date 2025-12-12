@@ -21,7 +21,7 @@ import { callAI } from '@/services/chatService';
 import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyMessageLimit } from '@/hooks/useDailyMessageLimit';
-import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, AlertCircle } from 'lucide-react';
+import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, MoreHorizontal, X } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
@@ -33,6 +33,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek'>('grok');
   const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
+  const [showFeaturesMenu, setShowFeaturesMenu] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { used, remaining, total, canSend, loading: limitLoading, refresh: refreshLimit } = useDailyMessageLimit();
 
@@ -154,6 +155,17 @@ const Chat = () => {
       updateChatSettings(model, currentChat.mode);
     }
   };
+
+  const featureItems = [
+    { icon: MessageCircle, label: 'Public Chat', path: '/public-chat', color: 'text-blue-500' },
+    { icon: Sparkles, label: 'AI Features', path: '/ai-features', color: 'text-purple-500' },
+    { icon: Pencil, label: 'Skribbl', path: '/skribbl', color: 'text-orange-500' },
+    { icon: Gamepad2, label: 'FPS Shooter', path: '/game', color: 'text-red-500' },
+    { icon: Wind, label: 'AQI Checker', path: '/aqi', color: 'text-green-500' },
+    { icon: BarChart3, label: 'Data Analyzer', path: '/data-analyzer', color: 'text-cyan-500' },
+    { icon: Play, label: 'YouTube', path: '/youtube', color: 'text-red-600' },
+    { icon: BookOpen, label: 'Learn Languages', path: '/learn', color: 'text-emerald-500' },
+  ];
 
   if (!user) return null;
 
@@ -324,6 +336,84 @@ const Chat = () => {
           )}
         </ScrollArea>
 
+        {/* AI Tools Toolbar */}
+        <div className="border-t border-border bg-background/95 backdrop-blur px-2 py-2 flex items-center gap-1 sm:gap-2 overflow-x-auto">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
+                <Calculator className="h-4 w-4" />
+                <span className="hidden sm:inline">Math</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Math Solver</DialogTitle>
+              </DialogHeader>
+              <MathSolver />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
+                <Video className="h-4 w-4" />
+                <span className="hidden sm:inline">Live Video</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Live Video Call with AI</DialogTitle>
+              </DialogHeader>
+              <LiveVideoCall />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
+                <Film className="h-4 w-4" />
+                <span className="hidden sm:inline">Video Gen</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>AI Video Generator</DialogTitle>
+              </DialogHeader>
+              <VideoGenerator />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
+                <Box className="h-4 w-4" />
+                <span className="hidden sm:inline">Minecraft</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Minecraft Creator Studio</DialogTitle>
+              </DialogHeader>
+              <MinecraftPluginMaker />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
+                <Clapperboard className="h-4 w-4" />
+                <span className="hidden sm:inline">CapCut</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+              </DialogHeader>
+              <CapCutPro />
+            </DialogContent>
+          </Dialog>
+        </div>
+
         <ChatInput
           onSendMessage={handleSendMessage}
           onModeChange={handleModeChange}
@@ -331,6 +421,48 @@ const Chat = () => {
           disabled={isLoading}
         />
       </div>
+
+      {/* Floating Features Menu Button */}
+      <div className="fixed bottom-24 right-4 z-50">
+        <Button
+          onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}
+          className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-110"
+          size="icon"
+        >
+          {showFeaturesMenu ? <X className="h-5 w-5" /> : <MoreHorizontal className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* Features Menu Popup */}
+      {showFeaturesMenu && (
+        <>
+          <div 
+            className="fixed inset-0 bg-background/50 backdrop-blur-sm z-40"
+            onClick={() => setShowFeaturesMenu(false)}
+          />
+          <div className="fixed bottom-40 right-4 z-50 bg-background border border-border rounded-xl shadow-2xl p-3 w-56 animate-scale-in">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+              Features
+            </div>
+            <div className="space-y-1">
+              {featureItems.map((item) => (
+                <Button
+                  key={item.path}
+                  variant="ghost"
+                  className="w-full justify-start gap-2 text-sm"
+                  onClick={() => {
+                    navigate(item.path);
+                    setShowFeaturesMenu(false);
+                  }}
+                >
+                  <item.icon className={`h-4 w-4 ${item.color}`} />
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
