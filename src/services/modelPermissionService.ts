@@ -1,9 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 
+export type AppRole = 'user' | 'admin' | 'moderator' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend';
+
 export interface ModelPermission {
   id: string;
   model_id: string;
-  role: 'user' | 'admin' | 'moderator' | 'owner';
+  role: AppRole;
   is_allowed: boolean;
 }
 
@@ -18,12 +20,12 @@ export async function getModelPermissions(): Promise<ModelPermission[]> {
     return [];
   }
 
-  return data || [];
+  return (data || []) as ModelPermission[];
 }
 
 export async function updateModelPermission(
   modelId: string,
-  role: 'user' | 'admin' | 'moderator' | 'owner',
+  role: AppRole,
   isAllowed: boolean
 ): Promise<boolean> {
   const { error } = await supabase

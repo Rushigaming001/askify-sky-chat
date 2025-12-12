@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
+import RolePermissionsManager from '@/components/RolePermissionsManager';
 import { UsageTrafficPanel } from '@/components/UsageTrafficPanel';
 import UserControlsManager from '@/components/UserControlsManager';
 import MessageLimitsManager from '@/components/MessageLimitsManager';
@@ -53,9 +54,9 @@ export default function AdminPanel() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'owner'>('user');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator'>('user');
   const [editingUserRole, setEditingUserRole] = useState<Profile | null>(null);
-  const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'owner'>('user');
+  const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator'>('user');
 
   useEffect(() => {
     checkAdminStatus();
@@ -222,7 +223,7 @@ export default function AdminPanel() {
   const handleEditUserRole = (profile: Profile) => {
     setEditingUserRole(profile);
     const currentRole = userRoles[profile.id]?.[0] || 'user';
-    setSelectedRole(currentRole as 'user' | 'admin' | 'owner');
+    setSelectedRole(currentRole as 'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator');
   };
 
   const handleSaveRole = async () => {
@@ -284,10 +285,11 @@ export default function AdminPanel() {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="controls">User Controls</TabsTrigger>
             <TabsTrigger value="limits">Message Limits</TabsTrigger>
+            <TabsTrigger value="roles">Role Permissions</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="usage">Usage</TabsTrigger>
           </TabsList>
@@ -382,6 +384,10 @@ export default function AdminPanel() {
             <MessageLimitsManager />
           </TabsContent>
 
+          <TabsContent value="roles">
+            <RolePermissionsManager />
+          </TabsContent>
+
           <TabsContent value="models">
             <ModelPermissionsManager />
           </TabsContent>
@@ -474,7 +480,12 @@ export default function AdminPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="friend">Friend</SelectItem>
+                  <SelectItem value="moderator">Moderator</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="co_founder">Co-Founder</SelectItem>
+                  <SelectItem value="founder">Founder</SelectItem>
+                  <SelectItem value="ceo">CEO</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
                 </SelectContent>
               </Select>
@@ -506,7 +517,12 @@ export default function AdminPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="friend">Friend</SelectItem>
+                  <SelectItem value="moderator">Moderator</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="co_founder">Co-Founder</SelectItem>
+                  <SelectItem value="founder">Founder</SelectItem>
+                  <SelectItem value="ceo">CEO</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
                 </SelectContent>
               </Select>

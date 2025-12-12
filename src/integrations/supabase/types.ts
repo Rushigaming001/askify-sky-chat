@@ -384,6 +384,33 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_allowed: boolean
+          permission_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean
+          permission_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean
+          permission_name?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       room_participants: {
         Row: {
           current_weapon: string | null
@@ -797,7 +824,15 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "owner"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "owner"
+        | "ceo"
+        | "founder"
+        | "co_founder"
+        | "friend"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -925,7 +960,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "owner"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "owner",
+        "ceo",
+        "founder",
+        "co_founder",
+        "friend",
+      ],
     },
   },
 } as const

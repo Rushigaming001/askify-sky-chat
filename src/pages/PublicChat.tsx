@@ -46,6 +46,7 @@ interface PublicMessage {
     name: string;
     email: string;
   };
+  user_role?: string;
 }
 
 const PublicChat = () => {
@@ -387,10 +388,24 @@ const PublicChat = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
-                      <div className="flex items-baseline gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-sm font-medium">
                           {isOwnMessage ? 'You' : (message.profiles?.name || 'Anonymous')}
                         </span>
+                        {message.user_role && message.user_role !== 'user' && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide ${
+                            message.user_role === 'owner' ? 'bg-yellow-500/20 text-yellow-600' :
+                            message.user_role === 'ceo' ? 'bg-purple-500/20 text-purple-600' :
+                            message.user_role === 'founder' ? 'bg-blue-500/20 text-blue-600' :
+                            message.user_role === 'co_founder' ? 'bg-cyan-500/20 text-cyan-600' :
+                            message.user_role === 'admin' ? 'bg-red-500/20 text-red-600' :
+                            message.user_role === 'moderator' ? 'bg-orange-500/20 text-orange-600' :
+                            message.user_role === 'friend' ? 'bg-pink-500/20 text-pink-600' :
+                            'bg-gray-500/20 text-gray-600'
+                          }`}>
+                            {message.user_role === 'co_founder' ? 'CO-FOUNDER' : message.user_role.toUpperCase()}
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground">
                           {formatTime(message.created_at)}
                         </span>
