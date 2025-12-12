@@ -186,115 +186,14 @@ const Chat = () => {
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0 overflow-x-auto">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="Math Solver"
-                >
-                  <Calculator className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                <DialogHeader>
-                  <DialogTitle>Math Problem Solver</DialogTitle>
-                </DialogHeader>
-                <MathSolver />
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="Live Video Call with AI"
-                >
-                  <Video className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                <DialogHeader>
-                  <DialogTitle>Live Video Call with AI</DialogTitle>
-                </DialogHeader>
-                <LiveVideoCall />
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="AI Video Generator"
-                >
-                  <Film className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                <DialogHeader>
-                  <DialogTitle>AI Video Generator</DialogTitle>
-                </DialogHeader>
-                <VideoGenerator />
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="Minecraft Plugin Maker"
-                >
-                  <Box className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                <DialogHeader>
-                  <DialogTitle>Minecraft Plugin Maker</DialogTitle>
-                </DialogHeader>
-                <MinecraftPluginMaker />
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="CapCut Pro - Video Editor"
-                >
-                  <Clapperboard className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
-                <DialogHeader>
-                  <DialogTitle>CapCut Pro - Video Editor</DialogTitle>
-                </DialogHeader>
-                <CapCutPro />
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 hover:scale-110 transition-all duration-200 hover:bg-primary/10"
-                  title="Multiplayer Shooter"
-                  onClick={() => navigate('/game')}
-                >
-                  <Target className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                </Button>
-              </DialogTrigger>
-            </Dialog>
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek') => handleModelChange(v)}>
-              <SelectTrigger className="w-[70px] sm:w-[90px] md:w-[140px] h-6 sm:h-7 md:h-9 text-[9px] sm:text-[10px] md:text-sm hover:border-primary/50 transition-all duration-200">
+              <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-background/95 backdrop-blur-sm">
+              <SelectContent className="bg-background/95 backdrop-blur-sm max-h-[400px]">
+                {/* Core Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Core</div>
                 <SelectItem value="grok" disabled={!modelAccess.grok}>
                   <div className="flex items-center gap-2">
                     {!modelAccess.grok && <Lock className="h-3 w-3 text-muted-foreground" />}
@@ -313,6 +212,9 @@ const Chat = () => {
                     <span>💡 Lite</span>
                   </div>
                 </SelectItem>
+                
+                {/* Gemini Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Gemini</div>
                 <SelectItem value="gemini" disabled={!modelAccess.gemini}>
                   <div className="flex items-center gap-2">
                     {!modelAccess.gemini && <Lock className="h-3 w-3 text-muted-foreground" />}
@@ -325,6 +227,27 @@ const Chat = () => {
                     <span>Gemini Lite</span>
                   </div>
                 </SelectItem>
+                <SelectItem value="gemini-3" disabled={!modelAccess['gemini-3']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gemini-3'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Gemini 3 Pro</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="nano-banana" disabled={!modelAccess['nano-banana']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['nano-banana'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Gemini-Nano</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="askify" disabled={!modelAccess.askify}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.askify && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span className="font-semibold tracking-wide">ASKIFY PRO</span>
+                  </div>
+                </SelectItem>
+                
+                {/* GPT Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">ChatGPT</div>
                 <SelectItem value="gpt" disabled={!modelAccess.gpt}>
                   <div className="flex items-center gap-2">
                     {!modelAccess.gpt && <Lock className="h-3 w-3 text-muted-foreground" />}
@@ -341,24 +264,6 @@ const Chat = () => {
                   <div className="flex items-center gap-2">
                     {!modelAccess['gpt-nano'] && <Lock className="h-3 w-3 text-muted-foreground" />}
                     <span>GPT-5 Nano</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="gemini-3" disabled={!modelAccess['gemini-3']}>
-                  <div className="flex items-center gap-2">
-                    {!modelAccess['gemini-3'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Gemini 3 Pro</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="nano-banana" disabled={!modelAccess['nano-banana']}>
-                  <div className="flex items-center gap-2">
-                    {!modelAccess['nano-banana'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Nano Banana</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="askify" disabled={!modelAccess.askify}>
-                  <div className="flex items-center gap-2">
-                    {!modelAccess.askify && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span className="font-semibold tracking-wide">ASKIFY PRO</span>
                   </div>
                 </SelectItem>
               </SelectContent>
