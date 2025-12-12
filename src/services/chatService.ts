@@ -11,7 +11,7 @@ function getCacheKey(messages: { role: string; content: string }[], model: strin
 
 export async function callAI(
   messages: { role: string; content: string }[],
-  model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana',
+  model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek',
   mode: 'normal' | 'deepthink' | 'search' | 'reasoning'
 ): Promise<string> {
   // Check cache first
