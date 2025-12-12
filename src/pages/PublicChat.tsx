@@ -106,10 +106,17 @@ const PublicChat = () => {
               .eq('id', payload.new.user_id)
               .single();
 
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', payload.new.user_id)
+              .single();
+
             if (profile) {
               setMessages(prev => [...prev, {
                 ...payload.new as any,
-                profiles: profile
+                profiles: profile,
+                user_role: roleData?.role || 'user'
               }]);
             }
           } else if (payload.eventType === 'UPDATE') {
@@ -157,7 +164,21 @@ const PublicChat = () => {
         variant: 'destructive'
       });
     } else {
-      setMessages(data as PublicMessage[]);
+      // Fetch user roles for each message
+      const messagesWithRoles = await Promise.all(
+        (data || []).map(async (msg: any) => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', msg.user_id)
+            .single();
+          return {
+            ...msg,
+            user_role: roleData?.role || 'user'
+          };
+        })
+      );
+      setMessages(messagesWithRoles as PublicMessage[]);
     }
   };
 

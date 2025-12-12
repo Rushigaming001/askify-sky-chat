@@ -61,7 +61,7 @@ export function VoiceChat() {
             },
             body: JSON.stringify({ 
               messages: [{ role: 'user', content: transcript }],
-              model: 'google/gemini-2.5-flash-lite',
+              model: 'grok',
               mode: 'normal'
             })
           });

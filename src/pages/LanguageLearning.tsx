@@ -29,12 +29,13 @@ interface Lesson {
 
 interface Question {
   id: string;
-  type: 'multiple-choice' | 'fill-blank' | 'translation' | 'audio';
+  type: 'multiple-choice' | 'fill-blank' | 'translation' | 'audio' | 'meaning' | 'hard';
   question: string;
   options?: string[];
   answer: string;
   pronunciation?: string;
   audio?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 const languages: Language[] = [
@@ -87,32 +88,47 @@ const lessonsData: Record<string, Lesson[]> = {
 
 const questionsData: Record<string, Question[]> = {
   english: [
-    { id: 'eq1', type: 'multiple-choice', question: 'How do you say "Hello"?', options: ['Hello', 'Goodbye', 'Thanks', 'Sorry'], answer: 'Hello' },
-    { id: 'eq2', type: 'translation', question: 'Translate: Good morning', options: ['Good morning', 'Good night', 'Good evening', 'Good day'], answer: 'Good morning' },
-    { id: 'eq3', type: 'fill-blank', question: 'Nice to ___ you!', options: ['meet', 'see', 'know', 'have'], answer: 'meet' },
+    { id: 'eq1', type: 'multiple-choice', question: 'How do you say "Hello"?', options: ['Hello', 'Goodbye', 'Thanks', 'Sorry'], answer: 'Hello', difficulty: 'easy' },
+    { id: 'eq2', type: 'translation', question: 'Translate: Good morning', options: ['Good morning', 'Good night', 'Good evening', 'Good day'], answer: 'Good morning', difficulty: 'easy' },
+    { id: 'eq3', type: 'fill-blank', question: 'Nice to ___ you!', options: ['meet', 'see', 'know', 'have'], answer: 'meet', difficulty: 'easy' },
+    { id: 'eq4', type: 'meaning', question: 'What is the meaning of "Eloquent"?', options: ['Fluent and persuasive in speaking', 'Very loud', 'Extremely quiet', 'Fast moving'], answer: 'Fluent and persuasive in speaking', difficulty: 'medium' },
+    { id: 'eq5', type: 'hard', question: 'Which sentence uses the subjunctive mood correctly?', options: ['If I were you, I would study harder', 'If I was you, I would study harder', 'If I am you, I would study harder', 'If I be you, I would study harder'], answer: 'If I were you, I would study harder', difficulty: 'hard' },
+    { id: 'eq6', type: 'meaning', question: 'What does "Ubiquitous" mean?', options: ['Present everywhere', 'Very rare', 'Extremely small', 'Very old'], answer: 'Present everywhere', difficulty: 'hard' },
   ],
   hindi: [
-    { id: 'hq1', type: 'multiple-choice', question: 'How do you say "Hello" in Hindi?', options: ['नमस्ते (Namaste)', 'धन्यवाद (Dhanyavaad)', 'अलविदा (Alvida)', 'माफ़ करें (Maaf karein)'], answer: 'नमस्ते (Namaste)', pronunciation: 'Namaste' },
-    { id: 'hq2', type: 'translation', question: 'What does "धन्यवाद" mean?', options: ['Thank you', 'Sorry', 'Hello', 'Goodbye'], answer: 'Thank you' },
-    { id: 'hq3', type: 'fill-blank', question: 'मेरा ___ राम है। (My name is Ram)', options: ['नाम (naam)', 'घर (ghar)', 'काम (kaam)', 'दोस्त (dost)'], answer: 'नाम (naam)' },
+    { id: 'hq1', type: 'multiple-choice', question: 'How do you say "Hello" in Hindi?', options: ['नमस्ते (Namaste)', 'धन्यवाद (Dhanyavaad)', 'अलविदा (Alvida)', 'माफ़ करें (Maaf karein)'], answer: 'नमस्ते (Namaste)', pronunciation: 'Namaste', difficulty: 'easy' },
+    { id: 'hq2', type: 'translation', question: 'What does "धन्यवाद" mean?', options: ['Thank you', 'Sorry', 'Hello', 'Goodbye'], answer: 'Thank you', difficulty: 'easy' },
+    { id: 'hq3', type: 'fill-blank', question: 'मेरा ___ राम है। (My name is Ram)', options: ['नाम (naam)', 'घर (ghar)', 'काम (kaam)', 'दोस्त (dost)'], answer: 'नाम (naam)', difficulty: 'easy' },
+    { id: 'hq4', type: 'meaning', question: 'What is the meaning of "अद्भुत" (Adbhut)?', options: ['Wonderful/Amazing', 'Terrible', 'Normal', 'Boring'], answer: 'Wonderful/Amazing', difficulty: 'medium' },
+    { id: 'hq5', type: 'hard', question: 'Complete: "जब तक सूरज चाँद रहेगा, ___"', options: ['आप का नाम रहेगा', 'आप खुश रहेंगे', 'वो आएगा', 'वो जाएगा'], answer: 'आप का नाम रहेगा', difficulty: 'hard' },
   ],
   marathi: [
-    { id: 'mq1', type: 'multiple-choice', question: 'How do you say "Hello" in Marathi?', options: ['नमस्कार (Namaskar)', 'धन्यवाद (Dhanyavaad)', 'पुन्हा भेटू (Punha bhetu)', 'माफ करा (Maaf kara)'], answer: 'नमस्कार (Namaskar)', pronunciation: 'Namaskar' },
-    { id: 'mq2', type: 'translation', question: 'What does "तुम्ही कसे आहात?" mean?', options: ['How are you?', 'What is your name?', 'Where are you going?', 'Goodbye'], answer: 'How are you?' },
+    { id: 'mq1', type: 'multiple-choice', question: 'How do you say "Hello" in Marathi?', options: ['नमस्कार (Namaskar)', 'धन्यवाद (Dhanyavaad)', 'पुन्हा भेटू (Punha bhetu)', 'माफ करा (Maaf kara)'], answer: 'नमस्कार (Namaskar)', pronunciation: 'Namaskar', difficulty: 'easy' },
+    { id: 'mq2', type: 'translation', question: 'What does "तुम्ही कसे आहात?" mean?', options: ['How are you?', 'What is your name?', 'Where are you going?', 'Goodbye'], answer: 'How are you?', difficulty: 'easy' },
+    { id: 'mq3', type: 'meaning', question: 'What is the meaning of "सुंदर" (Sundar)?', options: ['Beautiful', 'Ugly', 'Fast', 'Slow'], answer: 'Beautiful', difficulty: 'medium' },
+    { id: 'mq4', type: 'hard', question: 'Which is correct Marathi grammar?', options: ['मी मराठी बोलतो', 'मी मराठी बोलतो आहे', 'मी बोलतो मराठी', 'बोलतो मी मराठी'], answer: 'मी मराठी बोलतो', difficulty: 'hard' },
   ],
   sanskrit: [
-    { id: 'sq1', type: 'multiple-choice', question: 'How do you say "Salutations" in Sanskrit?', options: ['नमः (Namaḥ)', 'कथम् (Katham)', 'अस्तु (Astu)', 'भवतु (Bhavatu)'], answer: 'नमः (Namaḥ)', pronunciation: 'Namaḥ' },
-    { id: 'sq2', type: 'translation', question: 'What does "अहम्" mean?', options: ['I', 'You', 'He', 'We'], answer: 'I' },
+    { id: 'sq1', type: 'multiple-choice', question: 'How do you say "Salutations" in Sanskrit?', options: ['नमः (Namaḥ)', 'कथम् (Katham)', 'अस्तु (Astu)', 'भवतु (Bhavatu)'], answer: 'नमः (Namaḥ)', pronunciation: 'Namaḥ', difficulty: 'easy' },
+    { id: 'sq2', type: 'translation', question: 'What does "अहम्" mean?', options: ['I', 'You', 'He', 'We'], answer: 'I', difficulty: 'easy' },
+    { id: 'sq3', type: 'meaning', question: 'What is the meaning of "विद्या" (Vidyā)?', options: ['Knowledge/Learning', 'Power', 'Money', 'Land'], answer: 'Knowledge/Learning', difficulty: 'medium' },
+    { id: 'sq4', type: 'hard', question: 'What is the first person singular of "गम्" (to go)?', options: ['गच्छामि', 'गच्छति', 'गच्छसि', 'गच्छन्ति'], answer: 'गच्छामि', difficulty: 'hard' },
   ],
   japanese: [
-    { id: 'jq1', type: 'multiple-choice', question: 'How do you say "Hello" in Japanese?', options: ['こんにちは (Konnichiwa)', 'さようなら (Sayounara)', 'ありがとう (Arigatou)', 'すみません (Sumimasen)'], answer: 'こんにちは (Konnichiwa)', pronunciation: 'Konnichiwa' },
-    { id: 'jq2', type: 'translation', question: 'What does "ありがとう" mean?', options: ['Thank you', 'Sorry', 'Hello', 'Goodbye'], answer: 'Thank you' },
-    { id: 'jq3', type: 'fill-blank', question: '私___名前は田中です。(My name is Tanaka)', options: ['の (no)', 'は (wa)', 'が (ga)', 'を (wo)'], answer: 'の (no)' },
+    { id: 'jq1', type: 'multiple-choice', question: 'How do you say "Hello" in Japanese?', options: ['こんにちは (Konnichiwa)', 'さようなら (Sayounara)', 'ありがとう (Arigatou)', 'すみません (Sumimasen)'], answer: 'こんにちは (Konnichiwa)', pronunciation: 'Konnichiwa', difficulty: 'easy' },
+    { id: 'jq2', type: 'translation', question: 'What does "ありがとう" mean?', options: ['Thank you', 'Sorry', 'Hello', 'Goodbye'], answer: 'Thank you', difficulty: 'easy' },
+    { id: 'jq3', type: 'fill-blank', question: '私___名前は田中です。(My name is Tanaka)', options: ['の (no)', 'は (wa)', 'が (ga)', 'を (wo)'], answer: 'の (no)', difficulty: 'easy' },
+    { id: 'jq4', type: 'meaning', question: 'What is the meaning of "美しい" (Utsukushii)?', options: ['Beautiful', 'Ugly', 'Fast', 'Slow'], answer: 'Beautiful', difficulty: 'medium' },
+    { id: 'jq5', type: 'hard', question: 'Which particle indicates the topic of a sentence?', options: ['は (wa)', 'が (ga)', 'を (wo)', 'に (ni)'], answer: 'は (wa)', difficulty: 'hard' },
+    { id: 'jq6', type: 'hard', question: 'What is the て-form of 食べる (taberu)?', options: ['食べて', '食べた', '食べない', '食べます'], answer: '食べて', difficulty: 'hard' },
   ],
   french: [
-    { id: 'fq1', type: 'multiple-choice', question: 'How do you say "Hello" in French?', options: ['Bonjour', 'Au revoir', 'Merci', 'Pardon'], answer: 'Bonjour' },
-    { id: 'fq2', type: 'translation', question: 'What does "Merci beaucoup" mean?', options: ['Thank you very much', 'Goodbye', 'See you later', 'Excuse me'], answer: 'Thank you very much' },
-    { id: 'fq3', type: 'fill-blank', question: 'Je ___ français. (I speak French)', options: ['parle', 'mange', 'bois', 'vais'], answer: 'parle' },
+    { id: 'fq1', type: 'multiple-choice', question: 'How do you say "Hello" in French?', options: ['Bonjour', 'Au revoir', 'Merci', 'Pardon'], answer: 'Bonjour', difficulty: 'easy' },
+    { id: 'fq2', type: 'translation', question: 'What does "Merci beaucoup" mean?', options: ['Thank you very much', 'Goodbye', 'See you later', 'Excuse me'], answer: 'Thank you very much', difficulty: 'easy' },
+    { id: 'fq3', type: 'fill-blank', question: 'Je ___ français. (I speak French)', options: ['parle', 'mange', 'bois', 'vais'], answer: 'parle', difficulty: 'easy' },
+    { id: 'fq4', type: 'meaning', question: 'What is the meaning of "magnifique"?', options: ['Magnificent/Wonderful', 'Terrible', 'Normal', 'Small'], answer: 'Magnificent/Wonderful', difficulty: 'medium' },
+    { id: 'fq5', type: 'hard', question: 'What is the passé composé of "aller" (to go) for "je"?', options: ['je suis allé(e)', 'j\'ai allé', 'je vais allé', 'j\'allais'], answer: 'je suis allé(e)', difficulty: 'hard' },
+    { id: 'fq6', type: 'hard', question: 'Which is the correct subjunctive form?', options: ['Il faut que je fasse', 'Il faut que je fais', 'Il faut que je faire', 'Il faut que je fait'], answer: 'Il faut que je fasse', difficulty: 'hard' },
   ],
 };
 
@@ -333,7 +349,21 @@ export default function LanguageLearning() {
           <Card className="mb-6">
             <CardContent className="p-8">
               <div className="flex items-center justify-between mb-6">
-                <Badge variant="secondary">{currentQuestion.type}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{currentQuestion.type}</Badge>
+                  {currentQuestion.difficulty && (
+                    <Badge 
+                      variant={currentQuestion.difficulty === 'easy' ? 'default' : currentQuestion.difficulty === 'hard' ? 'destructive' : 'secondary'}
+                      className={
+                        currentQuestion.difficulty === 'easy' ? 'bg-green-500' :
+                        currentQuestion.difficulty === 'hard' ? 'bg-red-500' :
+                        'bg-amber-500'
+                      }
+                    >
+                      {currentQuestion.difficulty}
+                    </Badge>
+                  )}
+                </div>
                 <Button variant="ghost" size="sm" onClick={() => speakText(currentQuestion.question, selectedLanguage.id)}>
                   <Volume2 className="h-5 w-5" />
                 </Button>
