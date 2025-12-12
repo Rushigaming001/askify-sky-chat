@@ -321,7 +321,9 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="login-email" className="text-sm font-semibold text-foreground">Email</Label>
                     <div className="relative group">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                        <Mail className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      </div>
                       <Input
                         id="login-email"
                         type="email"
@@ -344,7 +346,9 @@ const Auth = () => {
                       </button>
                     </div>
                     <div className="relative group">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                        <Lock className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      </div>
                       <Input
                         id="login-password"
                         type="password"
