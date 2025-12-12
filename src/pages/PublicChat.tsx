@@ -297,56 +297,61 @@ const PublicChat = () => {
   return (
     <div className="flex h-screen bg-background">
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
-        <header className="border-b border-border p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-4">
+        <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => navigate('/')}
+              className="h-8 w-8 sm:h-9 sm:w-9"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
-            <div className="flex items-center gap-3 flex-1">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
-              <div>
-                <h1 className="text-xl font-semibold">Public Chat</h1>
-                <p className="text-sm text-muted-foreground">Chat with everyone</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg md:text-xl font-semibold truncate">Public Chat</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Chat with everyone</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowVideoCall(true)}
                 title="Start video call"
+                className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <Video className="h-5 w-5" />
+                <Video className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowVoiceCall(true)}
                 title="Start voice call"
+                className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <Phone className="h-5 w-5" />
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowGroupsList(true)}
                 title="View groups"
+                className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <Users className="h-5 w-5" />
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowUsersList(true)}
                 title="View users"
+                className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <UserCircle className="h-5 w-5" />
+                <UserCircle className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
