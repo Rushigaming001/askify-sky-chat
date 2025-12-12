@@ -51,27 +51,64 @@ export function VoiceChat() {
         
         setIsListening(false);
         
-        // Send to AI
+        // Send to AI using streaming endpoint
         try {
-          const { data, error } = await supabase.functions.invoke('chat', {
-            body: { 
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+            },
+            body: JSON.stringify({ 
               messages: [{ role: 'user', content: transcript }],
-              model: 'gemini',
+              model: 'google/gemini-2.5-flash-lite',
               mode: 'normal'
-            }
+            })
           });
 
-          if (error) throw error;
+          if (!response.ok) throw new Error('Failed to get response');
           
-          if (data?.reply) {
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let fullResponse = '';
+          
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+              
+              for (const line of lines) {
+                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                  try {
+                    const json = JSON.parse(line.slice(6));
+                    const content = json.choices?.[0]?.delta?.content;
+                    if (content) fullResponse += content;
+                  } catch {}
+                }
+              }
+            }
+          }
+          
+          if (fullResponse) {
             // Speak the AI response
             setIsSpeaking(true);
-            const utterance = new SpeechSynthesisUtterance(data.reply);
+            const utterance = new SpeechSynthesisUtterance(fullResponse);
+            utterance.rate = 1;
+            utterance.pitch = 1;
             utterance.onend = () => {
               setIsSpeaking(false);
               setIsListening(true);
+              // Restart recognition
+              if (recognitionRef.current && isConnected) {
+                try { recognitionRef.current.start(); } catch {}
+              }
             };
             synthesisRef.current?.speak(utterance);
+          } else {
+            setIsListening(true);
           }
         } catch (error) {
           console.error('Error getting AI response:', error);
