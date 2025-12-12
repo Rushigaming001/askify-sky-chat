@@ -31,7 +31,7 @@ const Chat = () => {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana'>('gemini');
+  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek'>('grok');
   const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const { used, remaining, total, canSend, loading: limitLoading, refresh: refreshLimit } = useDailyMessageLimit();
@@ -47,6 +47,9 @@ const Chat = () => {
 
   const checkModelAccess = async () => {
     const modelMap: Record<string, string> = {
+      'grok': 'groq/llama-3.3-70b',
+      'cohere': 'cohere/command-r-plus',
+      'deepseek': 'deepseek/deepseek-chat',
       'gemini': 'google/gemini-2.5-flash',
       'gemini-lite': 'google/gemini-2.5-flash-lite',
       'gpt': 'openai/gpt-5',
@@ -56,10 +59,17 @@ const Chat = () => {
       'askify': 'google/gemini-2.5-pro',
       'nano-banana': 'google/gemini-2.5-flash-image-preview'
     };
+    
+    // External API models are always accessible (they use user's API keys)
+    const externalApiModels = ['grok', 'cohere', 'deepseek'];
 
     const access: Record<string, boolean> = {};
     for (const [key, modelId] of Object.entries(modelMap)) {
-      access[key] = await canAccessModel(modelId);
+      if (externalApiModels.includes(key)) {
+        access[key] = true; // Always accessible
+      } else {
+        access[key] = await canAccessModel(modelId);
+      }
     }
     setModelAccess(access);
   };
@@ -129,7 +139,7 @@ const Chat = () => {
     }
   };
 
-  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana') => {
+  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek') => {
     if (!modelAccess[model]) {
       toast({
         title: 'Access Denied',
@@ -280,11 +290,29 @@ const Chat = () => {
                 </Button>
               </DialogTrigger>
             </Dialog>
-            <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana') => handleModelChange(v)}>
+            <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek') => handleModelChange(v)}>
               <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background/95 backdrop-blur-sm">
+                <SelectItem value="grok" disabled={!modelAccess.grok}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.grok && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span className="font-semibold">⚡ Core</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="cohere" disabled={!modelAccess.cohere}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.cohere && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span className="font-semibold">🔥 Pro</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="deepseek" disabled={!modelAccess.deepseek}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess.deepseek && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>💡 Lite</span>
+                  </div>
+                </SelectItem>
                 <SelectItem value="gemini" disabled={!modelAccess.gemini}>
                   <div className="flex items-center gap-2">
                     {!modelAccess.gemini && <Lock className="h-3 w-3 text-muted-foreground" />}

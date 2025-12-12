@@ -33,17 +33,39 @@ serve(async (req) => {
       });
     }
 
-    // Map user's model selection to Lovable AI models
-    // Use cheapest model by default (saves 40-60% credits)
-    let aiModel = 'google/gemini-2.5-flash';
+    // Map user's model selection to AI models
+    // Default to Groq (Core) model
+    let aiModel = '';
+    let useExternalApi = false;
+    let externalApiUrl = '';
+    let externalApiKey = '';
     
-    if (model === 'gpt') {
+    // New models with external APIs
+    if (model === 'grok' || !model) {
+      // Groq API (Core - default)
+      useExternalApi = true;
+      externalApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+      externalApiKey = Deno.env.get('GROQ_API_KEY') || '';
+      aiModel = 'llama-3.3-70b-versatile';
+    } else if (model === 'cohere') {
+      // Cohere API (Pro)
+      useExternalApi = true;
+      externalApiUrl = 'https://api.cohere.ai/v1/chat';
+      externalApiKey = Deno.env.get('COHERE_API_KEY') || '';
+      aiModel = 'command-r-plus';
+    } else if (model === 'deepseek') {
+      // DeepSeek API (Lite)
+      useExternalApi = true;
+      externalApiUrl = 'https://api.deepseek.com/chat/completions';
+      externalApiKey = Deno.env.get('DEEPSEEK_API_KEY') || '';
+      aiModel = 'deepseek-chat';
+    } else if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
     } else if (model === 'gpt-mini') {
       aiModel = 'openai/gpt-5-mini';
     } else if (model === 'gpt-nano') {
       aiModel = 'openai/gpt-5-nano';
-    } else if (model === 'gemini' || !model) {
+    } else if (model === 'gemini') {
       aiModel = 'google/gemini-2.5-flash';
     } else if (model === 'gemini-lite') {
       aiModel = 'google/gemini-2.5-flash-lite';
@@ -70,17 +92,19 @@ serve(async (req) => {
       });
     }
 
-    // Check model access permission
-    const { data: canAccess } = await supabase.rpc('can_access_model', {
-      _user_id: user.id,
-      _model_id: aiModel
-    });
-
-    if (!canAccess) {
-      return new Response(JSON.stringify({ error: "You don't have access to this model. Please upgrade your account." }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Check model access permission (skip for external API models)
+    if (!useExternalApi) {
+      const { data: canAccess } = await supabase.rpc('can_access_model', {
+        _user_id: user.id,
+        _model_id: aiModel
       });
+
+      if (!canAccess) {
+        return new Response(JSON.stringify({ error: "You don't have access to this model. Please upgrade your account." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
     
     // System prompt with creator attribution
@@ -96,55 +120,121 @@ serve(async (req) => {
 
     let reply = '';
 
-    // Prepare request body with correct token parameter based on model
-    const requestBody: any = {
-      model: aiModel,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
-    };
+    // Handle external API calls
+    if (useExternalApi) {
+      if (!externalApiKey) {
+        return new Response(JSON.stringify({ error: `API key not configured for ${model}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    // Use max_completion_tokens for OpenAI GPT-5+ models, max_tokens for others
-    if (aiModel.includes('gpt-5') || aiModel.includes('gpt-4.1') || aiModel.includes('o3') || aiModel.includes('o4')) {
-      requestBody.max_completion_tokens = 500;
+      let response;
+      
+      if (model === 'cohere') {
+        // Cohere uses a different API format
+        response = await fetch(externalApiUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${externalApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: aiModel,
+            message: messages[messages.length - 1]?.content || '',
+            preamble: systemPrompt,
+            chat_history: messages.slice(0, -1).map((m: { role: string; content: string }) => ({
+              role: m.role === 'assistant' ? 'CHATBOT' : 'USER',
+              message: m.content
+            }))
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Cohere API error:", response.status, errorText);
+          throw new Error(`Cohere API request failed: ${errorText}`);
+        }
+
+        const data = await response.json();
+        reply = data.text || "No response generated";
+      } else {
+        // Groq and DeepSeek use OpenAI-compatible format
+        response = await fetch(externalApiUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${externalApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: aiModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...messages,
+            ],
+            max_tokens: 1000,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`${model} API error:`, response.status, errorText);
+          throw new Error(`${model} API request failed: ${errorText}`);
+        }
+
+        const data = await response.json();
+        reply = data.choices?.[0]?.message?.content || "No response generated";
+      }
     } else {
-      requestBody.max_tokens = 500;
-    }
+      // Lovable AI Gateway for other models
+      const requestBody: any = {
+        model: aiModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+      };
 
-    // All models now use Lovable AI Gateway
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // Use max_completion_tokens for OpenAI GPT-5+ models, max_tokens for others
+      if (aiModel.includes('gpt-5') || aiModel.includes('gpt-4.1') || aiModel.includes('o3') || aiModel.includes('o4')) {
+        requestBody.max_completion_tokens = 500;
+      } else {
+        requestBody.max_tokens = 500;
       }
-      
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Out of Lovable AI credits! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      throw new Error(`Lovable AI request failed: ${errorText}`);
-    }
 
-    const data = await response.json();
-    reply = data.choices?.[0]?.message?.content || "No response generated";
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Lovable AI error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "Out of Lovable AI credits! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        throw new Error(`Lovable AI request failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+      reply = data.choices?.[0]?.message?.content || "No response generated";
+    }
 
     // Log usage
     await supabase.from('usage_logs').insert({
