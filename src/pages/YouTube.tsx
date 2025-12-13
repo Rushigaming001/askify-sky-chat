@@ -8,39 +8,24 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Play, Clock, ThumbsUp, Eye, Menu, Home, Flame, Smartphone, Film, Music, Gamepad2, Newspaper, Trophy, Lightbulb, X } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Search, Play, Clock, ThumbsUp, Eye, Menu, Home, Flame, Smartphone, Film, Music, Gamepad2, Newspaper, Trophy, Lightbulb, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Video {
   id: string;
   title: string;
   thumbnail: string;
   channel: string;
+  channelId?: string;
   views: string;
-  duration: string;
+  viewCount?: string;
+  duration?: string;
   uploadedAt: string;
+  description?: string;
   isShort?: boolean;
 }
-
-// Sample video data - in production you'd use YouTube Data API
-const sampleVideos: Video[] = [
-  { id: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', channel: 'Rick Astley', views: '1.5B', duration: '3:33', uploadedAt: '14 years ago' },
-  { id: 'jNQXAC9IVRw', title: 'Me at the zoo', thumbnail: 'https://img.youtube.com/vi/jNQXAC9IVRw/maxresdefault.jpg', channel: 'jawed', views: '300M', duration: '0:19', uploadedAt: '19 years ago' },
-  { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE', thumbnail: 'https://img.youtube.com/vi/9bZkp7q19f0/maxresdefault.jpg', channel: 'officialpsy', views: '5B', duration: '4:13', uploadedAt: '12 years ago' },
-  { id: 'kJQP7kiw5Fk', title: 'Despacito', thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/maxresdefault.jpg', channel: 'Luis Fonsi', views: '8.3B', duration: '4:42', uploadedAt: '8 years ago' },
-  { id: 'JGwWNGJdvx8', title: 'Shape of You', thumbnail: 'https://img.youtube.com/vi/JGwWNGJdvx8/maxresdefault.jpg', channel: 'Ed Sheeran', views: '6.2B', duration: '4:24', uploadedAt: '8 years ago' },
-  { id: 'RgKAFK5djSk', title: 'See You Again', thumbnail: 'https://img.youtube.com/vi/RgKAFK5djSk/maxresdefault.jpg', channel: 'Wiz Khalifa', views: '5.9B', duration: '3:58', uploadedAt: '10 years ago' },
-];
-
-const sampleShorts: Video[] = [
-  { id: 'short1', title: 'Amazing Magic Trick! 🎩', thumbnail: 'https://picsum.photos/seed/short1/400/700', channel: 'Magic Channel', views: '15M', duration: '0:30', uploadedAt: '2 days ago', isShort: true },
-  { id: 'short2', title: 'Cat does funny thing 😹', thumbnail: 'https://picsum.photos/seed/short2/400/700', channel: 'Funny Cats', views: '8M', duration: '0:15', uploadedAt: '1 day ago', isShort: true },
-  { id: 'short3', title: 'Cooking hack you need!', thumbnail: 'https://picsum.photos/seed/short3/400/700', channel: 'Quick Recipes', views: '3M', duration: '0:45', uploadedAt: '5 hours ago', isShort: true },
-  { id: 'short4', title: 'Satisfying slime ASMR', thumbnail: 'https://picsum.photos/seed/short4/400/700', channel: 'ASMR World', views: '22M', duration: '0:58', uploadedAt: '3 days ago', isShort: true },
-  { id: 'short5', title: 'Dance tutorial 💃', thumbnail: 'https://picsum.photos/seed/short5/400/700', channel: 'Dance With Me', views: '5M', duration: '0:40', uploadedAt: '1 week ago', isShort: true },
-  { id: 'short6', title: 'Mind-blowing science!', thumbnail: 'https://picsum.photos/seed/short6/400/700', channel: 'Science Fun', views: '12M', duration: '0:55', uploadedAt: '4 days ago', isShort: true },
-];
 
 const categories = [
   { id: 'all', label: 'All', icon: Home },
@@ -64,6 +49,11 @@ const YouTube = () => {
   const [activeTab, setActiveTab] = useState('videos');
   const [currentShortIndex, setCurrentShortIndex] = useState(0);
   const [showShortPlayer, setShowShortPlayer] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [shorts, setShorts] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<Video[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -71,14 +61,91 @@ const YouTube = () => {
     }
   }, [user, navigate]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchTrendingVideos();
+    fetchShorts();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCategory !== 'all') {
+      searchVideos(selectedCategory);
+    } else {
+      fetchTrendingVideos();
+    }
+  }, [selectedCategory]);
+
+  const fetchTrendingVideos = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('youtube-api', {
+        body: { action: 'trending', maxResults: 24 }
+      });
+
+      if (error) throw error;
+      if (data.success && data.data) {
+        setVideos(data.data);
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load videos. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchShorts = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('youtube-api', {
+        body: { action: 'shorts', maxResults: 12 }
+      });
+
+      if (error) throw error;
+      if (data.success && data.data) {
+        setShorts(data.data.map((v: Video) => ({ ...v, isShort: true })));
+      }
+    } catch (error) {
+      console.error('Error fetching shorts:', error);
+    }
+  };
+
+  const searchVideos = async (query: string) => {
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('youtube-api', {
+        body: { action: 'search', query, maxResults: 24 }
+      });
+
+      if (error) throw error;
+      if (data.success && data.data) {
+        setSearchResults(data.data);
+      }
+    } catch (error) {
+      console.error('Error searching videos:', error);
+      toast({
+        title: 'Search Error',
+        description: 'Failed to search videos.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      await searchVideos(searchQuery);
       toast({
-        title: 'Searching...',
-        description: `Searching for "${searchQuery}"`
+        title: 'Search Results',
+        description: `Found videos for "${searchQuery}"`
       });
-      // In production, this would call YouTube Data API
     }
   };
 
@@ -92,12 +159,14 @@ const YouTube = () => {
   };
 
   const nextShort = () => {
-    setCurrentShortIndex((prev) => (prev + 1) % sampleShorts.length);
+    setCurrentShortIndex((prev) => (prev + 1) % shorts.length);
   };
 
   const prevShort = () => {
-    setCurrentShortIndex((prev) => (prev - 1 + sampleShorts.length) % sampleShorts.length);
+    setCurrentShortIndex((prev) => (prev - 1 + shorts.length) % shorts.length);
   };
+
+  const displayVideos = searchResults.length > 0 ? searchResults : videos;
 
   if (!user) return null;
 
@@ -130,8 +199,8 @@ const YouTube = () => {
                 className="pl-10 h-10 bg-secondary/50"
               />
             </div>
-            <Button type="submit" variant="secondary">
-              <Search className="h-4 w-4" />
+            <Button type="submit" variant="secondary" disabled={isSearching}>
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
           </form>
         </header>
@@ -170,77 +239,101 @@ const YouTube = () => {
               </TabsList>
 
               <TabsContent value="videos">
-                <h2 className="text-xl font-bold mb-4">Recommended Videos</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {sampleVideos.map((video) => (
-                    <Card 
-                      key={video.id} 
-                      className="cursor-pointer group hover:shadow-lg transition-all duration-300 overflow-hidden"
-                      onClick={() => playVideo(video)}
-                    >
-                      <div className="relative aspect-video overflow-hidden">
-                        <img 
-                          src={video.thumbnail} 
-                          alt={video.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${video.id}/640/360`;
-                          }}
-                        />
-                        <Badge className="absolute bottom-2 right-2 bg-black/80 text-white">
-                          {video.duration}
-                        </Badge>
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                          <Play className="h-12 w-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                <h2 className="text-xl font-bold mb-4">
+                  {searchResults.length > 0 ? `Search Results for "${searchQuery}"` : 'Trending Videos'}
+                </h2>
+                
+                {loading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {displayVideos.map((video) => (
+                      <Card 
+                        key={video.id} 
+                        className="cursor-pointer group hover:shadow-lg transition-all duration-300 overflow-hidden"
+                        onClick={() => playVideo(video)}
+                      >
+                        <div className="relative aspect-video overflow-hidden">
+                          <img 
+                            src={video.thumbnail} 
+                            alt={video.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${video.id}/640/360`;
+                            }}
+                          />
+                          {video.duration && (
+                            <Badge className="absolute bottom-2 right-2 bg-black/80 text-white">
+                              {video.duration}
+                            </Badge>
+                          )}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <Play className="h-12 w-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
                         </div>
-                      </div>
-                      <CardContent className="p-3">
-                        <h3 className="font-semibold line-clamp-2 text-sm mb-1 group-hover:text-primary transition-colors">
-                          {video.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">{video.channel}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {video.views}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {video.uploadedAt}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        <CardContent className="p-3">
+                          <h3 className="font-semibold line-clamp-2 text-sm mb-1 group-hover:text-primary transition-colors">
+                            {video.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">{video.channel}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            {video.views && (
+                              <>
+                                <span className="flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {video.views}
+                                </span>
+                                <span>•</span>
+                              </>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {video.uploadedAt}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="shorts">
                 <h2 className="text-xl font-bold mb-4">Shorts</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {sampleShorts.map((short, index) => (
-                    <div 
-                      key={short.id}
-                      className="relative aspect-[9/16] rounded-xl overflow-hidden cursor-pointer group"
-                      onClick={() => playShort(index)}
-                    >
-                      <img 
-                        src={short.thumbnail}
-                        alt={short.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-white text-xs font-medium line-clamp-2">{short.title}</p>
-                        <p className="text-white/70 text-xs mt-1">{short.views} views</p>
+                {shorts.length === 0 ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                    {shorts.map((short, index) => (
+                      <div 
+                        key={short.id}
+                        className="relative aspect-[9/16] rounded-xl overflow-hidden cursor-pointer group"
+                        onClick={() => playShort(index)}
+                      >
+                        <img 
+                          src={short.thumbnail}
+                          alt={short.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${short.id}/400/700`;
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="text-white text-xs font-medium line-clamp-2">{short.title}</p>
+                          <p className="text-white/70 text-xs mt-1">{short.channel}</p>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                          <Play className="h-10 w-10 text-white fill-white" />
+                        </div>
                       </div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-                        <Play className="h-10 w-10 text-white fill-white" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -265,15 +358,22 @@ const YouTube = () => {
             <h2 className="text-lg font-bold">{selectedVideo?.title}</h2>
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
               <span>{selectedVideo?.channel}</span>
-              <span className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
-                {selectedVideo?.views}
-              </span>
+              {selectedVideo?.views && (
+                <span className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  {selectedVideo.views}
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <ThumbsUp className="h-4 w-4" />
                 Like
               </span>
             </div>
+            {selectedVideo?.description && (
+              <p className="mt-3 text-sm text-muted-foreground line-clamp-3">
+                {selectedVideo.description}
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -282,32 +382,28 @@ const YouTube = () => {
       <Dialog open={showShortPlayer} onOpenChange={setShowShortPlayer}>
         <DialogContent className="max-w-sm p-0 bg-black border-0">
           <div className="relative aspect-[9/16] w-full bg-black rounded-lg overflow-hidden">
-            <img 
-              src={sampleShorts[currentShortIndex]?.thumbnail}
-              alt={sampleShorts[currentShortIndex]?.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+            {shorts[currentShortIndex] && (
+              <iframe
+                src={`https://www.youtube.com/embed/${shorts[currentShortIndex].id}?autoplay=1&loop=1`}
+                title={shorts[currentShortIndex].title}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
             
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 text-white hover:bg-white/20"
+              className="absolute top-2 right-2 text-white hover:bg-white/20 z-10"
               onClick={() => setShowShortPlayer(false)}
             >
               <X className="h-5 w-5" />
             </Button>
 
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <p className="text-white font-bold">{sampleShorts[currentShortIndex]?.title}</p>
-              <p className="text-white/70 text-sm">{sampleShorts[currentShortIndex]?.channel}</p>
-              <div className="flex items-center gap-4 mt-2 text-white/70 text-xs">
-                <span className="flex items-center gap-1">
-                  <ThumbsUp className="h-4 w-4" />
-                  Like
-                </span>
-                <span>{sampleShorts[currentShortIndex]?.views} views</span>
-              </div>
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+              <p className="text-white font-bold">{shorts[currentShortIndex]?.title}</p>
+              <p className="text-white/70 text-sm">{shorts[currentShortIndex]?.channel}</p>
             </div>
 
             {/* Navigation */}
