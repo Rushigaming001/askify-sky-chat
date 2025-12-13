@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Replicate from "https://esm.sh/replicate@0.30.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,7 @@ serve(async (req) => {
   try {
     const { action, prompt, imageUrl, style } = await req.json();
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
     
     if (!GROQ_API_KEY) {
       throw new Error("GROQ_API_KEY is not configured");
@@ -63,58 +65,49 @@ serve(async (req) => {
       });
     }
 
-    // Image generation - use description-based response since Groq doesn't generate images
+    // Image generation using Replicate's FLUX model
     if (action === 'generate') {
-      console.log("Generating image description with Groq...");
+      if (!REPLICATE_API_KEY) {
+        throw new Error("REPLICATE_API_KEY is not configured for image generation");
+      }
+
+      console.log("Generating image with Replicate FLUX...");
+      
+      const replicate = new Replicate({ auth: REPLICATE_API_KEY });
       
       let fullPrompt = prompt;
       if (style === 'ghibli') {
-        fullPrompt = `Studio Ghibli style: ${prompt}`;
+        fullPrompt = `Studio Ghibli anime style, hand-drawn animation aesthetic, soft pastel colors, dreamy atmosphere: ${prompt}`;
       } else if (style === 'realistic') {
-        fullPrompt = `Photorealistic: ${prompt}`;
+        fullPrompt = `Ultra photorealistic, 8K, high detail, professional photography: ${prompt}`;
       } else if (style === 'artistic') {
-        fullPrompt = `Digital art: ${prompt}`;
+        fullPrompt = `Digital art, vibrant colors, artistic style, detailed illustration: ${prompt}`;
       } else if (style === 'abstract') {
-        fullPrompt = `Abstract art: ${prompt}`;
+        fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style: ${prompt}`;
       }
 
-      // Generate a placeholder image URL or use a fallback
-      // Since Groq doesn't generate images, we'll provide a helpful message
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
-          messages: [
-            {
-              role: "system",
-              content: "You are an AI that describes images. Generate a detailed visual description for the following prompt that could be used to create an image."
-            },
-            {
-              role: "user",
-              content: fullPrompt
-            }
-          ],
-          max_tokens: 500,
-        }),
+      const output = await replicate.run("black-forest-labs/flux-schnell", {
+        input: {
+          prompt: fullPrompt,
+          num_outputs: 1,
+          aspect_ratio: "1:1",
+          output_format: "webp",
+          output_quality: 90
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Groq API error:", response.status, errorText);
-        throw new Error("Groq API request failed");
+      let imageUrlResult: string;
+      if (Array.isArray(output) && output.length > 0) {
+        imageUrlResult = output[0];
+      } else if (typeof output === 'string') {
+        imageUrlResult = output;
+      } else {
+        throw new Error("Unexpected output format from image generation");
       }
 
-      // Return a placeholder since Groq doesn't generate images
-      // The frontend will need to handle this appropriately
-      return new Response(JSON.stringify({ 
-        imageUrl: `https://via.placeholder.com/512x512.png?text=${encodeURIComponent(prompt.substring(0, 30))}`,
-        description: "Image generation via Groq is not available. Please use text-based AI features.",
-        error: "Image generation requires a dedicated image model. Current Groq integration supports image analysis only."
-      }), {
+      console.log("Image generated successfully:", imageUrlResult);
+
+      return new Response(JSON.stringify({ imageUrl: imageUrlResult }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
