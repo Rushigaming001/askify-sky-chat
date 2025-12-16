@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor, Music } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { MusicPlayer } from '@/components/MusicPlayer';
 
 interface WebRTCCallProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export function WebRTCCall({
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -568,6 +570,13 @@ export function WebRTCCall({
             </div>
           )}
 
+          {/* Music Player Panel */}
+          {showMusicPlayer && (
+            <div className="absolute top-4 right-4 w-72 bg-background/95 backdrop-blur-sm rounded-lg shadow-xl z-10 max-h-[60%] overflow-auto">
+              <MusicPlayer compact={false} />
+            </div>
+          )}
+
           {/* Call Controls */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-background/90 backdrop-blur-sm px-4 py-3 rounded-full shadow-xl flex-wrap justify-center">
             {callType === 'video' && (
@@ -612,6 +621,16 @@ export function WebRTCCall({
               title={isMicOn ? "Mute" : "Unmute"}
             >
               {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+            </Button>
+
+            <Button
+              size="lg"
+              variant={showMusicPlayer ? "default" : "secondary"}
+              className="rounded-full h-12 w-12"
+              onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+              title={showMusicPlayer ? "Hide music" : "Show music"}
+            >
+              <Music className="h-5 w-5" />
             </Button>
 
             <Button

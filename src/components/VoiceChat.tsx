@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mic, MicOff, Phone, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, Music } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { MusicPlayer } from '@/components/MusicPlayer';
 
 export function VoiceChat() {
   const [isConnected, setIsConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [musicStream, setMusicStream] = useState<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const { toast } = useToast();
@@ -247,6 +250,23 @@ export function VoiceChat() {
             <li>• Hands-free interaction</li>
           </ul>
         </div>
+
+        {/* Music Player Toggle */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+        >
+          <Music className="h-4 w-4 mr-2" />
+          {showMusicPlayer ? 'Hide Music Player' : 'Show Music Player'}
+        </Button>
+
+        {showMusicPlayer && (
+          <MusicPlayer 
+            onAudioStream={setMusicStream}
+            compact={false}
+          />
+        )}
       </CardContent>
     </Card>
   );
