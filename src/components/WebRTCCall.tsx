@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Users } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -36,11 +36,15 @@ export function WebRTCCall({
   const [isConnecting, setIsConnecting] = useState(true);
   const [participants, setParticipants] = useState<Array<{ user_id: string; name: string }>>([]);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const channelRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [callId] = useState(() => `call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
@@ -330,9 +334,137 @@ export function WebRTCCall({
     }
   };
 
+  const switchCamera = async () => {
+    try {
+      const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+      setFacingMode(newFacingMode);
+      
+      // Get new stream with different camera
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+        audio: true
+      });
+      
+      // Replace video track in all peer connections
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      
+      peerConnectionsRef.current.forEach((pc) => {
+        const senders = pc.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender && newVideoTrack) {
+          videoSender.replaceTrack(newVideoTrack);
+        }
+      });
+      
+      // Update local stream
+      if (localStreamRef.current) {
+        const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (oldVideoTrack) {
+          oldVideoTrack.stop();
+        }
+        localStreamRef.current.removeTrack(oldVideoTrack);
+        localStreamRef.current.addTrack(newVideoTrack);
+      }
+      
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+      
+      toast({ title: 'Camera switched', description: `Now using ${newFacingMode === 'user' ? 'front' : 'back'} camera` });
+    } catch (error) {
+      console.error('Error switching camera:', error);
+      toast({ title: 'Error', description: 'Failed to switch camera', variant: 'destructive' });
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach(track => track.stop());
+          screenStreamRef.current = null;
+        }
+        
+        // Revert to camera
+        const cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        
+        const newVideoTrack = cameraStream.getVideoTracks()[0];
+        
+        peerConnectionsRef.current.forEach((pc) => {
+          const senders = pc.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender && newVideoTrack) {
+            videoSender.replaceTrack(newVideoTrack);
+          }
+        });
+        
+        if (localStreamRef.current) {
+          const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (oldVideoTrack) {
+            oldVideoTrack.stop();
+          }
+          localStreamRef.current.removeTrack(oldVideoTrack);
+          localStreamRef.current.addTrack(newVideoTrack);
+        }
+        
+        if (localVideoRef.current && localStreamRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+        
+        setIsScreenSharing(false);
+        toast({ title: 'Screen sharing stopped' });
+      } else {
+        // Start screen sharing
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+        
+        screenStreamRef.current = screenStream;
+        const screenVideoTrack = screenStream.getVideoTracks()[0];
+        
+        // Handle when user stops sharing via browser UI
+        screenVideoTrack.onended = () => {
+          setIsScreenSharing(false);
+          toggleScreenShare();
+        };
+        
+        peerConnectionsRef.current.forEach((pc) => {
+          const senders = pc.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender && screenVideoTrack) {
+            videoSender.replaceTrack(screenVideoTrack);
+          }
+        });
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
+        }
+        
+        setIsScreenSharing(true);
+        toast({ title: 'Screen sharing started' });
+      }
+    } catch (error) {
+      console.error('Error toggling screen share:', error);
+      toast({ title: 'Error', description: 'Failed to share screen', variant: 'destructive' });
+    }
+  };
+
   const cleanup = () => {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
     }
 
     peerConnectionsRef.current.forEach(pc => pc.close());
@@ -343,6 +475,8 @@ export function WebRTCCall({
     }
 
     localStreamRef.current = null;
+    screenStreamRef.current = null;
+    audioContextRef.current = null;
     setRemoteStreams(new Map());
   };
 
@@ -435,34 +569,59 @@ export function WebRTCCall({
           )}
 
           {/* Call Controls */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-background/90 backdrop-blur-sm px-6 py-4 rounded-full shadow-xl">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-background/90 backdrop-blur-sm px-4 py-3 rounded-full shadow-xl flex-wrap justify-center">
             {callType === 'video' && (
-              <Button
-                size="lg"
-                variant={isVideoOn ? "default" : "destructive"}
-                className="rounded-full h-14 w-14"
-                onClick={toggleVideo}
-              >
-                {isVideoOn ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
-              </Button>
+              <>
+                <Button
+                  size="lg"
+                  variant={isVideoOn ? "default" : "destructive"}
+                  className="rounded-full h-12 w-12"
+                  onClick={toggleVideo}
+                  title={isVideoOn ? "Turn off camera" : "Turn on camera"}
+                >
+                  {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                </Button>
+                
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="rounded-full h-12 w-12"
+                  onClick={switchCamera}
+                  title="Switch camera"
+                >
+                  <SwitchCamera className="h-5 w-5" />
+                </Button>
+                
+                <Button
+                  size="lg"
+                  variant={isScreenSharing ? "default" : "secondary"}
+                  className="rounded-full h-12 w-12"
+                  onClick={toggleScreenShare}
+                  title={isScreenSharing ? "Stop sharing" : "Share screen"}
+                >
+                  <Monitor className="h-5 w-5" />
+                </Button>
+              </>
             )}
             
             <Button
               size="lg"
               variant={isMicOn ? "default" : "destructive"}
-              className="rounded-full h-14 w-14"
+              className="rounded-full h-12 w-12"
               onClick={toggleMic}
+              title={isMicOn ? "Mute" : "Unmute"}
             >
-              {isMicOn ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+              {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
             </Button>
 
             <Button
               size="lg"
               variant="destructive"
-              className="rounded-full h-16 w-16"
+              className="rounded-full h-14 w-14"
               onClick={handleEndCall}
+              title="End call"
             >
-              <PhoneOff className="h-7 w-7" />
+              <PhoneOff className="h-6 w-6" />
             </Button>
           </div>
         </div>

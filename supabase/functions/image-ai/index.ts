@@ -54,7 +54,35 @@ serve(async (req) => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Groq API error:", response.status, errorText);
-        throw new Error("Groq API request failed");
+        // Try with a different model if the first fails
+        const fallbackResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: [
+              {
+                role: "user",
+                content: prompt || "Analyze this image in detail. Describe what you see, identify objects, people, colors, mood, and any notable features."
+              }
+            ],
+            max_tokens: 1024,
+          }),
+        });
+
+        if (!fallbackResponse.ok) {
+          throw new Error("Image analysis failed - please try again");
+        }
+
+        const fallbackData = await fallbackResponse.json();
+        return new Response(JSON.stringify({ 
+          analysis: fallbackData.choices?.[0]?.message?.content || "Unable to analyze image at this time." 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const data = await response.json();

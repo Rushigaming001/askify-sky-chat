@@ -146,6 +146,7 @@ const PublicChat = () => {
   }, [messages]);
 
   const loadMessages = async () => {
+    // Load messages in batches for faster initial load
     const { data, error } = await supabase
       .from('public_messages')
       .select(`
@@ -155,7 +156,8 @@ const PublicChat = () => {
           email
         )
       `)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(50);
 
     if (error) {
       toast({
@@ -164,20 +166,24 @@ const PublicChat = () => {
         variant: 'destructive'
       });
     } else {
-      // Fetch user roles for each message
-      const messagesWithRoles = await Promise.all(
-        (data || []).map(async (msg: any) => {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', msg.user_id)
-            .single();
-          return {
-            ...msg,
-            user_role: roleData?.role || 'user'
-          };
-        })
-      );
+      // Get unique user IDs
+      const userIds = [...new Set((data || []).map((msg: any) => msg.user_id))];
+      
+      // Batch fetch all user roles at once
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', userIds);
+      
+      // Create a map for quick lookup
+      const roleMap = new Map((rolesData || []).map(r => [r.user_id, r.role]));
+      
+      // Map roles to messages
+      const messagesWithRoles = (data || []).map((msg: any) => ({
+        ...msg,
+        user_role: roleMap.get(msg.user_id) || 'user'
+      })).reverse(); // Reverse to show oldest first
+      
       setMessages(messagesWithRoles as PublicMessage[]);
     }
   };
@@ -317,9 +323,9 @@ const PublicChat = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
-        <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95">
+    <div className="flex h-screen bg-background overflow-hidden">
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full relative">
+        <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
               variant="ghost" 
