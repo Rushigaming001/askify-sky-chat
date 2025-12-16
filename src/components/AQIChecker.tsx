@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Wind, MapPin, Loader2, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import aqiBackground from '@/assets/aqi-background.png';
 
 interface AQICheckerProps {
   region?: 'india' | 'worldwide';
@@ -14,9 +13,12 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
   const [isPro, setIsPro] = useState(true);
   const [checkCount, setCheckCount] = useState(0);
   const [aqi, setAqi] = useState<number | null>(null);
+  const [displayAqi, setDisplayAqi] = useState<number>(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [category, setCategory] = useState<string>('');
   const [location, setLocation] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const animationRef = useRef<number | null>(null);
 
   const getAQICategory = (value: number) => {
     if (value <= 50) return { label: 'Good', color: 'bg-green-500' };
@@ -27,25 +29,70 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
     return { label: 'Hazardous', color: 'bg-red-900' };
   };
 
+  // Animate AQI value from 0 to target
+  const animateAQI = (targetValue: number) => {
+    setIsAnimating(true);
+    setDisplayAqi(0);
+    
+    const duration = 2000; // 2 seconds
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentValue = Math.round(easeOutQuart * targetValue);
+      
+      setDisplayAqi(currentValue);
+      
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayAqi(targetValue);
+        setIsAnimating(false);
+      }
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
   const checkProAQI = () => {
     let value: number;
-    const cyclePosition = checkCount % 3;
+    const currentCheck = checkCount + 1;
     
-    if (cyclePosition === 0) {
-      // First check in cycle: 100-160
-      value = Math.floor(Math.random() * (160 - 100 + 1)) + 100;
+    if (currentCheck === 1) {
+      // 1st time: 95-101
+      value = Math.floor(Math.random() * (101 - 95 + 1)) + 95;
+    } else if (currentCheck >= 2 && currentCheck <= 4) {
+      // 2nd, 3rd, 4th time: 84-89
+      value = Math.floor(Math.random() * (89 - 84 + 1)) + 84;
+    } else if (currentCheck === 5) {
+      // 5th time: 78
+      value = 78;
     } else {
-      // Second and third check in cycle: 20-25
-      value = Math.floor(Math.random() * (25 - 20 + 1)) + 20;
+      // After 5th, cycle back: reset count and start from 1st pattern
+      setCheckCount(0);
+      value = Math.floor(Math.random() * (101 - 95 + 1)) + 95;
     }
 
     setAqi(value);
+    animateAQI(value);
     const aqiInfo = getAQICategory(value);
     setCategory(aqiInfo.label);
     setCheckCount(prev => prev + 1);
 
     toast({
-      title: `Pro AQI Check #${checkCount + 1}`,
+      title: `Pro AQI Check #${currentCheck > 5 ? 1 : currentCheck}`,
       description: `Air Quality Index: ${value} (${aqiInfo.label})`,
     });
   };
@@ -125,6 +172,7 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
         const realAQI = data.data.aqi;
         
         setAqi(realAQI);
+        animateAQI(realAQI);
         setLocation(exactLocation);
         const aqiInfo = getAQICategory(realAQI);
         setCategory(aqiInfo.label);
@@ -167,20 +215,9 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
 
   return (
     <div className="relative w-full max-w-2xl mx-auto animate-fade-in">
-      {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 rounded-3xl overflow-hidden"
-        style={{
-          backgroundImage: `url(${aqiBackground})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70 backdrop-blur-sm" />
-      </div>
 
       {/* Content */}
-      <Card className="relative bg-transparent border-white/20 backdrop-blur-md shadow-2xl p-8 animate-scale-in">
+      <Card className="relative bg-black/40 border-white/20 backdrop-blur-md shadow-2xl p-8 animate-scale-in">
         <div className="flex flex-col items-center mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg hover:scale-110 transition-transform duration-300">
@@ -201,6 +238,7 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
               setIsPro(true);
               setCheckCount(0);
               setAqi(null);
+              setDisplayAqi(0);
               setLocation('');
             }}
             className={isPro 
@@ -218,6 +256,7 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
               setIsPro(false);
               setCheckCount(0);
               setAqi(null);
+              setDisplayAqi(0);
               setLocation('');
             }}
             className={!isPro 
@@ -243,10 +282,18 @@ export const AQIChecker = ({ region = 'india' }: AQICheckerProps) => {
           {aqi !== null && (
             <div className="text-center space-y-6 animate-scale-in">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 blur-3xl rounded-full animate-pulse" />
-                <div className="relative text-8xl font-bold text-white drop-shadow-2xl hover:scale-110 transition-transform duration-500">{aqi}</div>
+                <div className={`absolute inset-0 blur-3xl rounded-full transition-all duration-500 ${isAnimating ? 'animate-pulse' : ''} ${
+                  displayAqi <= 50 ? 'bg-green-500/30' :
+                  displayAqi <= 100 ? 'bg-yellow-500/30' :
+                  displayAqi <= 150 ? 'bg-orange-500/30' :
+                  displayAqi <= 200 ? 'bg-red-500/30' :
+                  displayAqi <= 300 ? 'bg-purple-500/30' : 'bg-red-900/30'
+                }`} />
+                <div className={`relative text-8xl font-bold text-white drop-shadow-2xl transition-all duration-300 ${isAnimating ? 'scale-105' : 'hover:scale-110'}`}>
+                  {displayAqi}
+                </div>
               </div>
-              <div className={`inline-block px-6 py-3 rounded-2xl text-white text-lg font-semibold shadow-lg ${getAQICategory(aqi).color} hover:scale-105 transition-transform duration-300`}>
+              <div className={`inline-block px-6 py-3 rounded-2xl text-white text-lg font-semibold shadow-lg transition-all duration-500 ${getAQICategory(displayAqi).color} hover:scale-105`}>
                 {category}
               </div>
               
