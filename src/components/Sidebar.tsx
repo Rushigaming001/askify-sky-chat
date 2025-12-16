@@ -213,6 +213,16 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             variant="ghost" 
             className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
             size="sm"
+            onClick={() => navigate('/public-chat')}
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Public Chat
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
+            size="sm"
             onClick={async () => {
               const result = await installPWA();
               if (result === 'already-installed') {
@@ -231,8 +241,7 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
                   description: 'You cancelled the installation.'
                 });
               } else {
-                // Create a download link for APK (if you host one)
-                const apkUrl = 'https://your-server.com/askify.apk'; // Replace with actual APK URL
+                const apkUrl = 'https://your-server.com/askify.apk';
                 const link = document.createElement('a');
                 link.href = apkUrl;
                 link.download = 'Askify.apk';

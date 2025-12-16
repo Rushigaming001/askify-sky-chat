@@ -14,7 +14,13 @@ export function VoiceChat() {
   const [musicStream, setMusicStream] = useState<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
+  const isConnectedRef = useRef(false);
   const { toast } = useToast();
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   const startVoiceChat = async () => {
     try {
@@ -54,13 +60,25 @@ export function VoiceChat() {
         
         setIsListening(false);
         
-        // Send to AI using streaming endpoint
+        // Get auth token from Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          toast({
+            title: 'Not Authenticated',
+            description: 'Please log in to use voice chat',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        // Send to AI using the user's actual auth token
         try {
           const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+              'Authorization': `Bearer ${session.access_token}`
             },
             body: JSON.stringify({ 
               messages: [{ role: 'user', content: transcript }],
@@ -69,31 +87,13 @@ export function VoiceChat() {
             })
           });
 
-          if (!response.ok) throw new Error('Failed to get response');
-          
-          const reader = response.body?.getReader();
-          const decoder = new TextDecoder();
-          let fullResponse = '';
-          
-          if (reader) {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              
-              const chunk = decoder.decode(value, { stream: true });
-              const lines = chunk.split('\n');
-              
-              for (const line of lines) {
-                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                  try {
-                    const json = JSON.parse(line.slice(6));
-                    const content = json.choices?.[0]?.delta?.content;
-                    if (content) fullResponse += content;
-                  } catch {}
-                }
-              }
-            }
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to get response');
           }
+          
+          const data = await response.json();
+          const fullResponse = data.reply || '';
           
           if (fullResponse) {
             // Speak the AI response
@@ -104,29 +104,35 @@ export function VoiceChat() {
             utterance.onend = () => {
               setIsSpeaking(false);
               setIsListening(true);
-              // Restart recognition
-              if (recognitionRef.current && isConnected) {
+              // Restart recognition if still connected
+              if (isConnectedRef.current && recognitionRef.current) {
                 try { recognitionRef.current.start(); } catch {}
               }
             };
             synthesisRef.current?.speak(utterance);
           } else {
             setIsListening(true);
+            if (isConnectedRef.current && recognitionRef.current) {
+              try { recognitionRef.current.start(); } catch {}
+            }
           }
         } catch (error) {
           console.error('Error getting AI response:', error);
           toast({
             title: 'Error',
-            description: 'Failed to get AI response',
+            description: error instanceof Error ? error.message : 'Failed to get AI response',
             variant: 'destructive'
           });
           setIsListening(true);
+          if (isConnectedRef.current && recognitionRef.current) {
+            try { recognitionRef.current.start(); } catch {}
+          }
         }
       };
 
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        if (event.error !== 'no-speech') {
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
           toast({
             title: 'Recognition Error',
             description: `Error: ${event.error}`,
@@ -136,8 +142,9 @@ export function VoiceChat() {
       };
 
       recognitionRef.current.onend = () => {
-        if (isConnected) {
-          recognitionRef.current?.start();
+        // Only restart if still connected and not speaking
+        if (isConnectedRef.current && !isSpeaking) {
+          try { recognitionRef.current?.start(); } catch {}
         }
       };
 
@@ -154,6 +161,7 @@ export function VoiceChat() {
   };
 
   const stopVoiceChat = () => {
+    isConnectedRef.current = false;
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
