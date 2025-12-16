@@ -64,13 +64,14 @@ serve(async (req) => {
       });
     }
 
-    // Image generation using Lovable AI (Gemini image model)
+    // Image generation using OpenAI gpt-image-1
     if (action === 'generate') {
-      if (!LOVABLE_API_KEY) {
-        throw new Error("LOVABLE_API_KEY is not configured for image generation");
+      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+      if (!OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY is not configured for image generation");
       }
 
-      console.log("Generating image with Lovable AI...");
+      console.log("Generating image with OpenAI gpt-image-1...");
       
       let fullPrompt = prompt;
       if (style === 'ghibli') {
@@ -83,50 +84,51 @@ serve(async (req) => {
         fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style: ${prompt}`;
       }
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image-preview",
-          messages: [
-            {
-              role: "user",
-              content: `Generate a high-quality image: ${fullPrompt}`
-            }
-          ],
-          modalities: ["image", "text"]
+          model: "gpt-image-1",
+          prompt: fullPrompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "medium"
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Lovable AI error:", response.status, errorText);
+        console.error("OpenAI error:", response.status, errorText);
         
         if (response.status === 429) {
           throw new Error("Rate limit exceeded. Please try again in a moment.");
         }
-        if (response.status === 402) {
-          throw new Error("Out of Lovable AI credits. Please add credits in Settings → Workspace → Usage.");
+        if (response.status === 402 || response.status === 401) {
+          throw new Error("OpenAI API key issue. Please check your API key.");
         }
         
         throw new Error("Image generation failed - please try again");
       }
 
       const data = await response.json();
-      console.log("Lovable AI response received");
+      console.log("OpenAI response received");
       
-      // Extract image from the response
-      const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      // Extract image URL from OpenAI response
+      const imageUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json;
       
-      if (!imageData) {
+      if (!imageUrl) {
         console.error("No image in response:", JSON.stringify(data).substring(0, 500));
         throw new Error("No image was generated - please try a different prompt");
       }
 
-      return new Response(JSON.stringify({ imageUrl: imageData }), {
+      // If it's base64, format it properly
+      const finalUrl = imageUrl.startsWith('data:') ? imageUrl : 
+                       data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : imageUrl;
+
+      return new Response(JSON.stringify({ imageUrl: finalUrl }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
