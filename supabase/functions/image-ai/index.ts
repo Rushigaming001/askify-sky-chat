@@ -13,9 +13,9 @@ serve(async (req) => {
   try {
     const { action, prompt, imageUrl, style } = await req.json();
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY"); // This is actually OpenRouter key
     
-    // Image analysis using Groq's vision model
+    // Image analysis using Groq's vision model (updated model)
     if (action === 'analyze' && imageUrl) {
       if (!GROQ_API_KEY) {
         throw new Error("GROQ_API_KEY is not configured");
@@ -30,7 +30,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.2-11b-vision-preview",
+          model: "llama-3.2-90b-vision-preview",
           messages: [
             {
               role: "user",
@@ -64,14 +64,13 @@ serve(async (req) => {
       });
     }
 
-    // Image generation using OpenAI gpt-image-1
+    // Image generation using OpenRouter (DALL-E 3)
     if (action === 'generate') {
-      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
       if (!OPENAI_API_KEY) {
-        throw new Error("OPENAI_API_KEY is not configured for image generation");
+        throw new Error("API key is not configured for image generation");
       }
 
-      console.log("Generating image with OpenAI gpt-image-1...");
+      console.log("Generating image with OpenRouter DALL-E 3...");
       
       let fullPrompt = prompt;
       if (style === 'ghibli') {
@@ -84,49 +83,53 @@ serve(async (req) => {
         fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style: ${prompt}`;
       }
 
-      const response = await fetch("https://api.openai.com/v1/images/generations", {
+      const response = await fetch("https://openrouter.ai/api/v1/images/generations", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://askify.app",
+          "X-Title": "Askify"
         },
         body: JSON.stringify({
-          model: "gpt-image-1",
+          model: "openai/dall-e-3",
           prompt: fullPrompt,
           n: 1,
-          size: "1024x1024",
-          quality: "medium"
+          size: "1024x1024"
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("OpenAI error:", response.status, errorText);
+        console.error("OpenRouter error:", response.status, errorText);
         
         if (response.status === 429) {
           throw new Error("Rate limit exceeded. Please try again in a moment.");
         }
-        if (response.status === 402 || response.status === 401) {
-          throw new Error("OpenAI API key issue. Please check your API key.");
+        if (response.status === 402) {
+          throw new Error("Insufficient credits. Please add credits to OpenRouter.");
+        }
+        if (response.status === 401) {
+          throw new Error("API key issue. Please check your API key.");
         }
         
         throw new Error("Image generation failed - please try again");
       }
 
       const data = await response.json();
-      console.log("OpenAI response received");
+      console.log("OpenRouter response received");
       
-      // Extract image URL from OpenAI response
-      const imageUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json;
+      // Extract image URL from response
+      const generatedUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json;
       
-      if (!imageUrl) {
+      if (!generatedUrl) {
         console.error("No image in response:", JSON.stringify(data).substring(0, 500));
         throw new Error("No image was generated - please try a different prompt");
       }
 
       // If it's base64, format it properly
-      const finalUrl = imageUrl.startsWith('data:') ? imageUrl : 
-                       data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : imageUrl;
+      const finalUrl = generatedUrl.startsWith('data:') ? generatedUrl : 
+                       data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : generatedUrl;
 
       return new Response(JSON.stringify({ imageUrl: finalUrl }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
