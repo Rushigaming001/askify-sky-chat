@@ -23,7 +23,6 @@ serve(async (req) => {
 
     const body = await req.json()
 
-    // Generate new video - using replicate.run which waits for completion
     if (!body.prompt) {
       return new Response(
         JSON.stringify({ 
@@ -37,10 +36,12 @@ serve(async (req) => {
 
     console.log("Generating video with prompt:", body.prompt)
     
-    // Using Minimax video-01 model for highly realistic video generation
-    const output = await replicate.run("minimax/video-01", {
+    // Use Luma AI's Dream Machine for faster, text-to-video generation
+    const output = await replicate.run("luma/ray", {
       input: {
         prompt: body.prompt,
+        aspect_ratio: "16:9",
+        loop: false
       }
     })
 
@@ -55,7 +56,7 @@ serve(async (req) => {
     } else if (Array.isArray(output) && output.length > 0) {
       videoUrl = output[0];
     } else {
-      videoUrl = output;
+      videoUrl = String(output);
     }
     
     return new Response(JSON.stringify({ 
