@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X } from 'lucide-react';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
@@ -42,6 +42,7 @@ interface PublicMessage {
   deleted_at?: string;
   deleted_by?: string;
   edit_history?: any[];
+  reply_to?: string;
   profiles: {
     name: string;
     email: string;
@@ -65,6 +66,7 @@ const PublicChat = () => {
   const [activeGroup, setActiveGroup] = useState<{ groupId: string; groupName: string } | null>(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<PublicMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -199,18 +201,34 @@ const PublicChat = () => {
     if (content.startsWith('/askify ')) {
       const question = content.substring(8);
       
-      const { error } = await supabase.functions.invoke('askify-chat', {
-        body: { question, messageId: user.id }
-      });
+      // First post the user's question
+      const { data: userMsg, error: userMsgError } = await supabase
+        .from('public_messages')
+        .insert({
+          user_id: user.id,
+          content: content,
+          reply_to: replyingTo?.id || null
+        })
+        .select()
+        .single();
 
-      if (error) {
+      if (userMsgError) {
         toast({
           title: 'Error',
-          description: 'Failed to get AI response',
+          description: 'Failed to send message',
           variant: 'destructive'
         });
+        setIsLoading(false);
+        return;
       }
+
+      // Then call the AI
+      await supabase.functions.invoke('askify-chat', {
+        body: { question, originalMessageId: userMsg.id, userId: user.id }
+      });
+
       setNewMessage('');
+      setReplyingTo(null);
       setIsLoading(false);
       return;
     }
@@ -219,7 +237,8 @@ const PublicChat = () => {
       .from('public_messages')
       .insert({
         user_id: user.id,
-        content
+        content,
+        reply_to: replyingTo?.id || null
       });
 
     if (error) {
@@ -230,6 +249,7 @@ const PublicChat = () => {
       });
     } else {
       setNewMessage('');
+      setReplyingTo(null);
     }
 
     setIsLoading(false);
@@ -289,7 +309,7 @@ const PublicChat = () => {
     }
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string, isOwnerDelete: boolean = false) => {
     const { error } = await supabase
       .from('public_messages')
       .update({
@@ -305,6 +325,15 @@ const PublicChat = () => {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleOwnerEditMessage = async (message: PublicMessage) => {
+    setEditingMessage(message.id);
+    setEditContent(message.content);
+  };
+
+  const getReplyMessage = (replyId: string) => {
+    return messages.find(m => m.id === replyId);
   };
 
   const renderMessageContent = (content: string) => {
@@ -397,9 +426,10 @@ const PublicChat = () => {
               messages.map((message) => {
                 const isOwnMessage = message.user_id === user?.id;
                 const isDeleted = !!message.deleted_at;
-                const canSeeDeleted = isAdmin || isOwnMessage;
+                const canSeeDeleted = isAdmin;
+                const replyMessage = message.reply_to ? getReplyMessage(message.reply_to) : null;
                 
-                // Skip deleted messages for non-admin users who don't own them
+                // Hide deleted messages completely for non-admin users
                 if (isDeleted && !canSeeDeleted) {
                   return null;
                 }
@@ -442,31 +472,39 @@ const PublicChat = () => {
                           </span>
                         )}
                       </div>
+                      {/* Reply indicator */}
+                      {replyMessage && (
+                        <div className={`text-xs text-muted-foreground mb-1 px-2 py-1 rounded bg-muted/50 border-l-2 border-primary ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                          <span className="font-medium">↩ {replyMessage.profiles?.name || 'Unknown'}: </span>
+                          <span className="truncate max-w-[150px] inline-block align-bottom">
+                            {replyMessage.content.substring(0, 50)}{replyMessage.content.length > 50 ? '...' : ''}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-start gap-2">
                         <div
                           className={`rounded-2xl px-4 py-2 ${
                             isDeleted 
-                              ? 'bg-destructive/20 text-destructive line-through'
+                              ? 'bg-destructive/20 text-destructive'
                               : isOwnMessage
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted text-foreground'
                           }`}
                         >
                           <p className="text-sm whitespace-pre-wrap break-words">
-                            {isDeleted ? (
-                              isAdmin ? (
-                                <>
-                                  [Deleted by {message.deleted_by === message.user_id ? 'user' : 'admin'}] {message.content}
-                                </>
-                              ) : (
-                                '[Message deleted]'
-                              )
+                            {isDeleted && isAdmin ? (
+                              <>
+                                <span className="text-destructive font-medium">[Deleted by {message.deleted_by === message.user_id ? 'user' : 'admin'}]</span>
+                                <br />
+                                <span className="line-through">{message.content}</span>
+                              </>
                             ) : (
                               renderMessageContent(message.content)
                             )}
                           </p>
                         </div>
-                        {!isDeleted && isOwnMessage && (
+                        {/* Show dropdown for own messages OR admin/owner */}
+                        {!isDeleted && (isOwnMessage || isAdmin) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -475,23 +513,41 @@ const PublicChat = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => {
-                                  setEditingMessage(message.id);
-                                  setEditContent(message.content);
-                                }}
+                                onClick={() => setReplyingTo(message)}
                               >
-                                <Edit2 className="h-4 w-4 mr-2" />
-                                Edit
+                                <Reply className="h-4 w-4 mr-2" />
+                                Reply
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteMessage(message.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
+                              {(isOwnMessage || isAdmin) && (
+                                <DropdownMenuItem
+                                  onClick={() => handleOwnerEditMessage(message)}
+                                >
+                                  <Edit2 className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                              {(isOwnMessage || isAdmin) && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteMessage(message.id, isAdmin && !isOwnMessage)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        )}
+                        {/* Reply button for non-deleted messages for all users */}
+                        {!isDeleted && !isOwnMessage && !isAdmin && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6"
+                            onClick={() => setReplyingTo(message)}
+                          >
+                            <Reply className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -503,6 +559,24 @@ const PublicChat = () => {
         </ScrollArea>
 
         <div className="border-t border-border p-4 bg-background">
+          {replyingTo && (
+            <div className="mb-2 flex items-center gap-2 text-xs bg-muted/50 p-2 rounded border-l-2 border-primary">
+              <Reply className="h-3 w-3" />
+              <span className="text-muted-foreground">Replying to</span>
+              <span className="font-medium">{replyingTo.profiles?.name}</span>
+              <span className="text-muted-foreground truncate max-w-[200px]">
+                {replyingTo.content.substring(0, 30)}{replyingTo.content.length > 30 ? '...' : ''}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-auto"
+                onClick={() => setReplyingTo(null)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
           <div className="mb-2 text-xs text-muted-foreground">
             Tip: Use @username to mention someone or /askify your question to get AI help
           </div>
@@ -510,7 +584,7 @@ const PublicChat = () => {
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
+              placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message..."}
               disabled={isLoading}
               className="flex-1"
             />

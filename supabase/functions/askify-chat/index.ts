@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { question, messageId } = await req.json();
+    const { question, originalMessageId, userId } = await req.json();
     
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -58,12 +58,13 @@ serve(async (req) => {
     // Create Supabase client to post the response
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Insert AI response as a message from the bot
+    // Insert AI response as a reply to the original message
     const { error: insertError } = await supabase
       .from('public_messages')
       .insert({
-        content: `🤖 **@Askify replied:** ${aiResponse}`,
-        user_id: messageId, // Reference the original user
+        content: `🤖 **Askify:** ${aiResponse}`,
+        user_id: userId, // Use the original user's ID so it shows as their message
+        reply_to: originalMessageId // Reply to the original /askify message
       });
 
     if (insertError) {

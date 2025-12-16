@@ -342,6 +342,7 @@ export type Database = {
           edit_history: Json | null
           edited_at: string | null
           id: string
+          reply_to: string | null
           updated_at: string
           user_id: string
         }
@@ -353,6 +354,7 @@ export type Database = {
           edit_history?: Json | null
           edited_at?: string | null
           id?: string
+          reply_to?: string | null
           updated_at?: string
           user_id: string
         }
@@ -364,6 +366,7 @@ export type Database = {
           edit_history?: Json | null
           edited_at?: string | null
           id?: string
+          reply_to?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -373,6 +376,13 @@ export type Database = {
             columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "public_messages"
             referencedColumns: ["id"]
           },
           {
