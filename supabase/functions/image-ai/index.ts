@@ -30,7 +30,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.2-90b-vision-preview",
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
           messages: [
             {
               role: "user",
@@ -46,7 +46,7 @@ serve(async (req) => {
               ]
             }
           ],
-          max_tokens: 1024,
+          max_completion_tokens: 1024,
         }),
       });
 
