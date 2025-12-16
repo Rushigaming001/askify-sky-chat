@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Replicate from "https://esm.sh/replicate@0.30.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,14 +13,14 @@ serve(async (req) => {
   try {
     const { action, prompt, imageUrl, style } = await req.json();
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY is not configured");
-    }
-
     // Image analysis using Groq's vision model
     if (action === 'analyze' && imageUrl) {
+      if (!GROQ_API_KEY) {
+        throw new Error("GROQ_API_KEY is not configured");
+      }
+      
       console.log("Analyzing image with Groq vision...");
       
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -54,35 +53,7 @@ serve(async (req) => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Groq API error:", response.status, errorText);
-        // Try with a different model if the first fails
-        const fallbackResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${GROQ_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
-            messages: [
-              {
-                role: "user",
-                content: prompt || "Analyze this image in detail. Describe what you see, identify objects, people, colors, mood, and any notable features."
-              }
-            ],
-            max_tokens: 1024,
-          }),
-        });
-
-        if (!fallbackResponse.ok) {
-          throw new Error("Image analysis failed - please try again");
-        }
-
-        const fallbackData = await fallbackResponse.json();
-        return new Response(JSON.stringify({ 
-          analysis: fallbackData.choices?.[0]?.message?.content || "Unable to analyze image at this time." 
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        throw new Error("Image analysis failed - please try again");
       }
 
       const data = await response.json();
@@ -93,15 +64,13 @@ serve(async (req) => {
       });
     }
 
-    // Image generation using Replicate's FLUX model
+    // Image generation using Lovable AI (Gemini image model)
     if (action === 'generate') {
-      if (!REPLICATE_API_KEY) {
-        throw new Error("REPLICATE_API_KEY is not configured for image generation");
+      if (!LOVABLE_API_KEY) {
+        throw new Error("LOVABLE_API_KEY is not configured for image generation");
       }
 
-      console.log("Generating image with Replicate FLUX...");
-      
-      const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+      console.log("Generating image with Lovable AI...");
       
       let fullPrompt = prompt;
       if (style === 'ghibli') {
@@ -114,28 +83,50 @@ serve(async (req) => {
         fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style: ${prompt}`;
       }
 
-      const output = await replicate.run("black-forest-labs/flux-schnell", {
-        input: {
-          prompt: fullPrompt,
-          num_outputs: 1,
-          aspect_ratio: "1:1",
-          output_format: "webp",
-          output_quality: 90
-        }
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: `Generate a high-quality image: ${fullPrompt}`
+            }
+          ],
+          modalities: ["image", "text"]
+        }),
       });
 
-      let imageUrlResult: string;
-      if (Array.isArray(output) && output.length > 0) {
-        imageUrlResult = output[0];
-      } else if (typeof output === 'string') {
-        imageUrlResult = output;
-      } else {
-        throw new Error("Unexpected output format from image generation");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Lovable AI error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please try again in a moment.");
+        }
+        if (response.status === 402) {
+          throw new Error("Out of Lovable AI credits. Please add credits in Settings → Workspace → Usage.");
+        }
+        
+        throw new Error("Image generation failed - please try again");
       }
 
-      console.log("Image generated successfully:", imageUrlResult);
+      const data = await response.json();
+      console.log("Lovable AI response received");
+      
+      // Extract image from the response
+      const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      if (!imageData) {
+        console.error("No image in response:", JSON.stringify(data).substring(0, 500));
+        throw new Error("No image was generated - please try a different prompt");
+      }
 
-      return new Response(JSON.stringify({ imageUrl: imageUrlResult }), {
+      return new Response(JSON.stringify({ imageUrl: imageData }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
