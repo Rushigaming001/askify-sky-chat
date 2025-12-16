@@ -13,9 +13,9 @@ serve(async (req) => {
   try {
     const { action, prompt, imageUrl, style } = await req.json();
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY"); // This is actually OpenRouter key
+    const AI_HORDE_API_KEY = Deno.env.get("AI_HORDE_API_KEY");
     
-    // Image analysis using Groq's vision model (updated model)
+    // Image analysis using Groq's vision model
     if (action === 'analyze' && imageUrl) {
       if (!GROQ_API_KEY) {
         throw new Error("GROQ_API_KEY is not configured");
@@ -64,76 +64,119 @@ serve(async (req) => {
       });
     }
 
-    // Image generation using OpenRouter (DALL-E 3)
+    // Image generation using AI Horde
     if (action === 'generate') {
-      if (!OPENAI_API_KEY) {
-        throw new Error("API key is not configured for image generation");
+      if (!AI_HORDE_API_KEY) {
+        throw new Error("AI_HORDE_API_KEY is not configured");
       }
 
-      console.log("Generating image with OpenRouter DALL-E 3...");
+      console.log("Generating image with AI Horde...");
       
       let fullPrompt = prompt;
+      let negativePrompt = "ugly, blurry, low quality, distorted";
+      let model = "Stable Diffusion XL";
+      
       if (style === 'ghibli') {
-        fullPrompt = `Studio Ghibli anime style, hand-drawn animation aesthetic, soft pastel colors, dreamy atmosphere: ${prompt}`;
+        fullPrompt = `Studio Ghibli anime style, hand-drawn animation aesthetic, soft pastel colors, dreamy atmosphere, Hayao Miyazaki style: ${prompt}`;
+        negativePrompt = "realistic, 3d render, photorealistic, ugly, blurry";
+        model = "AlbedoBase XL (SDXL)";
       } else if (style === 'realistic') {
-        fullPrompt = `Ultra photorealistic, 8K, high detail, professional photography: ${prompt}`;
+        fullPrompt = `Ultra photorealistic, 8K resolution, high detail, professional photography, masterpiece: ${prompt}`;
+        negativePrompt = "cartoon, anime, drawing, painting, low quality";
+        model = "ICBINP XL";
       } else if (style === 'artistic') {
-        fullPrompt = `Digital art, vibrant colors, artistic style, detailed illustration: ${prompt}`;
+        fullPrompt = `Digital art masterpiece, vibrant colors, artistic style, detailed illustration, trending on artstation: ${prompt}`;
+        model = "AlbedoBase XL (SDXL)";
       } else if (style === 'abstract') {
-        fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style: ${prompt}`;
+        fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style, creative: ${prompt}`;
+        model = "AlbedoBase XL (SDXL)";
       }
 
-      const response = await fetch("https://openrouter.ai/api/v1/images/generations", {
+      // Submit generation request to AI Horde
+      const submitResponse = await fetch("https://stablehorde.net/api/v2/generate/async", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://askify.app",
-          "X-Title": "Askify"
+          "apikey": AI_HORDE_API_KEY,
         },
         body: JSON.stringify({
-          model: "openai/dall-e-3",
           prompt: fullPrompt,
-          n: 1,
-          size: "1024x1024"
+          params: {
+            sampler_name: "k_euler_a",
+            cfg_scale: 7.5,
+            height: 1024,
+            width: 1024,
+            steps: 30,
+            karras: true,
+          },
+          nsfw: false,
+          censor_nsfw: true,
+          models: [model],
+          r2: true,
+          shared: false,
         }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenRouter error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again in a moment.");
-        }
-        if (response.status === 402) {
-          throw new Error("Insufficient credits. Please add credits to OpenRouter.");
-        }
-        if (response.status === 401) {
-          throw new Error("API key issue. Please check your API key.");
-        }
-        
-        throw new Error("Image generation failed - please try again");
+      if (!submitResponse.ok) {
+        const errorText = await submitResponse.text();
+        console.error("AI Horde submit error:", submitResponse.status, errorText);
+        throw new Error("Failed to start image generation");
       }
 
-      const data = await response.json();
-      console.log("OpenRouter response received");
+      const submitData = await submitResponse.json();
+      const jobId = submitData.id;
+      console.log("AI Horde job submitted:", jobId);
+
+      // Poll for completion (max 120 seconds)
+      let attempts = 0;
+      const maxAttempts = 60;
       
-      // Extract image URL from response
-      const generatedUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json;
-      
-      if (!generatedUrl) {
-        console.error("No image in response:", JSON.stringify(data).substring(0, 500));
-        throw new Error("No image was generated - please try a different prompt");
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`, {
+          headers: { "apikey": AI_HORDE_API_KEY },
+        });
+        
+        if (!statusResponse.ok) {
+          attempts++;
+          continue;
+        }
+        
+        const statusData = await statusResponse.json();
+        console.log("AI Horde status:", statusData);
+        
+        if (statusData.done) {
+          // Get the final result
+          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`, {
+            headers: { "apikey": AI_HORDE_API_KEY },
+          });
+          
+          if (!resultResponse.ok) {
+            throw new Error("Failed to get generated image");
+          }
+          
+          const resultData = await resultResponse.json();
+          console.log("AI Horde result received");
+          
+          if (resultData.generations && resultData.generations.length > 0) {
+            const imageUrl = resultData.generations[0].img;
+            return new Response(JSON.stringify({ imageUrl }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          
+          throw new Error("No image was generated");
+        }
+        
+        if (statusData.faulted) {
+          throw new Error("Image generation failed");
+        }
+        
+        attempts++;
       }
-
-      // If it's base64, format it properly
-      const finalUrl = generatedUrl.startsWith('data:') ? generatedUrl : 
-                       data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : generatedUrl;
-
-      return new Response(JSON.stringify({ imageUrl: finalUrl }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      
+      throw new Error("Image generation timed out - please try again");
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {
