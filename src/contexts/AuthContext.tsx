@@ -28,15 +28,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    const clearCorruptedSession = async () => {
+      // Clear all Supabase auth data from localStorage
+      const keysToRemove = Object.keys(localStorage).filter(key => 
+        key.startsWith('sb-') || key.includes('supabase')
+      );
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+    };
+
+    const validateSession = (session: Session | null): boolean => {
+      if (!session) return false;
+      if (!session.user?.id) return false;
+      if (!session.access_token) return false;
+      
+      // Check if token has required claims by decoding JWT payload
+      try {
+        const payload = JSON.parse(atob(session.access_token.split('.')[1]));
+        if (!payload.sub) return false;
+        // Check if token is expired
+        if (payload.exp && payload.exp * 1000 < Date.now()) return false;
+      } catch {
+        return false;
+      }
+      
+      return true;
+    };
+
     const initAuth = async () => {
       try {
         // First, try to get the existing session
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
-        // If there's an error or invalid session, clear it
-        if (error || (existingSession && !existingSession.user?.id)) {
-          console.log('Clearing invalid session...');
-          await supabase.auth.signOut();
+        // If there's an error or invalid session, clear it completely
+        if (error || !validateSession(existingSession)) {
+          console.log('Clearing invalid/corrupted session...');
+          await clearCorruptedSession();
           if (mounted) {
             setSession(null);
             setUser(null);
@@ -62,9 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error('Auth init error:', err);
         // Clear potentially corrupted auth state
-        try {
-          await supabase.auth.signOut();
-        } catch {}
+        await clearCorruptedSession();
         if (mounted) {
           setSession(null);
           setUser(null);
