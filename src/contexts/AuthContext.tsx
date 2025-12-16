@@ -24,29 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        if (session?.user) {
-          // Set basic user info immediately
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || 'User'
-          });
-          // Load full profile in background
-          setTimeout(() => {
-            loadUserProfile(session.user);
-          }, 0);
-        } else {
-          setUser(null);
-        }
-      }
-    );
+    let mounted = true;
 
-    // Check for existing session
+    // Check for existing session FIRST
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       if (session?.user) {
         setUser({
@@ -54,13 +36,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: session.user.email || '',
           name: session.user.user_metadata?.name || 'User'
         });
-        setTimeout(() => {
-          loadUserProfile(session.user);
-        }, 0);
+        loadUserProfile(session.user);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
+        setSession(session);
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || 'User'
+          });
+          // Defer profile loading to avoid deadlock
+          setTimeout(() => {
+            if (mounted) loadUserProfile(session.user);
+          }, 0);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
