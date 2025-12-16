@@ -92,7 +92,7 @@ serve(async (req) => {
         model = "AlbedoBase XL (SDXL)";
       }
 
-      // Submit generation request to AI Horde
+      // Submit generation request to AI Horde (using free-tier compatible parameters)
       const submitResponse = await fetch("https://stablehorde.net/api/v2/generate/async", {
         method: "POST",
         headers: {
@@ -102,11 +102,11 @@ serve(async (req) => {
         body: JSON.stringify({
           prompt: fullPrompt,
           params: {
-            sampler_name: "k_euler_a",
-            cfg_scale: 7.5,
-            height: 1024,
-            width: 1024,
-            steps: 30,
+            sampler_name: "k_euler",
+            cfg_scale: 7,
+            height: 512,
+            width: 512,
+            steps: 20,
             karras: true,
           },
           nsfw: false,
