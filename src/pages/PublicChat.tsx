@@ -419,7 +419,7 @@ const PublicChat = () => {
                         <span className="text-sm font-medium">
                           {isOwnMessage ? 'You' : (message.profiles?.name || 'Anonymous')}
                         </span>
-                        {message.user_role && message.user_role !== 'user' && (
+                        {message.user_role && (
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide ${
                             message.user_role === 'owner' ? 'bg-yellow-500/20 text-yellow-600' :
                             message.user_role === 'ceo' ? 'bg-purple-500/20 text-purple-600' :
@@ -428,7 +428,7 @@ const PublicChat = () => {
                             message.user_role === 'admin' ? 'bg-red-500/20 text-red-600' :
                             message.user_role === 'moderator' ? 'bg-orange-500/20 text-orange-600' :
                             message.user_role === 'friend' ? 'bg-pink-500/20 text-pink-600' :
-                            'bg-gray-500/20 text-gray-600'
+                            'bg-green-500/20 text-green-600'
                           }`}>
                             {message.user_role === 'co_founder' ? 'CO-FOUNDER' : message.user_role.toUpperCase()}
                           </span>
