@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music } from 'lucide-react';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
 import { useToast } from '@/hooks/use-toast';
+import { PublicChatMusicPlayer } from '@/components/PublicChatMusicPlayer';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +51,15 @@ interface PublicMessage {
   user_role?: string;
 }
 
+interface MusicTrack {
+  id: string;
+  title: string;
+  thumbnail: string;
+  duration: string;
+  channelTitle: string;
+  videoId: string;
+}
+
 const PublicChat = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -67,6 +77,10 @@ const PublicChat = () => {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [replyingTo, setReplyingTo] = useState<PublicMessage | null>(null);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
+  const [musicQueue, setMusicQueue] = useState<MusicTrack[]>([]);
+  const [isSearchingMusic, setIsSearchingMusic] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -190,12 +204,84 @@ const PublicChat = () => {
     }
   };
 
+  const searchAndPlayMusic = async (query: string) => {
+    setIsSearchingMusic(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('youtube-api', {
+        body: { action: 'search', query: `${query} music audio`, maxResults: 1 }
+      });
+
+      if (error || !data?.success || !data?.data?.length) {
+        toast({
+          title: 'Not Found',
+          description: `Could not find "${query}"`,
+          variant: 'destructive'
+        });
+        return null;
+      }
+
+      const video = data.data[0];
+      const track: MusicTrack = {
+        id: video.id,
+        title: video.title,
+        thumbnail: video.thumbnail,
+        duration: video.duration || '0:00',
+        channelTitle: video.channelTitle,
+        videoId: video.id
+      };
+
+      return track;
+    } catch (err) {
+      console.error('Music search error:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to search for music',
+        variant: 'destructive'
+      });
+      return null;
+    } finally {
+      setIsSearchingMusic(false);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || isLoading) return;
 
     setIsLoading(true);
     const content = newMessage.trim();
+
+    // Check for /play command
+    if (content.startsWith('/play ')) {
+      const songQuery = content.substring(6);
+      
+      // Post the command message
+      await supabase
+        .from('public_messages')
+        .insert({
+          user_id: user.id,
+          content: `🎵 Requested: ${songQuery}`,
+          reply_to: null
+        });
+
+      const track = await searchAndPlayMusic(songQuery);
+      if (track) {
+        if (!currentTrack) {
+          setCurrentTrack(track);
+        } else {
+          setMusicQueue(prev => [...prev, track]);
+        }
+        setShowMusicPlayer(true);
+        toast({
+          title: 'Added to queue',
+          description: track.title
+        });
+      }
+      
+      setNewMessage('');
+      setIsLoading(false);
+      return;
+    }
 
     // Check for /askify command
     if (content.startsWith('/askify ')) {
@@ -410,6 +496,15 @@ const PublicChat = () => {
               >
                 <UserCircle className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
+              <Button
+                variant={showMusicPlayer ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                title="Music Player"
+                className="h-7 w-7 sm:h-8 sm:w-8"
+              >
+                <Music className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
             </div>
           </div>
         </header>
@@ -578,7 +673,7 @@ const PublicChat = () => {
             </div>
           )}
           <div className="mb-2 text-xs text-muted-foreground">
-            Tip: Use @username to mention someone or /askify your question to get AI help
+            Tip: /play [song] to play music • /askify [question] for AI help • @username to mention
           </div>
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
@@ -714,6 +809,25 @@ const PublicChat = () => {
           recipientName="Public Chat"
           recipientId="public"
           isInitiator={true}
+        />
+        <PublicChatMusicPlayer
+          isVisible={showMusicPlayer}
+          onClose={() => setShowMusicPlayer(false)}
+          currentTrack={currentTrack}
+          queue={musicQueue}
+          onQueueUpdate={(newQueue) => {
+            if (newQueue.length < musicQueue.length && currentTrack && newQueue.length === musicQueue.length - 1) {
+              // Track was removed, play the next one
+              const removedIndex = musicQueue.findIndex((t, i) => !newQueue[i] || newQueue[i].id !== t.id);
+              if (removedIndex === -1) {
+                // First track played
+                const [next, ...rest] = musicQueue;
+                setCurrentTrack(next || null);
+                setMusicQueue(rest);
+              }
+            }
+            setMusicQueue(newQueue);
+          }}
         />
       </div>
     </div>
