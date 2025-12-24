@@ -19,7 +19,7 @@ import YouTube from "./pages/YouTube";
 import LanguageLearning from "./pages/LanguageLearning";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient(); // v2
 
 const App = () => {
   // Only treat as AQI subdomain if hostname is exactly aqi.* pattern (not preview URLs)
