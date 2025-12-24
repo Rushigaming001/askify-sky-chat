@@ -42,7 +42,7 @@ interface UserRole {
 }
 
 export default function AdminPanel() {
-  const { user } = useAuth();
+  const { user, session, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -59,27 +59,36 @@ export default function AdminPanel() {
   const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator'>('user');
 
   useEffect(() => {
+    if (isLoading) return;
     checkAdminStatus();
-  }, [user]);
+    // Only re-check when the authenticated user changes (avoid TOKEN_REFRESHED loops)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, isLoading]);
 
   const checkAdminStatus = async () => {
-    if (!user) {
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const activeSession = currentSession ?? session;
+
+    if (!activeSession?.user) {
       navigate('/auth');
+      setLoading(false);
       return;
     }
 
     try {
+      const userId = activeSession.user.id;
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .in('role', ['admin', 'owner'])
         .maybeSingle();
 
       if (error) throw error;
 
       if (!data) {
-        toast.error('Access denied. Admin or Owner privileges required.');
+        toast.error(`Access denied for ${activeSession.user.email || 'your account'}. Admin or Owner privileges required.`);
         navigate('/');
         return;
       }
