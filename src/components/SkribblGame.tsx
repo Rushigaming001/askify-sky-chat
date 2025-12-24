@@ -370,6 +370,24 @@ export const SkribblGame = ({ roomId, onLeave }: { roomId: string; onLeave: () =
   };
 
   const broadcastDraw = async (event: DrawEvent) => {
+    // Security: Validate that user is the current drawer
+    const drawer = players.find(p => p.id === gameState?.current_drawer_id);
+    if (drawer?.user_id !== user?.id) return;
+    
+    // Security: Validate game is in playing state with a word
+    if (gameState?.status !== 'playing' || !gameState?.current_word) return;
+    
+    // Security: Validate canvas bounds
+    const canvas = canvasRef.current;
+    if (!canvas || event.x < 0 || event.x > canvas.width || 
+        event.y < 0 || event.y > canvas.height) return;
+    
+    // Security: Validate color format (hex)
+    if (!/^#[0-9A-Fa-f]{6}$/.test(event.color)) return;
+    
+    // Security: Validate brush size (1-32)
+    if (event.width < 1 || event.width > 32) return;
+    
     const channel = supabase.channel(`skribbl-${roomId}`);
     await channel.send({ type: 'broadcast', event: 'draw', payload: event });
   };
