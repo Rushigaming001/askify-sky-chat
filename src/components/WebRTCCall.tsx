@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor, Music } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor, Music, Minimize2, Maximize2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,8 @@ export function WebRTCCall({
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMobile] = useState(() => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -421,6 +423,16 @@ export function WebRTCCall({
         toast({ title: 'Screen sharing stopped' });
       } else {
         // Start screen sharing
+        // Check if device supports screen sharing
+        if (!navigator.mediaDevices.getDisplayMedia) {
+          toast({ 
+            title: 'Not Supported', 
+            description: 'Screen sharing is not available on this device', 
+            variant: 'destructive' 
+          });
+          return;
+        }
+        
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true
@@ -450,9 +462,15 @@ export function WebRTCCall({
         setIsScreenSharing(true);
         toast({ title: 'Screen sharing started' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling screen share:', error);
-      toast({ title: 'Error', description: 'Failed to share screen', variant: 'destructive' });
+      if (error.name === 'NotAllowedError') {
+        toast({ title: 'Cancelled', description: 'Screen sharing was cancelled' });
+      } else if (error.name === 'NotSupportedError' || error.name === 'TypeError') {
+        toast({ title: 'Not Supported', description: 'Screen sharing is not available on this device', variant: 'destructive' });
+      } else {
+        toast({ title: 'Error', description: 'Failed to share screen', variant: 'destructive' });
+      }
     }
   };
 
@@ -487,6 +505,42 @@ export function WebRTCCall({
     onClose();
   };
 
+  // Minimized floating view
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50 bg-background border border-border rounded-xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-2 p-2 bg-muted/50">
+          <div className="flex-1 px-2">
+            <p className="text-xs font-medium truncate max-w-[120px]">{recipientName}</p>
+            <p className="text-[10px] text-muted-foreground">{callType === 'video' ? 'Video' : 'Voice'} Call</p>
+          </div>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsMinimized(false)}>
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="destructive" className="h-7 w-7" onClick={handleEndCall}>
+            <PhoneOff className="h-3 w-3" />
+          </Button>
+        </div>
+        {callType === 'video' && (
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-36 h-24 object-cover"
+          />
+        )}
+        {callType === 'voice' && (
+          <div className="w-36 h-16 flex items-center justify-center bg-muted">
+            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+              <Mic className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleEndCall}>
       <DialogContent className="max-w-5xl h-[85vh] p-0">
@@ -502,6 +556,15 @@ export function WebRTCCall({
                 <span>{participants.length + 1}</span>
               </Badge>
             )}
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="ml-auto h-8 w-8" 
+              onClick={() => setIsMinimized(true)}
+              title="Minimize"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
           </DialogTitle>
         </DialogHeader>
         
@@ -601,15 +664,18 @@ export function WebRTCCall({
                   <SwitchCamera className="h-5 w-5" />
                 </Button>
                 
-                <Button
-                  size="lg"
-                  variant={isScreenSharing ? "default" : "secondary"}
-                  className="rounded-full h-12 w-12"
-                  onClick={toggleScreenShare}
-                  title={isScreenSharing ? "Stop sharing" : "Share screen"}
-                >
-                  <Monitor className="h-5 w-5" />
-                </Button>
+                {/* Hide screen share on mobile */}
+                {!isMobile && (
+                  <Button
+                    size="lg"
+                    variant={isScreenSharing ? "default" : "secondary"}
+                    className="rounded-full h-12 w-12"
+                    onClick={toggleScreenShare}
+                    title={isScreenSharing ? "Stop sharing" : "Share screen"}
+                  >
+                    <Monitor className="h-5 w-5" />
+                  </Button>
+                )}
               </>
             )}
             

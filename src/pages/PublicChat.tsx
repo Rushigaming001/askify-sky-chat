@@ -413,6 +413,28 @@ const PublicChat = () => {
     }
   };
 
+  const handleDismissDeletedMessage = async (messageId: string) => {
+    // Permanently remove the message from database (owner only)
+    const { error } = await supabase
+      .from('public_messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to dismiss message',
+        variant: 'destructive'
+      });
+    } else {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast({
+        title: 'Dismissed',
+        description: 'Message permanently removed'
+      });
+    }
+  };
+
   const handleOwnerEditMessage = async (message: PublicMessage) => {
     setEditingMessage(message.id);
     setEditContent(message.content);
@@ -598,6 +620,18 @@ const PublicChat = () => {
                             )}
                           </p>
                         </div>
+                        {/* Dismiss button for deleted messages (owner only) */}
+                        {isDeleted && isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive hover:text-destructive"
+                            onClick={() => handleDismissDeletedMessage(message.id)}
+                            title="Permanently remove"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
                         {/* Show dropdown for own messages OR admin/owner */}
                         {!isDeleted && (isOwnMessage || isAdmin) && (
                           <DropdownMenu>
