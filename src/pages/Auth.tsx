@@ -134,7 +134,8 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          // Redirect back to /auth so we can reliably finish the session and then navigate to /
+          redirectTo: `${window.location.origin}/auth`
         }
       });
       

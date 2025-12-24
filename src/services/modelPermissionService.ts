@@ -46,14 +46,12 @@ export async function updateModelPermission(
   return true;
 }
 
-export async function canAccessModel(modelId: string): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return false;
+export async function canAccessModel(modelId: string, userId?: string): Promise<boolean> {
+  if (!userId) return false;
 
   const { data, error } = await supabase.rpc('can_access_model', {
-    _user_id: user.id,
-    _model_id: modelId
+    _user_id: userId,
+    _model_id: modelId,
   });
 
   if (error) {
@@ -63,3 +61,4 @@ export async function canAccessModel(modelId: string): Promise<boolean> {
 
   return data || false;
 }
+
