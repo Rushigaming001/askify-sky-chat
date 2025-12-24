@@ -72,7 +72,7 @@ const Chat = () => {
       if (externalApiModels.includes(key)) {
         access[key] = true; // Always accessible
       } else {
-        access[key] = await canAccessModel(modelId);
+        access[key] = await canAccessModel(modelId, user?.id);
       }
     }
     setModelAccess(access);
