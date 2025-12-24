@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   BookOpen, Trophy, Flame, Star, CheckCircle2, XCircle, 
-  Volume2, ArrowRight, Home, Target, Award, Zap, Music, Play
+  Volume2, ArrowRight, Home, Target, Award, Zap, Music, Play, Sparkles, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Language {
   id: string;
@@ -238,16 +239,70 @@ export default function LanguageLearning() {
   const [hardModeEnabled, setHardModeEnabled] = useState(false);
   const [generatedHardQuestions, setGeneratedHardQuestions] = useState<Question[]>([]);
 
-  // Generate more hard questions when needed
+  // Shuffle array helper
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Generate questions with shuffled options
   const allQuestions = useMemo(() => {
     if (!selectedLanguage) return [];
     const baseQuestions = questionsData[selectedLanguage.id] || [];
+    
+    // Shuffle options for each question while keeping track of correct answer
+    const shuffleQuestion = (q: Question): Question => ({
+      ...q,
+      options: shuffleArray(q.options)
+    });
+    
     if (hardModeEnabled) {
-      const extraHard = Array.from({ length: 20 }, (_, i) => generateHardQuestion(selectedLanguage.id, i));
-      return [...baseQuestions, ...extraHard];
+      const extraHard = Array.from({ length: 20 }, (_, i) => 
+        shuffleQuestion(generateHardQuestion(selectedLanguage.id, i))
+      );
+      return [...baseQuestions.map(shuffleQuestion), ...extraHard];
     }
-    return baseQuestions;
-  }, [selectedLanguage, hardModeEnabled]);
+    return baseQuestions.map(shuffleQuestion);
+  }, [selectedLanguage, hardModeEnabled, currentQuestionIndex]);
+
+  // AI Hint state
+  const [aiHint, setAiHint] = useState<string | null>(null);
+  const [loadingHint, setLoadingHint] = useState(false);
+
+  const getAIHint = async () => {
+    if (!selectedLanguage || loadingHint) return;
+    
+    const currentQuestion = allQuestions[currentQuestionIndex];
+    if (!currentQuestion) return;
+    
+    setLoadingHint(true);
+    setAiHint(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('askify-chat', {
+        body: { 
+          message: `Give a brief, helpful hint (2-3 sentences max) for this ${selectedLanguage.name} language learning question WITHOUT revealing the answer directly. Just guide the student to think in the right direction.
+
+Question: ${currentQuestion.question}
+Options: ${currentQuestion.options.join(', ')}
+
+Provide a subtle hint that helps understand the concept without giving away the answer.`
+        }
+      });
+
+      if (error) throw error;
+      setAiHint(data.response || 'Think about the context and meaning carefully!');
+    } catch (error) {
+      console.error('Error getting AI hint:', error);
+      setAiHint('Focus on the key words in the question and eliminate obviously wrong options.');
+    } finally {
+      setLoadingHint(false);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('language-learning-progress');
@@ -306,6 +361,7 @@ export default function LanguageLearning() {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setIsAnswerRevealed(false);
+      setAiHint(null);  // Clear AI hint for next question
       
       // Generate more questions if needed
       if (hardModeEnabled && currentQuestionIndex >= allQuestions.length - 5) {
@@ -514,10 +570,36 @@ export default function LanguageLearning() {
                     {currentQuestion.difficulty}
                   </Badge>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => speakText(currentQuestion.question, selectedLanguage.id)}>
-                  <Volume2 className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={getAIHint}
+                    disabled={loadingHint || isAnswerRevealed}
+                    className="text-primary"
+                  >
+                    {loadingHint ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-5 w-5" />
+                    )}
+                    <span className="ml-1 text-xs">AI Hint</span>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => speakText(currentQuestion.question, selectedLanguage.id)}>
+                    <Volume2 className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
+
+              {/* AI Hint Display */}
+              {aiHint && (
+                <div className="mb-6 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-foreground">{aiHint}</p>
+                  </div>
+                </div>
+              )}
 
               <h2 className="text-2xl font-bold mb-8 text-center">{currentQuestion.question}</h2>
 
