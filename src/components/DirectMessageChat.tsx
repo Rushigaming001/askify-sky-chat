@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, Send, Video, Phone } from 'lucide-react';
 import { WebRTCCall } from './WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 interface DirectMessage {
   id: string;
@@ -27,6 +28,7 @@ interface DirectMessageChatProps {
 export function DirectMessageChat({ recipientId, recipientName, onClose }: DirectMessageChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { sendNotification } = usePushNotifications();
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -117,12 +119,13 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
 
     setIsLoading(true);
 
+    const messageContent = newMessage.trim();
     const { error } = await supabase
       .from('direct_messages')
       .insert({
         sender_id: user.id,
         receiver_id: recipientId,
-        content: newMessage.trim()
+        content: messageContent
       });
 
     if (error) {
@@ -134,6 +137,14 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     } else {
       setNewMessage('');
       loadMessages();
+      
+      // Send push notification to recipient
+      sendNotification(
+        recipientId,
+        `New message from ${user.name || 'Someone'}`,
+        messageContent.length > 100 ? messageContent.substring(0, 100) + '...' : messageContent,
+        { type: 'direct_message', senderId: user.id, senderName: user.name }
+      );
     }
 
     setIsLoading(false);

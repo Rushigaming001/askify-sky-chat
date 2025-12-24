@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { MusicPlayer } from '@/components/MusicPlayer';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 interface WebRTCCallProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export function WebRTCCall({
 }: WebRTCCallProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { sendNotification } = usePushNotifications();
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
@@ -236,6 +238,16 @@ export function WebRTCCall({
       .subscribe((status) => {
         if (status === 'SUBSCRIBED' && isInitiator) {
           createOfferForPeer(recipientId);
+          
+          // Send push notification to recipient about the incoming call
+          if (user) {
+            sendNotification(
+              recipientId,
+              `Incoming ${callType} call`,
+              `${user.name || 'Someone'} is calling you`,
+              { type: 'call', callType, callerId: user.id, callerName: user.name }
+            );
+          }
         }
       });
   };
