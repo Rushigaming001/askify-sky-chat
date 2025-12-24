@@ -25,7 +25,7 @@ import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, Aler
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { currentChat, addMessage, updateChatSettings, createNewChat } = useChat();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,13 +38,16 @@ const Chat = () => {
   const { used, remaining, total, canSend, loading: limitLoading, refresh: refreshLimit } = useDailyMessageLimit();
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
-      navigate('/auth');
-    } else {
-      // Check model access permissions
-      checkModelAccess();
+      navigate('/auth', { replace: true });
+      return;
     }
-  }, [user, navigate]);
+
+    // Check model access permissions
+    checkModelAccess();
+  }, [authLoading, user?.id, navigate]);
 
   const checkModelAccess = async () => {
     const modelMap: Record<string, string> = {
@@ -166,6 +169,14 @@ const Chat = () => {
     { icon: Play, label: 'YouTube', path: '/youtube', color: 'text-red-600' },
     { icon: BookOpen, label: 'Learn Languages', path: '/learn', color: 'text-emerald-500' },
   ];
+
+  if (authLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="text-sm text-muted-foreground">Loading…</div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 

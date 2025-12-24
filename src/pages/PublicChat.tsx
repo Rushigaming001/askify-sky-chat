@@ -65,7 +65,7 @@ interface MusicTrack {
 }
 
 const PublicChat = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { sendNotification } = usePushNotifications();
@@ -93,8 +93,10 @@ const PublicChat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
-      navigate('/auth');
+      navigate('/auth', { replace: true });
       return;
     }
 
@@ -182,7 +184,7 @@ const PublicChat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, navigate, restrictions.banned_from_public_chat]);
+  }, [authLoading, user?.id, navigate, restrictions.banned_from_public_chat]);
 
   // Load user restriction data when moderating
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,16 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register, session, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (session?.user) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, session?.user?.id, navigate]);
 
   const passwordStrength = useMemo(() => {
     if (!password) return { score: 0, label: '', color: '' };
@@ -92,7 +99,7 @@ const Auth = () => {
           title: 'Success',
           description: 'Logged in successfully!'
         });
-        navigate('/');
+        navigate('/', { replace: true });
       } else {
         const result = await register(email, password, name);
         if (!result.success) {
@@ -132,16 +139,21 @@ const Auth = () => {
       });
       
       if (error) {
+        const msg = error.message || 'Google sign-in failed';
+        const hint = msg.toLowerCase().includes('provider') || msg.toLowerCase().includes('not enabled')
+          ? 'Enable Google login in Backend → Users → Auth Settings → Google Settings, then try again.'
+          : msg;
+
         toast({
-          title: 'Error',
-          description: error.message,
+          title: 'Google Sign-in Failed',
+          description: hint,
           variant: 'destructive'
         });
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Error',
-        description: 'Failed to sign in with Google',
+        title: 'Google Sign-in Failed',
+        description: 'Enable Google login in Backend → Users → Auth Settings → Google Settings, then try again.',
         variant: 'destructive'
       });
     } finally {

@@ -191,7 +191,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
-      
+
+      // If email auto-confirm is enabled, a session may be returned immediately
+      if (data.session?.user) {
+        setSession(data.session);
+        setUser({
+          id: data.session.user.id,
+          email: data.session.user.email || '',
+          name: data.session.user.user_metadata?.name || 'User'
+        });
+
+        setTimeout(() => {
+          loadUserProfile(data.session!.user);
+        }, 0);
+      }
+
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -206,6 +220,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
+
+      if (data.session?.user) {
+        // Set state immediately to avoid redirect race conditions
+        setSession(data.session);
+        setUser({
+          id: data.session.user.id,
+          email: data.session.user.email || '',
+          name: data.session.user.user_metadata?.name || 'User'
+        });
+
+        setTimeout(() => {
+          loadUserProfile(data.session!.user);
+        }, 0);
+      }
 
       return { success: true };
     } catch (error: any) {
