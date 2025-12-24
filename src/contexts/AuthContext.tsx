@@ -196,6 +196,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    // Clear sensitive data from localStorage on logout
+    const email = user?.email;
+    if (email) {
+      localStorage.removeItem(`askify_chats_${email}`);
+    }
+    // Clear other app-specific localStorage items
+    localStorage.removeItem('musicPlayerTracks');
+    localStorage.removeItem('language-learning-progress');
+    localStorage.removeItem('capcut-project');
+    
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
