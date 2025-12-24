@@ -28,130 +28,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    const clearCorruptedSession = async () => {
-      // Clear all Supabase auth data from localStorage
-      const keysToRemove = Object.keys(localStorage).filter(key => 
-        key.startsWith('sb-') || key.includes('supabase')
-      );
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-    };
+    const mapUser = (u: SupabaseUser): User => ({
+      id: u.id,
+      email: u.email || "",
+      name: (u.user_metadata as any)?.name || "User",
+    });
 
-    const validateSession = (session: Session | null): boolean => {
-      if (!session) return false;
-      if (!session.user?.id) return false;
-      if (!session.access_token) return false;
-      
-      // Check if token has required claims by decoding JWT payload
-      try {
-        const payload = JSON.parse(atob(session.access_token.split('.')[1]));
-        if (!payload.sub) return false;
-        // Check if token is expired
-        if (payload.exp && payload.exp * 1000 < Date.now()) return false;
-      } catch {
-        return false;
-      }
-      
-      return true;
-    };
-
-    const initAuth = async () => {
-      try {
-        // First, try to get the existing session
-        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
-        
-        // If there's an error or invalid session, clear it completely
-        if (error || !validateSession(existingSession)) {
-          console.log('Clearing invalid/corrupted session...');
-          await clearCorruptedSession();
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setIsLoading(false);
-          }
-          return;
+    const setUserIfChanged = (next: User | null) => {
+      setUser((prev) => {
+        if (!prev && !next) return prev;
+        if (
+          prev &&
+          next &&
+          prev.id === next.id &&
+          prev.email === next.email &&
+          prev.name === next.name
+        ) {
+          return prev;
         }
-
-        if (mounted && existingSession?.user) {
-          setSession(existingSession);
-          setUser({
-            id: existingSession.user.id,
-            email: existingSession.user.email || '',
-            name: existingSession.user.user_metadata?.name || 'User'
-          });
-          // Load full profile
-          loadUserProfile(existingSession.user);
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Auth init error:', err);
-        // Clear potentially corrupted auth state
-        await clearCorruptedSession();
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-        }
-      }
+        return next;
+      });
     };
 
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (!mounted) return;
+
+      // Avoid noisy logs on frequent token refresh events
+      if (event !== "TOKEN_REFRESHED") {
+        console.log("Auth state change:", event);
+      }
+
+      setSession(newSession);
+      setUserIfChanged(newSession?.user ? mapUser(newSession.user) : null);
+
+      // Load profile on sign-in only (defer Supabase calls)
+      if (event === "SIGNED_IN" && newSession?.user) {
+        setTimeout(() => {
+          if (mounted) loadUserProfile(newSession.user);
+        }, 0);
+      }
+    });
+
+    // THEN hydrate from existing session (lets the SDK handle refresh)
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: existingSession } }) => {
         if (!mounted) return;
 
-        // Avoid noisy logs + rerenders on frequent token refresh events
-        if (event !== 'TOKEN_REFRESHED') {
-          console.log('Auth state change:', event);
+        setSession(existingSession);
+        setUserIfChanged(existingSession?.user ? mapUser(existingSession.user) : null);
+
+        if (existingSession?.user) {
+          setTimeout(() => {
+            if (mounted) loadUserProfile(existingSession.user);
+          }, 0);
         }
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
 
-        if (event === 'SIGNED_OUT' || !newSession) {
-          setSession(null);
-          setUser(null);
-          return;
-        }
-
-        // Always update session reference (tokens can rotate)
-        setSession(newSession);
-
-        if (newSession.user) {
-          const nextUser: User = {
-            id: newSession.user.id,
-            email: newSession.user.email || '',
-            name: newSession.user.user_metadata?.name || 'User',
-          };
-
-          // Prevent rerender loops (e.g., TOKEN_REFRESHED creating a new object each time)
-          setUser((prev) => {
-            if (
-              prev &&
-              prev.id === nextUser.id &&
-              prev.email === nextUser.email &&
-              prev.name === nextUser.name
-            ) {
-              return prev;
-            }
-            return nextUser;
-          });
-
-          // Only load profile on sign-in to avoid repeated fetches
-          if (event === 'SIGNED_IN') {
-            setTimeout(() => {
-              if (mounted) loadUserProfile(newSession.user);
-            }, 0);
-          }
-        }
-      }
-    );
-
-    // Then initialize
-    initAuth();
 
     return () => {
       mounted = false;
