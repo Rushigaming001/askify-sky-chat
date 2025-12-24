@@ -12,27 +12,41 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    // Get the user's JWT from the Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log("Missing or invalid authorization header");
+      return new Response(JSON.stringify({ error: "Unauthorized - missing token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create a client with the user's token to verify they're authenticated
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      console.log("Auth error:", userError?.message || "No user found");
+      return new Response(JSON.stringify({ error: "Unauthorized - invalid session" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create admin client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check for image generation restriction
     const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
