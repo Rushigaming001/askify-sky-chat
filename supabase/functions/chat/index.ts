@@ -12,13 +12,71 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, model, mode } = await req.json();
-    
-    // Get user from auth header
+    // Get user from auth header first
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse and validate input
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { messages, model, mode } = requestBody;
+
+    // Validate messages array
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "Messages array is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (messages.length > 100) {
+      return new Response(JSON.stringify({ error: "Too many messages (max 100)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate each message
+    const validRoles = ['user', 'assistant', 'system'];
+    for (const msg of messages) {
+      if (!msg.role || !validRoles.includes(msg.role)) {
+        return new Response(JSON.stringify({ error: "Invalid message role" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (typeof msg.content !== 'string' || msg.content.length === 0) {
+        return new Response(JSON.stringify({ error: "Message content is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (msg.content.length > 10000) {
+        return new Response(JSON.stringify({ error: "Message content too long (max 10000 chars)" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Validate optional mode
+    const validModes = ['normal', 'deepthink', 'search', 'reasoning'];
+    if (mode && !validModes.includes(mode)) {
+      return new Response(JSON.stringify({ error: "Invalid mode" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
