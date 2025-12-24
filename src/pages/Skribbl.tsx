@@ -18,7 +18,7 @@ interface Room {
 }
 
 const Skribbl = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [roomCode, setRoomCode] = useState('');
@@ -28,22 +28,34 @@ const Skribbl = () => {
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
-      navigate('/auth');
-    } else {
-      checkOwnerStatus();
-      loadAvailableRooms();
-      const channel = supabase
-        .channel('skribbl_rooms_list')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'skribbl_rooms' }, () => loadAvailableRooms())
-        .subscribe();
-      return () => { supabase.removeChannel(channel); };
+      navigate('/auth', { replace: true });
+      return;
     }
-  }, [user, navigate]);
+
+    checkOwnerStatus();
+    loadAvailableRooms();
+    const channel = supabase
+      .channel('skribbl_rooms_list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'skribbl_rooms' }, () => loadAvailableRooms())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authLoading, user?.id, navigate]);
 
   const checkOwnerStatus = async () => {
-    const { data } = await supabase.from('user_roles').select('role').eq('user_id', user?.id).single();
-    setIsOwner(data?.role === 'owner');
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'owner')
+      .maybeSingle();
+    setIsOwner(!!data);
   };
 
   const loadAvailableRooms = async () => {
