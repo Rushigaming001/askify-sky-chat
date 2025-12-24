@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -7,15 +7,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   ArrowLeft, User, Briefcase, Zap, Mail, Sun, Moon, Monitor, Palette, 
-  Settings as SettingsIcon, Mic, Database, Shield, Info, LogOut 
+  Settings as SettingsIcon, Mic, Database, Shield, Info, LogOut, Bell, BellOff 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const Settings = () => {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isSupported, isSubscribed, isLoading: isPushLoading, subscribe, unsubscribe } = usePushNotifications();
   const [accentColor, setAccentColor] = useState('Default');
 
   const handleLogout = async () => {
@@ -101,6 +103,22 @@ const Settings = () => {
       title: 'Features',
       items: [
         { icon: SettingsIcon, label: 'General', onClick: () => toast({ title: 'General Settings', description: 'All settings configured' }) },
+        { 
+          icon: isSubscribed ? Bell : BellOff, 
+          label: 'Push Notifications', 
+          subtitle: !isSupported ? 'Not supported' : isSubscribed ? 'Enabled' : 'Disabled',
+          onClick: async () => {
+            if (!isSupported) {
+              toast({ title: 'Not Supported', description: 'Push notifications are not supported in this browser' });
+              return;
+            }
+            if (isSubscribed) {
+              await unsubscribe();
+            } else {
+              await subscribe();
+            }
+          }
+        },
         { icon: Mic, label: 'Voice', onClick: () => navigate('/ai-features') },
         { icon: Database, label: 'Data controls', onClick: () => toast({ title: 'Data controls', description: 'Your data is securely stored' }) },
         { icon: Shield, label: 'Security', onClick: () => toast({ title: 'Security', description: 'Your account is secure with Supabase Auth' }) },
