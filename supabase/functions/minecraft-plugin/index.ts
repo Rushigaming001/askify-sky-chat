@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,9 +13,44 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check for minecraft plugin restriction
+    const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
+      _user_id: user.id,
+      _restriction_type: 'minecraft_plugin_disabled'
+    });
+
+    if (isRestricted) {
+      return new Response(JSON.stringify({ error: "Minecraft plugin generation is disabled for your account" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { name, description, version, serverType, modLoader, addonType, commands, functionality, creationType = 'plugin' } = await req.json();
     
-    console.log(`Generating Minecraft ${creationType}:`, { name, version, serverType, modLoader, addonType });
+    console.log(`Generating Minecraft ${creationType} for user:`, user.id, { name, version, serverType, modLoader, addonType });
 
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     if (!GROQ_API_KEY) {
@@ -193,6 +229,13 @@ Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No mar
       fileContent = await createSourceJar(name, mainClass, configData, packageName, creationType);
       console.log(`${creationType} created successfully`);
     }
+
+    // Log usage
+    await supabase.from('usage_logs').insert({
+      user_id: user.id,
+      model_id: 'groq-llama',
+      mode: `minecraft-${creationType}`
+    });
 
     return new Response(
       JSON.stringify({ fileBase64: fileContent }),

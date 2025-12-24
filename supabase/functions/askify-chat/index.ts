@@ -12,17 +12,50 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check for AI chat restriction
+    const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
+      _user_id: user.id,
+      _restriction_type: 'ai_chat_disabled'
+    });
+
+    if (isRestricted) {
+      return new Response(JSON.stringify({ error: "AI chat is disabled for your account" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { question, originalMessageId, userId } = await req.json();
     
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!GROQ_API_KEY) {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
-    console.log('Processing /askify question:', question);
+    console.log('Processing /askify question from user:', user.id, 'question:', question);
 
     // Call Groq AI
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -55,9 +88,6 @@ serve(async (req) => {
 
     console.log('AI response received:', aiResponse.substring(0, 100));
 
-    // Create Supabase client to post the response
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-
     // Insert AI response as a reply to the original message
     const { error: insertError } = await supabase
       .from('public_messages')
@@ -71,6 +101,13 @@ serve(async (req) => {
       console.error('Error inserting AI response:', insertError);
       // Don't throw - return the response anyway
     }
+
+    // Log usage
+    await supabase.from('usage_logs').insert({
+      user_id: user.id,
+      model_id: 'groq-llama',
+      mode: 'askify-chat'
+    });
 
     return new Response(
       JSON.stringify({ success: true, response: aiResponse }),

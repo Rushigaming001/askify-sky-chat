@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,43 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check for image generation restriction
+    const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
+      _user_id: user.id,
+      _restriction_type: 'image_generation_disabled'
+    });
+
+    if (isRestricted) {
+      return new Response(JSON.stringify({ error: "Image generation is disabled for your account" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Image AI request from user:", user.id);
+
     const { action, prompt, imageUrl, style } = await req.json();
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
     const AI_HORDE_API_KEY = Deno.env.get("AI_HORDE_API_KEY");
@@ -58,6 +96,13 @@ serve(async (req) => {
 
       const data = await response.json();
       const analysis = data.choices?.[0]?.message?.content || "No analysis generated";
+
+      // Log usage
+      await supabase.from('usage_logs').insert({
+        user_id: user.id,
+        model_id: 'groq-vision',
+        mode: 'image-analysis'
+      });
 
       return new Response(JSON.stringify({ analysis }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -161,6 +206,14 @@ serve(async (req) => {
           
           if (resultData.generations && resultData.generations.length > 0) {
             const imageUrl = resultData.generations[0].img;
+
+            // Log usage
+            await supabase.from('usage_logs').insert({
+              user_id: user.id,
+              model_id: 'ai-horde-sdxl',
+              mode: 'image-generation'
+            });
+
             return new Response(JSON.stringify({ imageUrl }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
