@@ -105,26 +105,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!mounted) return;
-        
-        console.log('Auth state change:', event);
-        
+
+        // Avoid noisy logs + rerenders on frequent token refresh events
+        if (event !== 'TOKEN_REFRESHED') {
+          console.log('Auth state change:', event);
+        }
+
         if (event === 'SIGNED_OUT' || !newSession) {
           setSession(null);
           setUser(null);
           return;
         }
-        
-        if (newSession?.user) {
-          setSession(newSession);
-          setUser({
+
+        // Always update session reference (tokens can rotate)
+        setSession(newSession);
+
+        if (newSession.user) {
+          const nextUser: User = {
             id: newSession.user.id,
             email: newSession.user.email || '',
-            name: newSession.user.user_metadata?.name || 'User'
+            name: newSession.user.user_metadata?.name || 'User',
+          };
+
+          // Prevent rerender loops (e.g., TOKEN_REFRESHED creating a new object each time)
+          setUser((prev) => {
+            if (
+              prev &&
+              prev.id === nextUser.id &&
+              prev.email === nextUser.email &&
+              prev.name === nextUser.name
+            ) {
+              return prev;
+            }
+            return nextUser;
           });
-          // Defer profile loading to avoid deadlock
-          setTimeout(() => {
-            if (mounted) loadUserProfile(newSession.user);
-          }, 0);
+
+          // Only load profile on sign-in to avoid repeated fetches
+          if (event === 'SIGNED_IN') {
+            setTimeout(() => {
+              if (mounted) loadUserProfile(newSession.user);
+            }, 0);
+          }
         }
       }
     );
