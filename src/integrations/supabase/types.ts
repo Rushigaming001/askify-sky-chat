@@ -768,6 +768,7 @@ export type Database = {
           live_video_call_disabled: boolean | null
           math_solver_disabled: boolean | null
           minecraft_plugin_disabled: boolean | null
+          public_chat_timeout_until: string | null
           updated_at: string | null
           user_id: string
           video_generation_disabled: boolean | null
@@ -784,6 +785,7 @@ export type Database = {
           live_video_call_disabled?: boolean | null
           math_solver_disabled?: boolean | null
           minecraft_plugin_disabled?: boolean | null
+          public_chat_timeout_until?: string | null
           updated_at?: string | null
           user_id: string
           video_generation_disabled?: boolean | null
@@ -800,6 +802,7 @@ export type Database = {
           live_video_call_disabled?: boolean | null
           math_solver_disabled?: boolean | null
           minecraft_plugin_disabled?: boolean | null
+          public_chat_timeout_until?: string | null
           updated_at?: string | null
           user_id?: string
           video_generation_disabled?: boolean | null
@@ -858,6 +861,7 @@ export type Database = {
       }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_owner_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_user_timed_out: { Args: { _user_id: string }; Returns: boolean }
       user_has_restriction: {
         Args: { _restriction_type: string; _user_id: string }
         Returns: boolean

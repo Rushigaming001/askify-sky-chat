@@ -6,17 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield } from 'lucide-react';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
 import { useToast } from '@/hooks/use-toast';
 import { PublicChatMusicPlayer } from '@/components/PublicChatMusicPlayer';
+import { UserModerationDialog } from '@/components/UserModerationDialog';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -64,6 +68,8 @@ const PublicChat = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { sendNotification } = usePushNotifications();
+  const { restrictions } = useUserRestrictions();
   const [messages, setMessages] = useState<PublicMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -81,11 +87,25 @@ const PublicChat = () => {
   const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
   const [musicQueue, setMusicQueue] = useState<MusicTrack[]>([]);
   const [isSearchingMusic, setIsSearchingMusic] = useState(false);
+  const [moderatingUser, setModeratingUser] = useState<{ userId: string; userName: string } | null>(null);
+  const [userRestrictionData, setUserRestrictionData] = useState<any>(null);
+  const [allProfiles, setAllProfiles] = useState<{ id: string; name: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) {
       navigate('/auth');
+      return;
+    }
+
+    // Check if user is banned
+    if (restrictions.banned_from_public_chat) {
+      toast({
+        title: 'Access Denied',
+        description: 'You are banned from public chat',
+        variant: 'destructive'
+      });
+      navigate('/');
       return;
     }
 
@@ -101,8 +121,19 @@ const PublicChat = () => {
       setIsAdmin(!!data);
     };
 
+    // Load all profiles for @mention lookup
+    const loadProfiles = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name');
+      if (data) {
+        setAllProfiles(data);
+      }
+    };
+
     checkAdminStatus();
     loadMessages();
+    loadProfiles();
 
     // Subscribe to new messages
     const channel = supabase
@@ -151,7 +182,22 @@ const PublicChat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, navigate]);
+  }, [user, navigate, restrictions.banned_from_public_chat]);
+
+  // Load user restriction data when moderating
+  useEffect(() => {
+    if (moderatingUser) {
+      const loadUserRestriction = async () => {
+        const { data } = await supabase
+          .from('user_restrictions')
+          .select('*')
+          .eq('user_id', moderatingUser.userId)
+          .maybeSingle();
+        setUserRestrictionData(data);
+      };
+      loadUserRestriction();
+    }
+  }, [moderatingUser]);
 
   useEffect(() => {
     // Auto-scroll to bottom
@@ -336,6 +382,36 @@ const PublicChat = () => {
     } else {
       setNewMessage('');
       setReplyingTo(null);
+
+      // Send push notifications to mentioned users
+      const mentionMatches = content.match(/@(\w+)/g);
+      if (mentionMatches) {
+        for (const mention of mentionMatches) {
+          const mentionedName = mention.substring(1).toLowerCase();
+          const mentionedUser = allProfiles.find(
+            p => p.name.toLowerCase().replace(/\s+/g, '') === mentionedName ||
+                 p.name.toLowerCase().split(' ')[0] === mentionedName
+          );
+          if (mentionedUser && mentionedUser.id !== user.id) {
+            sendNotification(
+              mentionedUser.id,
+              `${user.name || 'Someone'} mentioned you`,
+              content.length > 100 ? content.substring(0, 100) + '...' : content,
+              { type: 'public_message', senderId: user.id, senderName: user.name }
+            );
+          }
+        }
+      }
+
+      // Also notify if replying to someone
+      if (replyingTo && replyingTo.user_id !== user.id) {
+        sendNotification(
+          replyingTo.user_id,
+          `${user.name || 'Someone'} replied to your message`,
+          content.length > 100 ? content.substring(0, 100) + '...' : content,
+          { type: 'public_message', senderId: user.id, senderName: user.name }
+        );
+      }
     }
 
     setIsLoading(false);
@@ -664,6 +740,20 @@ const PublicChat = () => {
                                   Delete
                                 </DropdownMenuItem>
                               )}
+                              {isAdmin && !isOwnMessage && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => setModeratingUser({ 
+                                      userId: message.user_id, 
+                                      userName: message.profiles?.name || 'User' 
+                                    })}
+                                  >
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Moderate User
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
@@ -863,6 +953,21 @@ const PublicChat = () => {
             setMusicQueue(newQueue);
           }}
         />
+
+        {/* User Moderation Dialog */}
+        {moderatingUser && (
+          <UserModerationDialog
+            isOpen={!!moderatingUser}
+            onClose={() => {
+              setModeratingUser(null);
+              setUserRestrictionData(null);
+            }}
+            userId={moderatingUser.userId}
+            userName={moderatingUser.userName}
+            currentlyBanned={userRestrictionData?.banned_from_public_chat}
+            currentTimeout={userRestrictionData?.public_chat_timeout_until}
+          />
+        )}
       </div>
     </div>
   );
