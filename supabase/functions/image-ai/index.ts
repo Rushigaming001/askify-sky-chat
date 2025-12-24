@@ -37,7 +37,7 @@ serve(async (req) => {
     // Check for image generation restriction
     const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
       _user_id: user.id,
-      _restriction_type: 'image_generation_disabled'
+      _restriction_type: 'image_generation'
     });
 
     if (isRestricted) {
@@ -50,25 +50,27 @@ serve(async (req) => {
     console.log("Image AI request from user:", user.id);
 
     const { action, prompt, imageUrl, style } = await req.json();
-    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    const AI_HORDE_API_KEY = Deno.env.get("AI_HORDE_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     
-    // Image analysis using Groq's vision model
+    // Image analysis using Gemini
     if (action === 'analyze' && imageUrl) {
-      if (!GROQ_API_KEY) {
-        throw new Error("GROQ_API_KEY is not configured");
+      const apiKey = GEMINI_API_KEY || LOVABLE_API_KEY;
+      if (!apiKey) {
+        throw new Error("API key is not configured");
       }
       
-      console.log("Analyzing image with Groq vision...");
+      console.log("Analyzing image...");
       
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      // Use Lovable AI Gateway for analysis
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          model: "google/gemini-2.5-flash",
           messages: [
             {
               role: "user",
@@ -84,13 +86,13 @@ serve(async (req) => {
               ]
             }
           ],
-          max_completion_tokens: 1024,
+          max_tokens: 2048,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Groq API error:", response.status, errorText);
+        console.error("Analysis API error:", response.status, errorText);
         throw new Error("Image analysis failed - please try again");
       }
 
@@ -100,7 +102,7 @@ serve(async (req) => {
       // Log usage
       await supabase.from('usage_logs').insert({
         user_id: user.id,
-        model_id: 'groq-vision',
+        model_id: 'gemini-vision',
         mode: 'image-analysis'
       });
 
@@ -109,127 +111,74 @@ serve(async (req) => {
       });
     }
 
-    // Image generation using AI Horde
+    // Image generation using Lovable AI Gateway (Gemini image model)
     if (action === 'generate') {
-      if (!AI_HORDE_API_KEY) {
-        throw new Error("AI_HORDE_API_KEY is not configured");
+      if (!LOVABLE_API_KEY) {
+        throw new Error("LOVABLE_API_KEY is not configured");
       }
 
-      console.log("Generating image with AI Horde...");
+      console.log("Generating image with Lovable AI...");
       
       let fullPrompt = prompt;
-      let negativePrompt = "ugly, blurry, low quality, distorted";
-      let model = "Stable Diffusion XL";
       
       if (style === 'ghibli') {
         fullPrompt = `Studio Ghibli anime style, hand-drawn animation aesthetic, soft pastel colors, dreamy atmosphere, Hayao Miyazaki style: ${prompt}`;
-        negativePrompt = "realistic, 3d render, photorealistic, ugly, blurry";
-        model = "AlbedoBase XL (SDXL)";
       } else if (style === 'realistic') {
         fullPrompt = `Ultra photorealistic, 8K resolution, high detail, professional photography, masterpiece: ${prompt}`;
-        negativePrompt = "cartoon, anime, drawing, painting, low quality";
-        model = "ICBINP XL";
       } else if (style === 'artistic') {
         fullPrompt = `Digital art masterpiece, vibrant colors, artistic style, detailed illustration, trending on artstation: ${prompt}`;
-        model = "AlbedoBase XL (SDXL)";
       } else if (style === 'abstract') {
         fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style, creative: ${prompt}`;
-        model = "AlbedoBase XL (SDXL)";
       }
 
-      // Submit generation request to AI Horde (using free-tier compatible parameters)
-      const submitResponse = await fetch("https://stablehorde.net/api/v2/generate/async", {
+      // Use Lovable AI Gateway for image generation
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
-          "apikey": AI_HORDE_API_KEY,
         },
         body: JSON.stringify({
-          prompt: fullPrompt,
-          params: {
-            sampler_name: "k_euler",
-            cfg_scale: 7,
-            height: 512,
-            width: 512,
-            steps: 20,
-            karras: true,
-          },
-          nsfw: false,
-          censor_nsfw: true,
-          models: [model],
-          r2: true,
-          shared: false,
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: `Generate a high-quality image: ${fullPrompt}. Make it visually stunning and detailed.`
+            }
+          ],
+          modalities: ["image", "text"]
         }),
       });
 
-      if (!submitResponse.ok) {
-        const errorText = await submitResponse.text();
-        console.error("AI Horde submit error:", submitResponse.status, errorText);
-        throw new Error("Failed to start image generation");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Image generation error:", response.status, errorText);
+        throw new Error("Failed to generate image - please try again");
       }
 
-      const submitData = await submitResponse.json();
-      const jobId = submitData.id;
-      console.log("AI Horde job submitted:", jobId);
-
-      // Poll for completion (max 120 seconds)
-      let attempts = 0;
-      const maxAttempts = 60;
+      const data = await response.json();
+      console.log("Image generation response received");
       
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Extract image from response
+      const images = data.choices?.[0]?.message?.images;
+      if (images && images.length > 0) {
+        const imageUrl = images[0].image_url?.url;
         
-        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`, {
-          headers: { "apikey": AI_HORDE_API_KEY },
-        });
-        
-        if (!statusResponse.ok) {
-          attempts++;
-          continue;
-        }
-        
-        const statusData = await statusResponse.json();
-        console.log("AI Horde status:", statusData);
-        
-        if (statusData.done) {
-          // Get the final result
-          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`, {
-            headers: { "apikey": AI_HORDE_API_KEY },
+        if (imageUrl) {
+          // Log usage
+          await supabase.from('usage_logs').insert({
+            user_id: user.id,
+            model_id: 'gemini-image',
+            mode: 'image-generation'
           });
-          
-          if (!resultResponse.ok) {
-            throw new Error("Failed to get generated image");
-          }
-          
-          const resultData = await resultResponse.json();
-          console.log("AI Horde result received");
-          
-          if (resultData.generations && resultData.generations.length > 0) {
-            const imageUrl = resultData.generations[0].img;
 
-            // Log usage
-            await supabase.from('usage_logs').insert({
-              user_id: user.id,
-              model_id: 'ai-horde-sdxl',
-              mode: 'image-generation'
-            });
-
-            return new Response(JSON.stringify({ imageUrl }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-          
-          throw new Error("No image was generated");
+          return new Response(JSON.stringify({ imageUrl }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
-        
-        if (statusData.faulted) {
-          throw new Error("Image generation failed");
-        }
-        
-        attempts++;
       }
       
-      throw new Error("Image generation timed out - please try again");
+      throw new Error("No image was generated - please try again with a different prompt");
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {
