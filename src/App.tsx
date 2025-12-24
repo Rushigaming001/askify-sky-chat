@@ -22,7 +22,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const isAQISubdomain = window.location.hostname.startsWith('aqi.');
+  // Only treat as AQI subdomain if hostname is exactly aqi.* pattern (not preview URLs)
+  const hostname = window.location.hostname;
+  const isAQISubdomain = hostname.startsWith('aqi.') && !hostname.includes('lovableproject.com') && !hostname.includes('localhost');
   
   return (
     <QueryClientProvider client={queryClient}>
