@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Calculator, BookOpen, GraduationCap } from 'lucide-react';
+import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -36,8 +36,92 @@ export function MathSolver() {
   const [loading, setLoading] = useState(false);
   const [subject, setSubject] = useState<string>('');
   const [chapter, setChapter] = useState<string>('');
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>('');
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+
+  // Get available camera devices
+  useEffect(() => {
+    const getCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        setCameraDevices(videoDevices);
+        if (videoDevices.length > 0 && !selectedCamera) {
+          // Prefer back camera
+          const backCam = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear'));
+          setSelectedCamera(backCam?.deviceId || videoDevices[0].deviceId);
+        }
+      } catch (err) {
+        console.error('Error getting cameras:', err);
+      }
+    };
+    getCameras();
+  }, []);
+
+  // Start/stop camera stream when showCamera or selectedCamera changes
+  useEffect(() => {
+    if (showCamera && selectedCamera) {
+      startCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [showCamera, selectedCamera]);
+
+  const startCamera = async () => {
+    try {
+      stopCamera();
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: selectedCamera ? { exact: selectedCamera } : undefined, facingMode: 'environment' }
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      toast({ title: 'Camera Error', description: 'Could not access camera. Please check permissions.', variant: 'destructive' });
+      setShowCamera(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      setStream(null);
+    }
+  };
+
+  const captureFromCamera = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      setSelectedImage(dataUrl);
+      setSolution(null);
+      setShowCamera(false);
+      stopCamera();
+      toast({ title: 'Photo captured!', description: 'Now tap Solve to get the answer.' });
+    }
+  };
+
+  const switchCamera = () => {
+    if (cameraDevices.length < 2) return;
+    const idx = cameraDevices.findIndex(d => d.deviceId === selectedCamera);
+    const nextIdx = (idx + 1) % cameraDevices.length;
+    setSelectedCamera(cameraDevices[nextIdx].deviceId);
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -191,24 +275,75 @@ Important guidelines:
         </div>
       </div>
 
-      {/* Upload Section */}
-      <div className="space-y-3">
+      {/* Camera Section */}
+      {showCamera && (
+        <div className="relative rounded-xl overflow-hidden border border-border bg-black">
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            muted 
+            className="w-full h-64 object-cover"
+          />
+          <canvas ref={canvasRef} className="hidden" />
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
+            {cameraDevices.length > 1 && (
+              <Button size="icon" variant="secondary" onClick={switchCamera} className="rounded-full h-12 w-12">
+                <SwitchCamera className="h-5 w-5" />
+              </Button>
+            )}
+            <Button size="lg" onClick={captureFromCamera} className="rounded-full h-14 w-14 bg-white hover:bg-white/90">
+              <Camera className="h-6 w-6 text-black" />
+            </Button>
+            <Button size="icon" variant="destructive" onClick={() => { setShowCamera(false); stopCamera(); }} className="rounded-full h-12 w-12">
+              ✕
+            </Button>
+          </div>
+          {cameraDevices.length > 1 && (
+            <div className="absolute top-2 right-2">
+              <Select value={selectedCamera} onValueChange={setSelectedCamera}>
+                <SelectTrigger className="w-[140px] h-8 text-xs bg-black/60 text-white border-white/30">
+                  <SelectValue placeholder="Camera" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cameraDevices.map((d, i) => (
+                    <SelectItem key={d.deviceId} value={d.deviceId}>
+                      {d.label || `Camera ${i + 1}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload/Camera Buttons */}
+      <div className="grid grid-cols-2 gap-3">
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleFileSelect}
           className="hidden"
         />
         <Button 
           onClick={() => fileInputRef.current?.click()} 
           variant="outline" 
-          className="w-full h-14 text-base gap-3 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all touch-target"
-          disabled={loading}
+          className="h-14 text-sm gap-2 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all touch-target"
+          disabled={loading || showCamera}
         >
           <Upload className="h-5 w-5" />
-          Scan / Upload Math Problem
+          Upload
+        </Button>
+        <Button 
+          onClick={() => setShowCamera(true)} 
+          variant="outline" 
+          className="h-14 text-sm gap-2 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all touch-target"
+          disabled={loading || showCamera}
+        >
+          <Camera className="h-5 w-5" />
+          Camera
         </Button>
       </div>
 
