@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 220 20% 98%;
+    --background: 0 0% 100%;
     --foreground: 220 14% 10%;
 
     --card: 0 0% 100%;
@@ -24,7 +24,7 @@ All colors MUST be HSL.
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 14% 30%;
 
-    --muted: 220 14% 92%;
+    --muted: 220 14% 94%;
     --muted-foreground: 220 9% 46%;
 
     --accent: 220 14% 96%;
@@ -41,18 +41,17 @@ All colors MUST be HSL.
 
     --border: 220 14% 90%;
     --input: 220 14% 90%;
-    --ring: 250 91% 60%;
+    --ring: 221 83% 53%;
 
     --radius: 1rem;
-    --ring: 221 83% 53%;
-    
+
     --chat-user-bg: 221 83% 53%;
     --chat-ai-bg: 220 14% 96%;
     --sidebar-width: 280px;
     --sidebar-collapsed: 0px;
 
-    --sidebar-background: 220 20% 98%;
-    
+    --sidebar-background: 0 0% 100%;
+
     /* Auth page vibrant colors */
     --auth-gradient-1: 221 83% 53%;
     --auth-gradient-2: 250 91% 60%;
@@ -72,7 +71,7 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(250 91% 60%));
     --gradient-accent: linear-gradient(135deg, hsl(200 90% 50%), hsl(221 83% 53%));
     --gradient-warm: linear-gradient(135deg, hsl(340 82% 60%), hsl(38 92% 50%));
-    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
   }
 
   .dark {
