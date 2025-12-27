@@ -840,6 +840,7 @@ export type Database = {
         Args: { _model_id: string; _user_id: string }
         Returns: boolean
       }
+      can_claim_owner: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
