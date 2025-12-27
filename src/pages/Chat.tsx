@@ -25,7 +25,7 @@ import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, Aler
 import logo from '@/assets/logo.png';
 
 const Chat = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, session, isLoading: authLoading } = useAuth();
   const { currentChat, addMessage, updateChatSettings, createNewChat } = useChat();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,16 +40,17 @@ const Chat = () => {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!user) {
+    const userId = session?.user?.id;
+    if (!userId) {
       navigate('/auth', { replace: true });
       return;
     }
 
     // Check model access permissions
-    checkModelAccess();
-  }, [authLoading, user?.id, navigate]);
+    checkModelAccess(userId);
+  }, [authLoading, session?.user?.id, navigate]);
 
-  const checkModelAccess = async () => {
+  const checkModelAccess = async (userId: string) => {
     const modelMap: Record<string, string> = {
       'grok': 'groq/llama-3.3-70b',
       'cohere': 'cohere/command-r-plus',
@@ -72,7 +73,7 @@ const Chat = () => {
       if (externalApiModels.includes(key)) {
         access[key] = true; // Always accessible
       } else {
-        access[key] = await canAccessModel(modelId, user?.id);
+        access[key] = await canAccessModel(modelId, userId);
       }
     }
     setModelAccess(access);
@@ -178,7 +179,7 @@ const Chat = () => {
     );
   }
 
-  if (!user) return null;
+  if (!session?.user) return null;
 
   const showWelcome = !currentChat || currentChat.messages.length === 0;
 

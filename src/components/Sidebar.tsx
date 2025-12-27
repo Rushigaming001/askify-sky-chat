@@ -28,21 +28,20 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
   }, [user]);
 
   const checkAdminStatus = async () => {
-    if (!user) {
+    const userId = user?.id;
+    if (!userId) {
       setIsAdmin(false);
       return;
     }
 
     try {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .in('role', ['admin', 'owner'])
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('is_owner_or_admin', {
+        _user_id: userId,
+      });
 
+      if (error) throw error;
       setIsAdmin(!!data);
-    } catch (error) {
+    } catch {
       setIsAdmin(false);
     }
   };
