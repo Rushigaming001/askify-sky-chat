@@ -78,16 +78,13 @@ export default function AdminPanel() {
     try {
       const userId = activeSession.user.id;
 
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .in('role', ['admin', 'owner'])
-        .maybeSingle();
+      const { data: allowed, error } = await supabase.rpc('is_owner_or_admin', {
+        _user_id: userId,
+      });
 
       if (error) throw error;
 
-      if (!data) {
+      if (!allowed) {
         toast.error(`Access denied for ${activeSession.user.email || 'your account'}. Admin or Owner privileges required.`);
         navigate('/');
         return;
