@@ -878,6 +878,15 @@ export type Database = {
         | "founder"
         | "co_founder"
         | "friend"
+        | "plus"
+        | "pro"
+        | "elite"
+        | "silver"
+        | "gold"
+        | "platinum"
+        | "basic"
+        | "premium"
+        | "vip"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1014,6 +1023,15 @@ export const Constants = {
         "founder",
         "co_founder",
         "friend",
+        "plus",
+        "pro",
+        "elite",
+        "silver",
+        "gold",
+        "platinum",
+        "basic",
+        "premium",
+        "vip",
       ],
     },
   },

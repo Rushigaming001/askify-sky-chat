@@ -22,7 +22,7 @@ import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyMessageLimit } from '@/hooks/useDailyMessageLimit';
 import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, MoreHorizontal, X } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import { AskifyLogo } from '@/components/AskifyLogo';
 
 const Chat = () => {
   const { user, session, isLoading: authLoading } = useAuth();
@@ -216,9 +216,8 @@ const Chat = () => {
             >
               <span className="text-lg sm:text-xl md:text-2xl">☰</span>
             </Button>
-            <h1 className="text-base sm:text-lg md:text-2xl lg:text-3xl font-bold tracking-wider bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
-              ASKIFY
-            </h1>
+            <AskifyLogo size="md" className="hidden sm:flex" />
+            <AskifyLogo size="sm" className="flex sm:hidden" />
             {!limitLoading && (
               <Badge 
                 variant={remaining <= 5 ? "destructive" : remaining <= 10 ? "secondary" : "default"}
@@ -442,11 +441,9 @@ const Chat = () => {
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           {showWelcome ? (
             <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-fade-in">
-              <img 
-                src={logo} 
-                alt="Askify" 
-                className="h-16 w-16 sm:h-20 sm:w-20 mb-4 sm:mb-6 animate-float" 
-              />
+              <div className="mb-4 sm:mb-6 animate-float">
+                <AskifyLogo size="lg" iconOnly />
+              </div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent px-4 animate-scale-in">
                 How can I help you?
               </h1>

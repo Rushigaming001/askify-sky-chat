@@ -54,9 +54,10 @@ export default function AdminPanel() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator'>('user');
+  const [newUserRole, setNewUserRole] = useState<string>('user');
   const [editingUserRole, setEditingUserRole] = useState<Profile | null>(null);
-  const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator'>('user');
+  const [selectedRole, setSelectedRole] = useState<string>('user');
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -89,6 +90,12 @@ export default function AdminPanel() {
         navigate('/');
         return;
       }
+
+      // Check if user is owner (for paid role assignment)
+      const { data: ownerCheck } = await supabase.rpc('is_owner', {
+        _user_id: userId,
+      });
+      setIsOwner(!!ownerCheck);
 
       setIsAdmin(true);
       loadUsers();
@@ -207,7 +214,7 @@ export default function AdminPanel() {
           .from('user_roles')
           .insert({
             user_id: authData.user.id,
-            role: newUserRole
+            role: newUserRole as any
           });
 
         if (roleError) throw roleError;
@@ -229,7 +236,7 @@ export default function AdminPanel() {
   const handleEditUserRole = (profile: Profile) => {
     setEditingUserRole(profile);
     const currentRole = userRoles[profile.id]?.[0] || 'user';
-    setSelectedRole(currentRole as 'user' | 'admin' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'moderator');
+    setSelectedRole(currentRole);
   };
 
   const handleSaveRole = async () => {
@@ -247,7 +254,7 @@ export default function AdminPanel() {
         .from('user_roles')
         .insert({
           user_id: editingUserRole.id,
-          role: selectedRole
+          role: selectedRole as any
         });
 
       if (error) throw error;
@@ -481,11 +488,12 @@ export default function AdminPanel() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-role">Role</Label>
-              <Select value={newUserRole} onValueChange={(value: any) => setNewUserRole(value)}>
+              <Select value={newUserRole} onValueChange={(value: string) => setNewUserRole(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Standard Roles</div>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="friend">Friend</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
@@ -494,6 +502,22 @@ export default function AdminPanel() {
                   <SelectItem value="founder">Founder</SelectItem>
                   <SelectItem value="ceo">CEO</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
+                  {isOwner && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 1)</div>
+                      <SelectItem value="plus">💎 Plus</SelectItem>
+                      <SelectItem value="pro">🚀 Pro</SelectItem>
+                      <SelectItem value="elite">👑 Elite</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 2)</div>
+                      <SelectItem value="silver">🥈 Silver</SelectItem>
+                      <SelectItem value="gold">🥇 Gold</SelectItem>
+                      <SelectItem value="platinum">💠 Platinum</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 3)</div>
+                      <SelectItem value="basic">📦 Basic</SelectItem>
+                      <SelectItem value="premium">⭐ Premium</SelectItem>
+                      <SelectItem value="vip">🌟 VIP</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -518,11 +542,12 @@ export default function AdminPanel() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={selectedRole} onValueChange={(value: any) => setSelectedRole(value)}>
+              <Select value={selectedRole} onValueChange={(value: string) => setSelectedRole(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Standard Roles</div>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="friend">Friend</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
@@ -531,6 +556,22 @@ export default function AdminPanel() {
                   <SelectItem value="founder">Founder</SelectItem>
                   <SelectItem value="ceo">CEO</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
+                  {isOwner && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 1)</div>
+                      <SelectItem value="plus">💎 Plus</SelectItem>
+                      <SelectItem value="pro">🚀 Pro</SelectItem>
+                      <SelectItem value="elite">👑 Elite</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 2)</div>
+                      <SelectItem value="silver">🥈 Silver</SelectItem>
+                      <SelectItem value="gold">🥇 Gold</SelectItem>
+                      <SelectItem value="platinum">💠 Platinum</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 3)</div>
+                      <SelectItem value="basic">📦 Basic</SelectItem>
+                      <SelectItem value="premium">⭐ Premium</SelectItem>
+                      <SelectItem value="vip">🌟 VIP</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
