@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play, BookOpen } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play, BookOpen, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo.png';
@@ -22,9 +23,11 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminStatus();
+    fetchUserRole();
   }, [user]);
 
   const checkAdminStatus = async () => {
@@ -44,6 +47,53 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
     } catch {
       setIsAdmin(false);
     }
+  };
+
+  const fetchUserRole = async () => {
+    const userId = user?.id;
+    if (!userId) {
+      setUserRole(null);
+      return;
+    }
+
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      setUserRole(data?.role || null);
+    } catch {
+      setUserRole(null);
+    }
+  };
+
+  const isPaidRole = (role: string | null) => {
+    const paidRoles = ['plus', 'pro', 'elite', 'silver', 'gold', 'platinum', 'basic', 'premium', 'vip'];
+    return role && paidRoles.includes(role);
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    const colors: Record<string, string> = {
+      plus: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
+      pro: 'bg-indigo-500/20 text-indigo-600 border-indigo-500/30',
+      elite: 'bg-violet-500/20 text-violet-600 border-violet-500/30',
+      silver: 'bg-slate-400/20 text-slate-600 border-slate-400/30',
+      gold: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
+      platinum: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30',
+      basic: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30',
+      premium: 'bg-pink-500/20 text-pink-600 border-pink-500/30',
+      vip: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
+      owner: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
+      admin: 'bg-red-500/20 text-red-600 border-red-500/30',
+      moderator: 'bg-orange-500/20 text-orange-600 border-orange-500/30',
+      ceo: 'bg-purple-500/20 text-purple-600 border-purple-500/30',
+      founder: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
+      co_founder: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30',
+      friend: 'bg-pink-500/20 text-pink-600 border-pink-500/30',
+    };
+    return colors[role] || 'bg-green-500/20 text-green-600 border-green-500/30';
   };
 
   const handleRename = (chatId: string) => {
@@ -212,6 +262,16 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
             variant="ghost" 
             className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
             size="sm"
+            onClick={() => navigate('/pricing')}
+          >
+            <Crown className="h-4 w-4 mr-2" />
+            Pricing / Upgrade
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
+            size="sm"
             onClick={() => navigate('/public-chat')}
           >
             <MessageCircle className="h-4 w-4 mr-2" />
@@ -297,7 +357,14 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
               <User className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{user?.name}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium truncate">{user?.name}</span>
+                {userRole && (
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${getRoleBadgeColor(userRole)}`}>
+                    {userRole === 'co_founder' ? 'CO-FOUNDER' : userRole.toUpperCase()}
+                  </Badge>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
             <Button 

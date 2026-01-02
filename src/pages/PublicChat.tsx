@@ -655,6 +655,15 @@ const PublicChat = () => {
                             message.user_role === 'admin' ? 'bg-red-500/20 text-red-600' :
                             message.user_role === 'moderator' ? 'bg-orange-500/20 text-orange-600' :
                             message.user_role === 'friend' ? 'bg-pink-500/20 text-pink-600' :
+                            message.user_role === 'plus' ? 'bg-blue-500/20 text-blue-600' :
+                            message.user_role === 'pro' ? 'bg-indigo-500/20 text-indigo-600' :
+                            message.user_role === 'elite' ? 'bg-violet-500/20 text-violet-600' :
+                            message.user_role === 'silver' ? 'bg-slate-400/20 text-slate-600' :
+                            message.user_role === 'gold' ? 'bg-amber-500/20 text-amber-600' :
+                            message.user_role === 'platinum' ? 'bg-cyan-500/20 text-cyan-600' :
+                            message.user_role === 'basic' ? 'bg-emerald-500/20 text-emerald-600' :
+                            message.user_role === 'premium' ? 'bg-pink-500/20 text-pink-600' :
+                            message.user_role === 'vip' ? 'bg-yellow-500/20 text-yellow-600' :
                             'bg-green-500/20 text-green-600'
                           }`}>
                             {message.user_role === 'co_founder' ? 'CO-FOUNDER' : message.user_role.toUpperCase()}
