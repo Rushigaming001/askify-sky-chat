@@ -14,18 +14,19 @@ export type AIModel = string;
 export async function callAI(
   messages: { role: string; content: string }[],
   model: string,
-  mode: 'normal' | 'deepthink' | 'search' | 'reasoning'
+  mode: 'normal' | 'deepthink' | 'search' | 'reasoning',
+  image?: string
 ): Promise<string> {
-  // Check cache first
+  // Check cache first (skip if image is attached)
   const cacheKey = getCacheKey(messages, model, mode);
-  if (responseCache.has(cacheKey)) {
+  if (!image && responseCache.has(cacheKey)) {
     console.log('✅ Using cached response');
     return responseCache.get(cacheKey)!;
   }
 
   try {
     // Ensure we have a real user session token.
-    // Without this, the backend function will return 401 and the app may appear to “log out”.
+    // Without this, the backend function will return 401 and the app may appear to "log out".
     const { data: { session } } = await supabase.auth.getSession();
     const accessToken = session?.access_token;
 
@@ -37,7 +38,7 @@ export async function callAI(
     const recentMessages = messages.slice(-6);
 
     const { data, error } = await supabase.functions.invoke('chat', {
-      body: { messages: recentMessages, model, mode },
+      body: { messages: recentMessages, model, mode, image },
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -69,13 +70,15 @@ export async function callAI(
       throw new Error('Invalid response from AI');
     }
 
-    // Store in cache
-    responseCache.set(cacheKey, data.reply);
+    // Store in cache (skip if image was attached)
+    if (!image) {
+      responseCache.set(cacheKey, data.reply);
 
-    // Limit cache size
-    if (responseCache.size > MAX_CACHE_SIZE) {
-      const firstKey = responseCache.keys().next().value;
-      responseCache.delete(firstKey);
+      // Limit cache size
+      if (responseCache.size > MAX_CACHE_SIZE) {
+        const firstKey = responseCache.keys().next().value;
+        responseCache.delete(firstKey);
+      }
     }
 
     return data.reply;
@@ -90,4 +93,3 @@ export async function callAI(
     throw new Error('An unexpected error occurred. Please try again.');
   }
 }
-

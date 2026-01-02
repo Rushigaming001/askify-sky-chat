@@ -134,7 +134,7 @@ const Chat = () => {
         { role: 'user', content }
       ];
 
-      const response = await callAI(messages, selectedModel, currentChat.mode);
+      const response = await callAI(messages, selectedModel, currentChat.mode, image);
       addMessage({ role: 'assistant', content: response });
       
       // Refresh limit after successful message

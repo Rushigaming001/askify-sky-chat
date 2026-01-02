@@ -32,7 +32,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, model, mode } = requestBody;
+    const { messages, model, mode, image } = requestBody;
 
     // Validate messages array
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -72,6 +72,9 @@ serve(async (req) => {
       }
     }
 
+    // If image is attached, use vision model
+    const hasImage = !!image;
+
     // Validate optional mode
     const validModes = ['normal', 'deepthink', 'search', 'reasoning'];
     if (mode && !validModes.includes(mode)) {
@@ -101,8 +104,15 @@ serve(async (req) => {
       });
     }
     
-    // System prompt - only mention creator when specifically asked
-    let systemPrompt = 'You are ASKIFY, a helpful AI assistant. Only mention your creator when the user specifically asks who made you or who created you - in that case, say you were created by the ASKIFY team.';
+    // System prompt with staff information
+    let systemPrompt = `You are ASKIFY, a helpful AI assistant. 
+
+STAFF INFORMATION (only share when asked about owner, founder, CEO, staff, creator, or who made you):
+- Owner/Founder: Mr. Rudra (also known as Rushi)
+- CEO: Mr. Naitik
+- Admin: Mr. Devanshu
+
+When asked who made you, created you, or who is behind Askify, mention Mr. Rudra as the founder/owner.`;
 
     if (mode === 'deepthink') {
       systemPrompt += `
@@ -418,11 +428,35 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       }
     } else {
       // Lovable AI Gateway for other models - with Pollinations fallback
+      // Handle image attachment by using vision model
+      let processedMessages = messages;
+      let modelToUse = aiModel;
+      
+      if (hasImage && image) {
+        console.log("Image attached, using vision model");
+        modelToUse = 'google/gemini-2.5-flash'; // Use Gemini Flash for vision
+        
+        // Add image to the last user message
+        const lastUserMsgIndex = messages.length - 1;
+        processedMessages = messages.map((msg: any, i: number) => {
+          if (i === lastUserMsgIndex && msg.role === 'user') {
+            return {
+              role: 'user',
+              content: [
+                { type: 'text', text: msg.content },
+                { type: 'image_url', image_url: { url: image } }
+              ]
+            };
+          }
+          return msg;
+        });
+      }
+      
       const requestBody: any = {
-        model: aiModel,
+        model: modelToUse,
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages,
+          ...processedMessages,
         ],
       };
 

@@ -74,6 +74,7 @@ const PublicChat = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [showUsersList, setShowUsersList] = useState(false);
@@ -121,6 +122,7 @@ const PublicChat = () => {
         .single();
       
       setIsAdmin(!!data);
+      setIsOwner(data?.role === 'owner');
     };
 
     // Load all profiles for @mention lookup
