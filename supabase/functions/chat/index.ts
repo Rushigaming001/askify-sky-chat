@@ -144,46 +144,93 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       systemPrompt += ' Respond clearly and concisely.';
     }
     
-    // Helper function to call Pollinations API with specific model
-    async function callPollinationsWithModel(messages: any[], systemPrompt: string, pollinationsModel: string): Promise<string> {
-      const keys = [POLLINATIONS_API_KEY_1, POLLINATIONS_API_KEY_2].filter(Boolean);
+    // Helper function to call Pollinations API with Key 1 first, then Key 2
+    // Note: Pollinations keys reset every 24 hours, Lovable credits reset monthly
+    async function callPollinationsWithKey1(messages: any[], systemPrompt: string, pollinationsModel: string): Promise<string> {
+      if (!POLLINATIONS_API_KEY_1) {
+        throw new Error("Pollinations Key 1 not available");
+      }
       
-      for (const apiKey of keys) {
-        try {
-          console.log(`Trying Pollinations API with model: ${pollinationsModel}...`);
-          const response = await fetch('https://text.pollinations.ai/openai', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: pollinationsModel,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                ...messages
-              ],
-              max_tokens: 1000,
-            }),
-          });
+      console.log(`Trying Pollinations API Key 1 with model: ${pollinationsModel}...`);
+      const response = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${POLLINATIONS_API_KEY_1}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: pollinationsModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages
+          ],
+          max_tokens: 1000,
+        }),
+      });
 
-          if (response.ok) {
-            const data = await response.json();
-            return data.choices?.[0]?.message?.content || "No response generated";
-          }
-          
-          console.log(`Pollinations model ${pollinationsModel} failed with status ${response.status}, trying next key...`);
-        } catch (error) {
-          console.log("Pollinations API key failed, trying next key...", error);
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "No response generated";
+      }
+      
+      const errorText = await response.text();
+      console.log(`Pollinations Key 1 failed with status ${response.status}: ${errorText}`);
+      throw new Error(`Pollinations Key 1 expired or failed (resets in 24h)`);
+    }
+    
+    async function callPollinationsWithKey2(messages: any[], systemPrompt: string, pollinationsModel: string): Promise<string> {
+      if (!POLLINATIONS_API_KEY_2) {
+        throw new Error("Pollinations Key 2 not available");
+      }
+      
+      console.log(`Trying Pollinations API Key 2 with model: ${pollinationsModel}...`);
+      const response = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${POLLINATIONS_API_KEY_2}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: pollinationsModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages
+          ],
+          max_tokens: 1000,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "No response generated";
+      }
+      
+      const errorText = await response.text();
+      console.log(`Pollinations Key 2 failed with status ${response.status}: ${errorText}`);
+      throw new Error(`Pollinations Key 2 expired or failed (resets in 24h)`);
+    }
+    
+    // Main fallback chain: Lovable (monthly) → Pollinations Key 1 (24h) → Key 2 (24h)
+    async function callWithFallbackChain(messages: any[], systemPrompt: string, pollinationsModel: string = 'openai'): Promise<string> {
+      // Try Key 1 first
+      if (POLLINATIONS_API_KEY_1) {
+        try {
+          return await callPollinationsWithKey1(messages, systemPrompt, pollinationsModel);
+        } catch (err) {
+          console.log("Key 1 failed, trying Key 2...", err);
         }
       }
       
-      throw new Error(`Pollinations model ${pollinationsModel} failed with all API keys`);
-    }
-
-    // Helper function to call Pollinations API with failover (default model)
-    async function callPollinationsWithFailover(messages: any[], systemPrompt: string): Promise<string> {
-      return callPollinationsWithModel(messages, systemPrompt, 'openai');
+      // Try Key 2 as fallback
+      if (POLLINATIONS_API_KEY_2) {
+        try {
+          return await callPollinationsWithKey2(messages, systemPrompt, pollinationsModel);
+        } catch (err) {
+          console.log("Key 2 also failed", err);
+        }
+      }
+      
+      throw new Error("All Pollinations API keys expired (keys reset every 24 hours)");
     }
     
     // Map user's model selection to AI models
@@ -264,7 +311,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     // If using Pollinations model directly (not as fallback)
     if (usePollinationsModel && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
       try {
-        const reply = await callPollinationsWithModel(messages, systemPrompt, usePollinationsModel);
+        const reply = await callWithFallbackChain(messages, systemPrompt, usePollinationsModel);
         
         // Log usage
         await supabase.from('usage_logs').insert({
@@ -411,22 +458,22 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
             });
           }
           
-          // On 402 (credits expired), try Pollinations fallback
+          // On 402 (credits expired - resets monthly), try Pollinations fallback (resets 24h)
           if (response.status === 402) {
-            console.log("Lovable credits expired, trying Pollinations fallback...");
+            console.log("Lovable credits expired (monthly reset), trying Pollinations fallback (24h reset)...");
             if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
               try {
-                reply = await callPollinationsWithFailover(messages, systemPrompt);
+                reply = await callWithFallbackChain(messages, systemPrompt, 'openai');
                 usePollinations = true;
               } catch (pollError) {
                 console.error("Pollinations fallback also failed:", pollError);
-                return new Response(JSON.stringify({ error: "Out of AI credits and fallback failed. Please add credits in Settings → Workspace → Usage." }), {
+                return new Response(JSON.stringify({ error: "Out of AI credits. Lovable credits reset monthly, Pollinations keys reset every 24 hours. Please try again later or add credits." }), {
                   status: 402,
                   headers: { ...corsHeaders, "Content-Type": "application/json" },
                 });
               }
             } else {
-              return new Response(JSON.stringify({ error: "Out of Lovable AI credits! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
+              return new Response(JSON.stringify({ error: "Out of Lovable AI credits (resets monthly)! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
                 status: 402,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
               });
@@ -440,10 +487,10 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         }
       } catch (error) {
         // Try Pollinations fallback on any Lovable AI error
-        console.log("Lovable AI failed, trying Pollinations fallback...", error);
+        console.log("Lovable AI failed, trying Pollinations fallback (Key 1 → Key 2)...", error);
         if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
           try {
-            reply = await callPollinationsWithFailover(messages, systemPrompt);
+            reply = await callWithFallbackChain(messages, systemPrompt, 'openai');
             usePollinations = true;
           } catch (pollError) {
             console.error("Pollinations fallback also failed:", pollError);
