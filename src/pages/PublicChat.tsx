@@ -646,27 +646,52 @@ const PublicChat = () => {
                         <span className="text-sm font-medium">
                           {isOwnMessage ? 'You' : (message.profiles?.name || 'Anonymous')}
                         </span>
-                        {message.user_role && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide ${
-                            message.user_role === 'owner' ? 'bg-yellow-500/20 text-yellow-600' :
-                            message.user_role === 'ceo' ? 'bg-purple-500/20 text-purple-600' :
-                            message.user_role === 'founder' ? 'bg-blue-500/20 text-blue-600' :
-                            message.user_role === 'co_founder' ? 'bg-cyan-500/20 text-cyan-600' :
-                            message.user_role === 'admin' ? 'bg-red-500/20 text-red-600' :
-                            message.user_role === 'moderator' ? 'bg-orange-500/20 text-orange-600' :
-                            message.user_role === 'friend' ? 'bg-pink-500/20 text-pink-600' :
-                            message.user_role === 'plus' ? 'bg-blue-500/20 text-blue-600' :
-                            message.user_role === 'pro' ? 'bg-indigo-500/20 text-indigo-600' :
-                            message.user_role === 'elite' ? 'bg-violet-500/20 text-violet-600' :
-                            message.user_role === 'silver' ? 'bg-slate-400/20 text-slate-600' :
-                            message.user_role === 'gold' ? 'bg-amber-500/20 text-amber-600' :
-                            message.user_role === 'platinum' ? 'bg-cyan-500/20 text-cyan-600' :
-                            message.user_role === 'basic' ? 'bg-emerald-500/20 text-emerald-600' :
-                            message.user_role === 'premium' ? 'bg-pink-500/20 text-pink-600' :
-                            message.user_role === 'vip' ? 'bg-yellow-500/20 text-yellow-600' :
-                            'bg-green-500/20 text-green-600'
+                        {message.user_role && message.user_role !== 'user' && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border shadow-sm ${
+                            // Owner/Founder tier - Gold/Yellow prestigious
+                            message.user_role === 'owner' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30' :
+                            message.user_role === 'founder' ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-amber-300 shadow-amber-500/30' :
+                            message.user_role === 'co_founder' ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-300 shadow-orange-500/30' :
+                            message.user_role === 'ceo' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300 shadow-purple-500/30' :
+                            // Staff tier
+                            message.user_role === 'admin' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300 shadow-red-500/30' :
+                            message.user_role === 'moderator' ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 shadow-orange-500/30' :
+                            message.user_role === 'friend' ? 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-pink-300 shadow-pink-500/30' :
+                            // VIP Tier - Most premium looking
+                            message.user_role === 'vip' ? 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black border-yellow-200 shadow-yellow-500/40 animate-pulse' :
+                            // Premium tier
+                            message.user_role === 'premium' ? 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-fuchsia-300 shadow-fuchsia-500/30' :
+                            // Platinum tier - Silver-blue elegant
+                            message.user_role === 'platinum' ? 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-cyan-200 shadow-cyan-500/30' :
+                            // Gold tier
+                            message.user_role === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30' :
+                            // Silver tier
+                            message.user_role === 'silver' ? 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-slate-200 shadow-slate-500/20' :
+                            // Elite tier - Deep purple
+                            message.user_role === 'elite' ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-violet-400 shadow-violet-500/30' :
+                            // Pro tier - Blue professional
+                            message.user_role === 'pro' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-300 shadow-blue-500/30' :
+                            // Plus tier - Cyan fresh
+                            message.user_role === 'plus' ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-cyan-300 shadow-cyan-500/30' :
+                            // Basic tier - Green starter
+                            message.user_role === 'basic' ? 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300 shadow-emerald-500/30' :
+                            'bg-muted text-muted-foreground border-border'
                           }`}>
-                            {message.user_role === 'co_founder' ? 'CO-FOUNDER' : message.user_role.toUpperCase()}
+                            {message.user_role === 'co_founder' ? '✦ CO-FOUNDER' : 
+                             message.user_role === 'owner' ? '👑 OWNER' :
+                             message.user_role === 'founder' ? '⭐ FOUNDER' :
+                             message.user_role === 'ceo' ? '💎 CEO' :
+                             message.user_role === 'admin' ? '🛡️ ADMIN' :
+                             message.user_role === 'vip' ? '✨ VIP' :
+                             message.user_role === 'premium' ? '💫 PREMIUM' :
+                             message.user_role === 'platinum' ? '🏆 PLATINUM' :
+                             message.user_role === 'gold' ? '🥇 GOLD' :
+                             message.user_role === 'silver' ? '🥈 SILVER' :
+                             message.user_role === 'elite' ? '🔥 ELITE' :
+                             message.user_role === 'pro' ? '⚡ PRO' :
+                             message.user_role === 'plus' ? '➕ PLUS' :
+                             message.user_role === 'basic' ? '✓ BASIC' :
+                             message.user_role.toUpperCase()}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground">
