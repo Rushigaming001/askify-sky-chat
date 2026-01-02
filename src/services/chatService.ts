@@ -9,16 +9,11 @@ function getCacheKey(messages: { role: string; content: string }[], model: strin
   return `${model}:${mode}:${lastUserMessage.toLowerCase().trim()}`;
 }
 
-export type AIModel = 
-  | 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' 
-  | 'nano-banana' | 'grok' | 'cohere' | 'deepseek' | 'gpt-5.2' | 'qwen-coder' 
-  | 'mistral-small' | 'gpt-4o-audio' | 'gemini-3-flash' | 'deepseek-v3' | 'grok-4-fast' 
-  | 'chicky-tutor' | 'midijourney' | 'claude-haiku' | 'claude-sonnet' | 'claude-opus' 
-  | 'perplexity-sonar' | 'perplexity-reasoning' | 'kimi-k2' | 'nova-micro';
+export type AIModel = string;
 
 export async function callAI(
   messages: { role: string; content: string }[],
-  model: AIModel,
+  model: string,
   mode: 'normal' | 'deepthink' | 'search' | 'reasoning'
 ): Promise<string> {
   // Check cache first

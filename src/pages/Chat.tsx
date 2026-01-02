@@ -31,7 +31,7 @@ const Chat = () => {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek'>('grok');
+  const [selectedModel, setSelectedModel] = useState<string>('grok');
   const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
   const [showFeaturesMenu, setShowFeaturesMenu] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,18 +60,36 @@ const Chat = () => {
       'gpt': 'openai/gpt-5',
       'gpt-mini': 'openai/gpt-5-mini',
       'gpt-nano': 'openai/gpt-5-nano',
+      'gpt-5.2': 'openai/gpt-5.2',
+      'gpt-4o-audio': 'openai/gpt-4o-mini-audio',
       'gemini-3': 'google/gemini-3-pro-preview',
+      'gemini-3-flash': 'google/gemini-3-flash',
       'askify': 'google/gemini-2.5-pro',
-      'nano-banana': 'google/gemini-2.5-flash-image-preview'
+      'nano-banana': 'google/gemini-2.5-flash-image-preview',
+      'claude-haiku': 'anthropic/claude-haiku-4.5',
+      'claude-sonnet': 'anthropic/claude-sonnet-4.5',
+      'claude-opus': 'anthropic/claude-opus-4.5',
+      'qwen-coder': 'qwen/qwen-2.5-coder-32b',
+      'mistral-small': 'mistral/mistral-small-3.2-24b',
+      'deepseek-v3': 'deepseek/deepseek-v3.2',
+      'grok-4-fast': 'xai/grok-4-fast',
+      'perplexity-sonar': 'perplexity/sonar',
+      'perplexity-reasoning': 'perplexity/sonar-reasoning',
+      'kimi-k2': 'moonshot/kimi-k2-thinking',
+      'nova-micro': 'amazon/nova-micro',
+      'chicky-tutor': 'chicky-tutor',
+      'midijourney': 'midijourney'
     };
     
-    // External API models are always accessible (they use user's API keys)
-    const externalApiModels = ['grok', 'cohere', 'deepseek'];
+    // External API models and Pollinations models are always accessible
+    const alwaysAccessible = ['grok', 'cohere', 'deepseek', 'deepseek-v3', 'gpt-5.2', 'gpt-4o-audio', 'gemini-3-flash', 
+      'claude-haiku', 'claude-sonnet', 'claude-opus', 'qwen-coder', 'mistral-small', 'grok-4-fast',
+      'perplexity-sonar', 'perplexity-reasoning', 'kimi-k2', 'nova-micro', 'chicky-tutor', 'midijourney'];
 
     const access: Record<string, boolean> = {};
     for (const [key, modelId] of Object.entries(modelMap)) {
-      if (externalApiModels.includes(key)) {
-        access[key] = true; // Always accessible
+      if (alwaysAccessible.includes(key)) {
+        access[key] = true; // Always accessible (uses Pollinations or external API)
       } else {
         access[key] = await canAccessModel(modelId, userId);
       }
@@ -144,7 +162,7 @@ const Chat = () => {
     }
   };
 
-  const handleModelChange = (model: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek') => {
+  const handleModelChange = (model: string) => {
     if (!modelAccess[model]) {
       toast({
         title: 'Access Denied',
@@ -156,7 +174,7 @@ const Chat = () => {
     
     setSelectedModel(model);
     if (currentChat) {
-      updateChatSettings(model, currentChat.mode);
+      updateChatSettings(model as any, currentChat.mode);
     }
   };
 
@@ -211,7 +229,7 @@ const Chat = () => {
             )}
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            <Select value={selectedModel} onValueChange={(v: 'gemini' | 'gpt' | 'askify' | 'gpt-mini' | 'gpt-nano' | 'gemini-3' | 'gemini-lite' | 'nano-banana' | 'grok' | 'cohere' | 'deepseek') => handleModelChange(v)}>
+            <Select value={selectedModel} onValueChange={handleModelChange}>
               <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
@@ -257,6 +275,12 @@ const Chat = () => {
                     <span>Gemini 3 Pro</span>
                   </div>
                 </SelectItem>
+                <SelectItem value="gemini-3-flash" disabled={!modelAccess['gemini-3-flash']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gemini-3-flash'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Gemini 3 Flash</span>
+                  </div>
+                </SelectItem>
                 <SelectItem value="nano-banana" disabled={!modelAccess['nano-banana']}>
                   <div className="flex items-center gap-2">
                     {!modelAccess['nano-banana'] && <Lock className="h-3 w-3 text-muted-foreground" />}
@@ -288,6 +312,108 @@ const Chat = () => {
                   <div className="flex items-center gap-2">
                     {!modelAccess['gpt-nano'] && <Lock className="h-3 w-3 text-muted-foreground" />}
                     <span>GPT-5 Nano</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gpt-5.2" disabled={!modelAccess['gpt-5.2']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gpt-5.2'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>GPT-5.2</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gpt-4o-audio" disabled={!modelAccess['gpt-4o-audio']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['gpt-4o-audio'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>GPT-4o Audio</span>
+                  </div>
+                </SelectItem>
+
+                {/* Claude Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Claude</div>
+                <SelectItem value="claude-haiku" disabled={!modelAccess['claude-haiku']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['claude-haiku'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Claude Haiku 4.5</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="claude-sonnet" disabled={!modelAccess['claude-sonnet']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['claude-sonnet'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Claude Sonnet 4.5</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="claude-opus" disabled={!modelAccess['claude-opus']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['claude-opus'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Claude Opus 4.5</span>
+                  </div>
+                </SelectItem>
+
+                {/* Other Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Other AI</div>
+                <SelectItem value="deepseek-v3" disabled={!modelAccess['deepseek-v3']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['deepseek-v3'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>DeepSeek V3.2</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="qwen-coder" disabled={!modelAccess['qwen-coder']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['qwen-coder'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Qwen Coder 32B</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="mistral-small" disabled={!modelAccess['mistral-small']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['mistral-small'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Mistral Small</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="grok-4-fast" disabled={!modelAccess['grok-4-fast']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['grok-4-fast'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>xAI Grok 4 Fast</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="kimi-k2" disabled={!modelAccess['kimi-k2']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['kimi-k2'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Kimi K2 Thinking</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="nova-micro" disabled={!modelAccess['nova-micro']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['nova-micro'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Amazon Nova Micro</span>
+                  </div>
+                </SelectItem>
+
+                {/* Search Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Search</div>
+                <SelectItem value="perplexity-sonar" disabled={!modelAccess['perplexity-sonar']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['perplexity-sonar'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Perplexity Sonar</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="perplexity-reasoning" disabled={!modelAccess['perplexity-reasoning']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['perplexity-reasoning'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>Perplexity Reasoning</span>
+                  </div>
+                </SelectItem>
+
+                {/* Specialty Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Specialty</div>
+                <SelectItem value="chicky-tutor" disabled={!modelAccess['chicky-tutor']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['chicky-tutor'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>🐤 ChickyTutor</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="midijourney" disabled={!modelAccess['midijourney']}>
+                  <div className="flex items-center gap-2">
+                    {!modelAccess['midijourney'] && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span>🎨 MIDIjourney</span>
                   </div>
                 </SelectItem>
               </SelectContent>
