@@ -74,26 +74,51 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
     return role && paidRoles.includes(role);
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    const colors: Record<string, string> = {
-      plus: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
-      pro: 'bg-indigo-500/20 text-indigo-600 border-indigo-500/30',
-      elite: 'bg-violet-500/20 text-violet-600 border-violet-500/30',
-      silver: 'bg-slate-400/20 text-slate-600 border-slate-400/30',
-      gold: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
-      platinum: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30',
-      basic: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30',
-      premium: 'bg-pink-500/20 text-pink-600 border-pink-500/30',
-      vip: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
-      owner: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
-      admin: 'bg-red-500/20 text-red-600 border-red-500/30',
-      moderator: 'bg-orange-500/20 text-orange-600 border-orange-500/30',
-      ceo: 'bg-purple-500/20 text-purple-600 border-purple-500/30',
-      founder: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
-      co_founder: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30',
-      friend: 'bg-pink-500/20 text-pink-600 border-pink-500/30',
+  const getRoleBadgeStyle = (role: string) => {
+    const styles: Record<string, string> = {
+      // Owner/Founder tier - Most prestigious
+      owner: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300',
+      founder: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-amber-300',
+      co_founder: 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-300',
+      ceo: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300',
+      // Staff tier
+      admin: 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300',
+      moderator: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300',
+      friend: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-pink-300',
+      // Premium paid tiers
+      vip: 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black border-yellow-200',
+      premium: 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-fuchsia-300',
+      platinum: 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-cyan-200',
+      gold: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300',
+      silver: 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-slate-200',
+      elite: 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-violet-400',
+      pro: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-300',
+      plus: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-cyan-300',
+      basic: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300',
     };
-    return colors[role] || 'bg-green-500/20 text-green-600 border-green-500/30';
+    return styles[role] || 'bg-muted text-muted-foreground border-border';
+  };
+
+  const getRoleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      owner: '👑 OWNER',
+      founder: '⭐ FOUNDER',
+      co_founder: '✦ CO-FOUNDER',
+      ceo: '💎 CEO',
+      admin: '🛡️ ADMIN',
+      moderator: '⚔️ MOD',
+      friend: '💖 FRIEND',
+      vip: '✨ VIP',
+      premium: '💫 PREMIUM',
+      platinum: '🏆 PLATINUM',
+      gold: '🥇 GOLD',
+      silver: '🥈 SILVER',
+      elite: '🔥 ELITE',
+      pro: '⚡ PRO',
+      plus: '➕ PLUS',
+      basic: '✓ BASIC',
+    };
+    return labels[role] || role.toUpperCase();
   };
 
   const handleRename = (chatId: string) => {
@@ -357,11 +382,11 @@ export function Sidebar({ isOpen, onToggle }: { isOpen: boolean; onToggle: () =>
               <User className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium truncate">{user?.name}</span>
-                {userRole && (
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${getRoleBadgeColor(userRole)}`}>
-                    {userRole === 'co_founder' ? 'CO-FOUNDER' : userRole.toUpperCase()}
+                {userRole && userRole !== 'user' && (
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-5 font-bold border shadow-sm ${getRoleBadgeStyle(userRole)}`}>
+                    {getRoleLabel(userRole)}
                   </Badge>
                 )}
               </div>
