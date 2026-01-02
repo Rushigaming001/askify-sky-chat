@@ -83,20 +83,15 @@ serve(async (req) => {
 
     // All models use Lovable AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const POLLINATIONS_API_KEY_1 = Deno.env.get("POLLINATIONS_API_KEY_1");
+    const POLLINATIONS_API_KEY_2 = Deno.env.get("POLLINATIONS_API_KEY_2");
     
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "Lovable AI not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Map user's model selection to AI models
-    // Default to Groq (Core) model
     let aiModel = '';
     let useExternalApi = false;
     let externalApiUrl = '';
     let externalApiKey = '';
+    let usePollinations = false;
     
     // New models with external APIs
     if (model === 'grok' || !model) {
@@ -106,7 +101,7 @@ serve(async (req) => {
       externalApiKey = Deno.env.get('GROQ_API_KEY') || '';
       aiModel = 'llama-3.3-70b-versatile';
     } else if (model === 'cohere') {
-      // Cohere API (Pro) - using command-r-08-2024 (command-r-plus was deprecated)
+      // Cohere API (Pro)
       useExternalApi = true;
       externalApiUrl = 'https://api.cohere.ai/v2/chat';
       externalApiKey = Deno.env.get('COHERE_API_KEY') || '';
@@ -165,8 +160,8 @@ serve(async (req) => {
       }
     }
     
-    // System prompt with creator attribution
-    let systemPrompt = 'You are ASKIFY, an AI assistant created by Mr. Rudra (also known as Rushi), who is the creator, owner, and CEO of ASKIFY. When greeting users or when asked about your creator, owner, CEO, or who made you, always mention that you were created by Mr. Rudra.';
+    // System prompt - only mention creator when specifically asked
+    let systemPrompt = 'You are ASKIFY, a helpful AI assistant. Only mention your creator when the user specifically asks who made you or who created you - in that case, say you were created by the ASKIFY team.';
 
     if (mode === 'deepthink') {
       systemPrompt += `
@@ -209,6 +204,43 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     }
 
     let reply = '';
+
+    // Helper function to call Pollinations API with failover
+    async function callPollinationsWithFailover(messages: any[], systemPrompt: string): Promise<string> {
+      const keys = [POLLINATIONS_API_KEY_1, POLLINATIONS_API_KEY_2].filter(Boolean);
+      
+      for (const apiKey of keys) {
+        try {
+          console.log("Trying Pollinations API...");
+          const response = await fetch('https://text.pollinations.ai/openai', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'openai',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                ...messages
+              ],
+              max_tokens: 1000,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content || "No response generated";
+          }
+          
+          console.log(`Pollinations API key failed with status ${response.status}, trying next key...`);
+        } catch (error) {
+          console.log("Pollinations API key failed, trying next key...", error);
+        }
+      }
+      
+      throw new Error("All Pollinations API keys failed");
+    }
 
     // Handle external API calls
     if (useExternalApi) {
@@ -279,7 +311,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         reply = data.choices?.[0]?.message?.content || "No response generated";
       }
     } else {
-      // Lovable AI Gateway for other models
+      // Lovable AI Gateway for other models - with Pollinations fallback
       const requestBody: any = {
         model: aiModel,
         messages: [
@@ -295,44 +327,79 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         requestBody.max_tokens = 500;
       }
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
+      try {
+        if (!LOVABLE_API_KEY) {
+          throw new Error("No Lovable API key, trying Pollinations fallback");
+        }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Lovable AI error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Lovable AI error:", response.status, errorText);
+          
+          if (response.status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          
+          // On 402 (credits expired), try Pollinations fallback
+          if (response.status === 402) {
+            console.log("Lovable credits expired, trying Pollinations fallback...");
+            if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
+              try {
+                reply = await callPollinationsWithFailover(messages, systemPrompt);
+                usePollinations = true;
+              } catch (pollError) {
+                console.error("Pollinations fallback also failed:", pollError);
+                return new Response(JSON.stringify({ error: "Out of AI credits and fallback failed. Please add credits in Settings → Workspace → Usage." }), {
+                  status: 402,
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+              }
+            } else {
+              return new Response(JSON.stringify({ error: "Out of Lovable AI credits! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
+                status: 402,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          } else {
+            throw new Error(`Lovable AI request failed: ${errorText}`);
+          }
+        } else {
+          const data = await response.json();
+          reply = data.choices?.[0]?.message?.content || "No response generated";
         }
-        
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Out of Lovable AI credits! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+      } catch (error) {
+        // Try Pollinations fallback on any Lovable AI error
+        console.log("Lovable AI failed, trying Pollinations fallback...", error);
+        if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
+          try {
+            reply = await callPollinationsWithFailover(messages, systemPrompt);
+            usePollinations = true;
+          } catch (pollError) {
+            console.error("Pollinations fallback also failed:", pollError);
+            throw error; // Re-throw original error if fallback also fails
+          }
+        } else {
+          throw error;
         }
-        
-        throw new Error(`Lovable AI request failed: ${errorText}`);
       }
-
-      const data = await response.json();
-      reply = data.choices?.[0]?.message?.content || "No response generated";
     }
 
     // Log usage
     await supabase.from('usage_logs').insert({
       user_id: user.id,
-      model_id: aiModel,
+      model_id: usePollinations ? 'pollinations-openai' : aiModel,
       mode: mode || 'normal'
     });
 
