@@ -86,51 +86,7 @@ serve(async (req) => {
     const POLLINATIONS_API_KEY_1 = Deno.env.get("POLLINATIONS_API_KEY_1");
     const POLLINATIONS_API_KEY_2 = Deno.env.get("POLLINATIONS_API_KEY_2");
     
-    // Map user's model selection to AI models
-    let aiModel = '';
-    let useExternalApi = false;
-    let externalApiUrl = '';
-    let externalApiKey = '';
-    let usePollinations = false;
-    
-    // New models with external APIs
-    if (model === 'grok' || !model) {
-      // Groq API (Core - default)
-      useExternalApi = true;
-      externalApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-      externalApiKey = Deno.env.get('GROQ_API_KEY') || '';
-      aiModel = 'llama-3.3-70b-versatile';
-    } else if (model === 'cohere') {
-      // Cohere API (Pro)
-      useExternalApi = true;
-      externalApiUrl = 'https://api.cohere.ai/v2/chat';
-      externalApiKey = Deno.env.get('COHERE_API_KEY') || '';
-      aiModel = 'command-r-08-2024';
-    } else if (model === 'deepseek') {
-      // DeepSeek API (Lite)
-      useExternalApi = true;
-      externalApiUrl = 'https://api.deepseek.com/chat/completions';
-      externalApiKey = Deno.env.get('DEEPSEEK_API_KEY') || '';
-      aiModel = 'deepseek-chat';
-    } else if (model === 'gpt') {
-      aiModel = 'openai/gpt-5';
-    } else if (model === 'gpt-mini') {
-      aiModel = 'openai/gpt-5-mini';
-    } else if (model === 'gpt-nano') {
-      aiModel = 'openai/gpt-5-nano';
-    } else if (model === 'gemini') {
-      aiModel = 'google/gemini-2.5-flash';
-    } else if (model === 'gemini-lite') {
-      aiModel = 'google/gemini-2.5-flash-lite';
-    } else if (model === 'gemini-3') {
-      aiModel = 'google/gemini-3-pro-preview';
-    } else if (model === 'nano-banana') {
-      aiModel = 'google/gemini-2.5-flash-image-preview';
-    } else if (model === 'askify') {
-      aiModel = 'google/gemini-2.5-pro';
-    }
-
-    // Initialize Supabase client
+    // Initialize Supabase client first
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.3');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -143,21 +99,6 @@ serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    // Check model access permission (skip for external API models)
-    if (!useExternalApi) {
-      const { data: canAccess } = await supabase.rpc('can_access_model', {
-        _user_id: user.id,
-        _model_id: aiModel
-      });
-
-      if (!canAccess) {
-        return new Response(JSON.stringify({ error: "You don't have access to this model. Please upgrade your account." }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
     }
     
     // System prompt - only mention creator when specifically asked
@@ -202,16 +143,14 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     } else {
       systemPrompt += ' Respond clearly and concisely.';
     }
-
-    let reply = '';
-
-    // Helper function to call Pollinations API with failover
-    async function callPollinationsWithFailover(messages: any[], systemPrompt: string): Promise<string> {
+    
+    // Helper function to call Pollinations API with specific model
+    async function callPollinationsWithModel(messages: any[], systemPrompt: string, pollinationsModel: string): Promise<string> {
       const keys = [POLLINATIONS_API_KEY_1, POLLINATIONS_API_KEY_2].filter(Boolean);
       
       for (const apiKey of keys) {
         try {
-          console.log("Trying Pollinations API...");
+          console.log(`Trying Pollinations API with model: ${pollinationsModel}...`);
           const response = await fetch('https://text.pollinations.ai/openai', {
             method: 'POST',
             headers: {
@@ -219,7 +158,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'openai',
+              model: pollinationsModel,
               messages: [
                 { role: 'system', content: systemPrompt },
                 ...messages
@@ -233,14 +172,134 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
             return data.choices?.[0]?.message?.content || "No response generated";
           }
           
-          console.log(`Pollinations API key failed with status ${response.status}, trying next key...`);
+          console.log(`Pollinations model ${pollinationsModel} failed with status ${response.status}, trying next key...`);
         } catch (error) {
           console.log("Pollinations API key failed, trying next key...", error);
         }
       }
       
-      throw new Error("All Pollinations API keys failed");
+      throw new Error(`Pollinations model ${pollinationsModel} failed with all API keys`);
     }
+
+    // Helper function to call Pollinations API with failover (default model)
+    async function callPollinationsWithFailover(messages: any[], systemPrompt: string): Promise<string> {
+      return callPollinationsWithModel(messages, systemPrompt, 'openai');
+    }
+    
+    // Map user's model selection to AI models
+    let aiModel = '';
+    let useExternalApi = false;
+    let externalApiUrl = '';
+    let externalApiKey = '';
+    let usePollinations = false;
+    let usePollinationsModel = '';
+    
+    // Model mapping with external APIs and Pollinations fallback
+    if (model === 'grok' || !model) {
+      // Groq API (Core - default)
+      useExternalApi = true;
+      externalApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+      externalApiKey = Deno.env.get('GROQ_API_KEY') || '';
+      aiModel = 'llama-3.3-70b-versatile';
+    } else if (model === 'cohere') {
+      useExternalApi = true;
+      externalApiUrl = 'https://api.cohere.ai/v2/chat';
+      externalApiKey = Deno.env.get('COHERE_API_KEY') || '';
+      aiModel = 'command-r-08-2024';
+    } else if (model === 'deepseek') {
+      useExternalApi = true;
+      externalApiUrl = 'https://api.deepseek.com/chat/completions';
+      externalApiKey = Deno.env.get('DEEPSEEK_API_KEY') || '';
+      aiModel = 'deepseek-chat';
+    } else if (model === 'deepseek-v3') {
+      usePollinationsModel = 'deepseek';
+    } else if (model === 'gpt') {
+      aiModel = 'openai/gpt-5';
+    } else if (model === 'gpt-mini') {
+      aiModel = 'openai/gpt-5-mini';
+    } else if (model === 'gpt-nano') {
+      aiModel = 'openai/gpt-5-nano';
+    } else if (model === 'gpt-5.2') {
+      usePollinationsModel = 'openai';
+    } else if (model === 'gpt-4o-audio') {
+      usePollinationsModel = 'openai';
+    } else if (model === 'gemini') {
+      aiModel = 'google/gemini-2.5-flash';
+    } else if (model === 'gemini-lite') {
+      aiModel = 'google/gemini-2.5-flash-lite';
+    } else if (model === 'gemini-3') {
+      aiModel = 'google/gemini-3-pro-preview';
+    } else if (model === 'gemini-3-flash') {
+      usePollinationsModel = 'gemini';
+    } else if (model === 'nano-banana') {
+      aiModel = 'google/gemini-2.5-flash-image-preview';
+    } else if (model === 'askify') {
+      aiModel = 'google/gemini-2.5-pro';
+    } else if (model === 'qwen-coder') {
+      usePollinationsModel = 'qwen-coder';
+    } else if (model === 'mistral-small') {
+      usePollinationsModel = 'mistral';
+    } else if (model === 'grok-4-fast') {
+      usePollinationsModel = 'openai';
+    } else if (model === 'claude-haiku') {
+      usePollinationsModel = 'claude-haiku';
+    } else if (model === 'claude-sonnet') {
+      usePollinationsModel = 'claude-sonnet';
+    } else if (model === 'claude-opus') {
+      usePollinationsModel = 'claude-opus';
+    } else if (model === 'perplexity-sonar') {
+      usePollinationsModel = 'searchgpt';
+    } else if (model === 'perplexity-reasoning') {
+      usePollinationsModel = 'searchgpt';
+    } else if (model === 'kimi-k2') {
+      usePollinationsModel = 'mistral';
+    } else if (model === 'nova-micro') {
+      usePollinationsModel = 'openai';
+    } else if (model === 'chicky-tutor') {
+      aiModel = 'google/gemini-2.5-flash';
+    } else if (model === 'midijourney') {
+      aiModel = 'google/gemini-2.5-flash-image-preview';
+    }
+    
+    // If using Pollinations model directly (not as fallback)
+    if (usePollinationsModel && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
+      try {
+        const reply = await callPollinationsWithModel(messages, systemPrompt, usePollinationsModel);
+        
+        // Log usage
+        await supabase.from('usage_logs').insert({
+          user_id: user.id,
+          model_id: `pollinations-${usePollinationsModel}`,
+          mode: mode || 'normal'
+        });
+
+        return new Response(JSON.stringify({ reply }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (pollError) {
+        console.error("Pollinations model failed:", pollError);
+        // Fall back to Lovable AI
+        aiModel = 'google/gemini-2.5-flash';
+        usePollinationsModel = '';
+      }
+    }
+
+    // Check model access permission (skip for external API and Pollinations models)
+    if (!useExternalApi && !usePollinationsModel && aiModel) {
+      const { data: canAccess } = await supabase.rpc('can_access_model', {
+        _user_id: user.id,
+        _model_id: aiModel
+      });
+
+      if (!canAccess) {
+        return new Response(JSON.stringify({ error: "You don't have access to this model. Please upgrade your account." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    let reply = '';
 
     // Handle external API calls
     if (useExternalApi) {

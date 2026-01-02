@@ -8,15 +8,44 @@ import { getModelPermissions, updateModelPermission, ModelPermission } from '@/s
 import { Loader2, Lock, Unlock, Sparkles, Zap, Brain, Image, Video } from 'lucide-react';
 
 const ALL_MODELS = [
+  // Google Gemini Models
   { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', category: 'chat', icon: Zap },
   { id: 'google/gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', category: 'chat', icon: Zap },
   { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro (ASKIFY-PRO)', category: 'chat', icon: Sparkles },
-  { id: 'google/gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', category: 'chat', icon: Sparkles },
+  { id: 'google/gemini-3-pro-preview', name: 'Gemini 3 Pro', category: 'chat', icon: Sparkles },
+  { id: 'google/gemini-3-flash', name: 'Gemini 3 Flash', category: 'chat', icon: Zap },
   { id: 'google/gemini-2.5-flash-image-preview', name: 'Gemini Image Generation', category: 'image', icon: Image },
   { id: 'google/gemini-3-pro-image-preview', name: 'Gemini 3 Image Generation', category: 'image', icon: Image },
+  
+  // OpenAI GPT Models
   { id: 'openai/gpt-5', name: 'GPT-5', category: 'chat', icon: Brain },
   { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', category: 'chat', icon: Brain },
   { id: 'openai/gpt-5-nano', name: 'GPT-5 Nano', category: 'chat', icon: Brain },
+  { id: 'openai/gpt-5.2', name: 'GPT-5.2', category: 'chat', icon: Brain },
+  { id: 'openai/gpt-4o-mini-audio', name: 'GPT-4o Mini Audio', category: 'chat', icon: Brain },
+  
+  // Anthropic Claude Models
+  { id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5', category: 'chat', icon: Brain },
+  { id: 'anthropic/claude-sonnet-4.5', name: 'Claude Sonnet 4.5', category: 'chat', icon: Sparkles },
+  { id: 'anthropic/claude-opus-4.5', name: 'Claude Opus 4.5', category: 'chat', icon: Sparkles },
+  
+  // Other AI Models
+  { id: 'qwen/qwen-2.5-coder-32b', name: 'Qwen 2.5 Coder 32B', category: 'chat', icon: Brain },
+  { id: 'mistral/mistral-small-3.2-24b', name: 'Mistral Small 3.2 24B', category: 'chat', icon: Brain },
+  { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek V3.2', category: 'chat', icon: Brain },
+  { id: 'xai/grok-4-fast', name: 'xAI Grok 4 Fast', category: 'chat', icon: Zap },
+  { id: 'moonshot/kimi-k2-thinking', name: 'Moonshot Kimi K2 Thinking', category: 'chat', icon: Brain },
+  { id: 'amazon/nova-micro', name: 'Amazon Nova Micro', category: 'chat', icon: Zap },
+  
+  // Perplexity Models
+  { id: 'perplexity/sonar', name: 'Perplexity Sonar', category: 'chat', icon: Brain },
+  { id: 'perplexity/sonar-reasoning', name: 'Perplexity Sonar Reasoning', category: 'chat', icon: Brain },
+  
+  // Specialty Models
+  { id: 'chicky-tutor', name: 'ChickyTutor AI Language Tutor', category: 'chat', icon: Sparkles },
+  { id: 'midijourney', name: 'MIDIjourney', category: 'image', icon: Image },
+  
+  // Legacy/Vision Models
   { id: 'meta/llama-3.1-8b-instruct', name: 'NVIDIA Llama 3.1 8B', category: 'chat', icon: Zap },
   { id: 'groq-vision', name: 'Groq Vision', category: 'vision', icon: Image },
   { id: 'ai-horde-sdxl', name: 'AI Horde SDXL', category: 'image', icon: Image },
