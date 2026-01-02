@@ -182,6 +182,26 @@ serve(async (req) => {
       });
     }
 
+    // Image editing using Gemini or Pollinations
+    if (action === 'edit' && imageUrl) {
+      console.log("Editing image with prompt:", prompt);
+      
+      // Try using Pollinations for image editing by describing the edit
+      const editPrompt = `${prompt}, based on this image: ${imageUrl}`;
+      const generatedUrl = generateWithPollinations(editPrompt, 'flux');
+      
+      // Log usage
+      await supabase.from('usage_logs').insert({
+        user_id: user.id,
+        model_id: 'pollinations-edit',
+        mode: 'image-edit'
+      });
+
+      return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

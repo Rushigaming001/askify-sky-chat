@@ -206,7 +206,7 @@ export function TestGenerator() {
   const downloadPDF = () => {
     if (!generatedTest) return;
 
-    // Create a printable HTML document
+    // Create a printable HTML document with better styling
     const printContent = `
 <!DOCTYPE html>
 <html>
@@ -214,30 +214,67 @@ export function TestGenerator() {
   <meta charset="utf-8">
   <title>${testTitle || `Class ${classLevel} - ${subject} Test`}</title>
   <style>
-    body { font-family: 'Times New Roman', serif; padding: 40px; line-height: 1.8; max-width: 800px; margin: auto; }
-    h1, h2, h3 { color: #1a1a1a; }
-    h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
-    h2 { background: #f5f5f5; padding: 8px; margin-top: 20px; }
-    pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; }
-    @media print { body { padding: 20px; } }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Times New Roman', serif; 
+      padding: 40px; 
+      line-height: 1.8; 
+      max-width: 800px; 
+      margin: auto; 
+      background: white;
+      color: black;
+    }
+    h1, h2, h3 { color: #1a1a1a; margin: 15px 0; }
+    h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 24px; }
+    h2 { background: #f5f5f5; padding: 8px 12px; margin-top: 25px; font-size: 18px; border-left: 4px solid #333; }
+    h3 { font-size: 16px; }
+    p { margin: 10px 0; }
+    .content { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; }
+    @media print { 
+      body { padding: 20px; } 
+      @page { margin: 1cm; }
+    }
   </style>
 </head>
 <body>
-  <pre>${generatedTest}</pre>
+  <div class="content">${generatedTest.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
 </body>
 </html>`;
 
-    const blob = new Blob([printContent], { type: 'text/html' });
+    // Create blob and download as HTML file (which can be printed to PDF)
+    const blob = new Blob([printContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const printWindow = window.open(url, '_blank');
     
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    }
+    // Download the HTML file
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${testTitle || `Class-${classLevel}-${subject}-Test`}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
-    toast({ title: 'Print Dialog Opened', description: 'Choose "Save as PDF" to download' });
+    toast({ 
+      title: 'Test Paper Downloaded!', 
+      description: 'Open the HTML file and use Print → Save as PDF to create a PDF.' 
+    });
+  };
+
+  const downloadAsTxt = () => {
+    if (!generatedTest) return;
+
+    const blob = new Blob([generatedTest], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${testTitle || `Class-${classLevel}-${subject}-Test`}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({ title: 'Test Paper Downloaded as Text!' });
   };
 
   return (
@@ -369,15 +406,21 @@ export function TestGenerator() {
       {generatedTest && (
         <Card className="animate-fade-in">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Generated Question Paper
               </CardTitle>
-              <Button onClick={downloadPDF} variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                Download PDF
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={downloadAsTxt} variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Download</span> TXT
+                </Button>
+                <Button onClick={downloadPDF} variant="default" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Download</span> HTML
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

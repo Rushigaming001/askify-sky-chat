@@ -214,9 +214,9 @@ const Chat = () => {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 hover:scale-110 transition-all duration-200"
             >
-              <span className="text-lg sm:text-xl md:text-2xl">☰</span>
+            <span className="text-lg sm:text-xl md:text-2xl">☰</span>
             </Button>
-            <AskifyLogo size="md" className="hidden sm:flex" />
+            <AskifyLogo size="md" className="hidden md:flex" />
             <AskifyLogo size="sm" className="flex sm:hidden" />
             {!limitLoading && (
               <Badge 
@@ -229,7 +229,7 @@ const Chat = () => {
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Select value={selectedModel} onValueChange={handleModelChange}>
-              <SelectTrigger className="w-[100px] sm:w-[120px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
+              <SelectTrigger className="w-[80px] sm:w-[110px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[9px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background/95 backdrop-blur-sm max-h-[400px]">
