@@ -17,6 +17,7 @@ import AQI from "./pages/AQI";
 import DataAnalyzerPage from "./pages/DataAnalyzer";
 import YouTube from "./pages/YouTube";
 import LanguageLearning from "./pages/LanguageLearning";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient(); // v2
@@ -58,6 +59,7 @@ const App = () => {
                   <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
                   <Route path="/youtube" element={<YouTube />} />
                   <Route path="/learn" element={<LanguageLearning />} />
+                  <Route path="/pricing" element={<Pricing />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ChatProvider>
