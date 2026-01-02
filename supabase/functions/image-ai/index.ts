@@ -154,7 +154,7 @@ serve(async (req) => {
       });
     }
 
-    // Image generation
+    // Image generation - Only use Pollinations (no Lovable credits)
     if (action === 'generate') {
       let fullPrompt = prompt;
       
@@ -168,135 +168,33 @@ serve(async (req) => {
         fullPrompt = `Abstract art, geometric shapes, bold colors, modern art style, creative: ${prompt}`;
       }
 
-      // Check if user selected a Pollinations model
+      // Check if user selected a specific Pollinations model
       const pollinationsModels = ['flux', 'flux-realism', 'flux-cablyai', 'flux-anime', 'flux-3d', 'turbo'];
+      const selectedModel = (imageModel && pollinationsModels.includes(imageModel)) ? imageModel : 'flux';
       
-      if (imageModel && pollinationsModels.includes(imageModel)) {
-        console.log(`Using Pollinations model: ${imageModel}`);
-        
-        try {
-          const generatedUrl = await generateWithPollinations(fullPrompt, imageModel);
-          
-          // Log usage
-          await supabase.from('usage_logs').insert({
-            user_id: user.id,
-            model_id: `pollinations-${imageModel}`,
-            mode: 'image-generation'
-          });
-
-          return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch (error) {
-          console.error("Pollinations image generation failed:", error);
-          throw new Error("Failed to generate image with selected model - please try again");
-        }
+      // Only use Pollinations for image generation - no Lovable credits
+      if (!POLLINATIONS_API_KEY_1 && !POLLINATIONS_API_KEY_2) {
+        throw new Error("No Pollinations API keys configured for image generation");
       }
 
-      // Default: Use Lovable AI Gateway with Pollinations fallback
-      if (!LOVABLE_API_KEY) {
-        // Try Pollinations if no Lovable key
-        if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
-          const generatedUrl = await generateWithPollinations(fullPrompt, 'flux');
-          
-          await supabase.from('usage_logs').insert({
-            user_id: user.id,
-            model_id: 'pollinations-flux',
-            mode: 'image-generation'
-          });
-
-          return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error("No API key configured for image generation");
-      }
-
-      console.log("Generating image with Lovable AI...");
-
+      console.log(`Using Pollinations model: ${selectedModel} (Key 1 first, then Key 2 fallback)`);
+      
       try {
-        // Use Lovable AI Gateway for image generation
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: `Generate a high-quality image: ${fullPrompt}. Make it visually stunning and detailed.`
-              }
-            ],
-            modalities: ["image", "text"]
-          }),
+        const generatedUrl = await generateWithPollinations(fullPrompt, selectedModel);
+        
+        // Log usage
+        await supabase.from('usage_logs').insert({
+          user_id: user.id,
+          model_id: `pollinations-${selectedModel}`,
+          mode: 'image-generation'
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Image generation error:", response.status, errorText);
-          
-          // On 402 (credits expired), try Pollinations fallback
-          if (response.status === 402 && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
-            console.log("Lovable credits expired, using Pollinations fallback...");
-            const generatedUrl = await generateWithPollinations(fullPrompt, 'flux');
-            
-            await supabase.from('usage_logs').insert({
-              user_id: user.id,
-              model_id: 'pollinations-flux',
-              mode: 'image-generation'
-            });
-
-            return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-          
-          throw new Error("Failed to generate image - please try again");
-        }
-
-        const data = await response.json();
-        console.log("Image generation response received");
-        
-        // Extract image from response
-        const images = data.choices?.[0]?.message?.images;
-        if (images && images.length > 0) {
-          const generatedImageUrl = images[0].image_url?.url;
-          
-          if (generatedImageUrl) {
-            // Log usage
-            await supabase.from('usage_logs').insert({
-              user_id: user.id,
-              model_id: 'gemini-image',
-              mode: 'image-generation'
-            });
-
-            return new Response(JSON.stringify({ imageUrl: generatedImageUrl }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-        }
-        
-        throw new Error("No image was generated - please try again with a different prompt");
+        return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       } catch (error) {
-        // Fallback to Pollinations on any error
-        console.log("Lovable AI failed, trying Pollinations fallback...", error);
-        if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
-          const generatedUrl = await generateWithPollinations(fullPrompt, 'flux');
-          
-          await supabase.from('usage_logs').insert({
-            user_id: user.id,
-            model_id: 'pollinations-flux',
-            mode: 'image-generation'
-          });
-
-          return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw error;
+        console.error("Pollinations image generation failed:", error);
+        throw new Error("All Pollinations API keys failed - please try again later (keys reset every 24 hours)");
       }
     }
 

@@ -230,27 +230,57 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       throw new Error(`Pollinations Key 2 expired or failed (resets in 24h)`);
     }
     
-    // Main fallback chain: Lovable (monthly) → Pollinations Key 1 (24h) → Key 2 (24h)
-    async function callWithFallbackChain(messages: any[], systemPrompt: string, pollinationsModel: string = 'openai'): Promise<string> {
-      // Try Key 1 first
+    // Main fallback chain: Pollinations Key 1 (24h) → Key 2 (24h) → Lovable (monthly - secondary fallback)
+    async function callWithFallbackChain(messages: any[], systemPrompt: string, pollinationsModel: string = 'openai'): Promise<{ reply: string; usedLovable: boolean }> {
+      // Try Pollinations Key 1 first
       if (POLLINATIONS_API_KEY_1) {
         try {
-          return await callPollinationsWithKey1(messages, systemPrompt, pollinationsModel);
+          const reply = await callPollinationsWithKey1(messages, systemPrompt, pollinationsModel);
+          return { reply, usedLovable: false };
         } catch (err) {
-          console.log("Key 1 failed, trying Key 2...", err);
+          console.log("Pollinations Key 1 failed, trying Key 2...", err);
         }
       }
       
-      // Try Key 2 as fallback
+      // Try Pollinations Key 2 as fallback
       if (POLLINATIONS_API_KEY_2) {
         try {
-          return await callPollinationsWithKey2(messages, systemPrompt, pollinationsModel);
+          const reply = await callPollinationsWithKey2(messages, systemPrompt, pollinationsModel);
+          return { reply, usedLovable: false };
         } catch (err) {
-          console.log("Key 2 also failed", err);
+          console.log("Pollinations Key 2 also failed, trying Lovable AI as last resort...", err);
         }
       }
       
-      throw new Error("All Pollinations API keys expired (keys reset every 24 hours)");
+      // Lovable AI as final fallback (monthly reset)
+      if (LOVABLE_API_KEY) {
+        console.log("Both Pollinations keys expired (24h reset), using Lovable AI fallback (monthly reset)...");
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...messages,
+            ],
+            max_tokens: 500,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return { reply: data.choices?.[0]?.message?.content || "No response generated", usedLovable: true };
+        }
+        
+        const errorText = await response.text();
+        console.error("Lovable AI fallback also failed:", response.status, errorText);
+      }
+      
+      throw new Error("All API keys expired. Pollinations keys reset every 24 hours, Lovable resets monthly.");
     }
     
     // Map user's model selection to AI models
@@ -338,26 +368,27 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       usePollinationsModel = '';
     }
 
-    // If using Pollinations model directly (not as fallback)
-    if (usePollinationsModel && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
+    // If using Pollinations model directly - uses fallback chain (Pollinations 1 → 2 → Lovable)
+    if (usePollinationsModel && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2 || LOVABLE_API_KEY)) {
       try {
-        const reply = await callWithFallbackChain(messages, systemPrompt, usePollinationsModel);
+        const result = await callWithFallbackChain(messages, systemPrompt, usePollinationsModel);
         
         // Log usage
         await supabase.from('usage_logs').insert({
           user_id: user.id,
-          model_id: `pollinations-${usePollinationsModel}`,
+          model_id: result.usedLovable ? 'lovable-gemini-fallback' : `pollinations-${usePollinationsModel}`,
           mode: mode || 'normal'
         });
 
-        return new Response(JSON.stringify({ reply }), {
+        return new Response(JSON.stringify({ reply: result.reply }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (pollError) {
-        console.error("Pollinations model failed:", pollError);
-        // Fall back to Lovable AI
-        aiModel = 'google/gemini-2.5-flash';
-        usePollinationsModel = '';
+        console.error("All models failed:", pollError);
+        return new Response(JSON.stringify({ error: "All API keys expired. Please try again later." }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -447,14 +478,18 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         reply = data.choices?.[0]?.message?.content || "No response generated";
       }
     } else {
-      // Lovable AI Gateway for other models - with Pollinations fallback
-      // Handle image attachment by using vision model
+      // For non-external API models, use Pollinations first, then Lovable as fallback
+      // Exception: if image is attached, we must use Lovable (vision model)
+      
+      // Handle image attachment by using vision model (requires Lovable AI)
       let processedMessages = messages;
       let modelToUse = aiModel;
+      let mustUseLovable = false;
       
       if (hasImage && image) {
-        console.log("Image attached, using vision model");
+        console.log("Image attached, using Lovable vision model (required)");
         modelToUse = 'google/gemini-2.5-flash'; // Use Gemini Flash for vision
+        mustUseLovable = true;
         
         // Add image to the last user message
         const lastUserMsgIndex = messages.length - 1;
@@ -474,6 +509,31 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         });
       }
       
+      // If no image, try Pollinations first (Key 1 → Key 2), then Lovable as fallback
+      if (!mustUseLovable && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
+        try {
+          console.log("Using Pollinations as primary (Key 1 → Key 2 → Lovable fallback)...");
+          const result = await callWithFallbackChain(messages, systemPrompt, 'openai');
+          
+          await supabase.from('usage_logs').insert({
+            user_id: user.id,
+            model_id: result.usedLovable ? 'lovable-gemini-fallback' : 'pollinations-openai',
+            mode: mode || 'normal'
+          });
+
+          return new Response(JSON.stringify({ reply: result.reply }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch (error) {
+          console.error("All APIs failed:", error);
+          return new Response(JSON.stringify({ error: "All API keys expired. Pollinations resets every 24 hours, Lovable resets monthly." }), {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+      
+      // Must use Lovable (for vision or no Pollinations keys available)
       const requestBody: any = {
         model: modelToUse,
         messages: [
@@ -514,47 +574,14 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
             });
           }
           
-          // On 402 (credits expired - resets monthly), try Pollinations fallback (resets 24h)
-          if (response.status === 402) {
-            console.log("Lovable credits expired (monthly reset), trying Pollinations fallback (24h reset)...");
-            if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
-              try {
-                reply = await callWithFallbackChain(messages, systemPrompt, 'openai');
-                usePollinations = true;
-              } catch (pollError) {
-                console.error("Pollinations fallback also failed:", pollError);
-                return new Response(JSON.stringify({ error: "Out of AI credits. Lovable credits reset monthly, Pollinations keys reset every 24 hours. Please try again later or add credits." }), {
-                  status: 402,
-                  headers: { ...corsHeaders, "Content-Type": "application/json" },
-                });
-              }
-            } else {
-              return new Response(JSON.stringify({ error: "Out of Lovable AI credits (resets monthly)! Please add credits in Settings → Workspace → Usage to continue using ASKIFY." }), {
-                status: 402,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              });
-            }
-          } else {
-            throw new Error(`Lovable AI request failed: ${errorText}`);
-          }
+          throw new Error(`Lovable AI request failed: ${errorText}`);
         } else {
           const data = await response.json();
           reply = data.choices?.[0]?.message?.content || "No response generated";
         }
       } catch (error) {
-        // Try Pollinations fallback on any Lovable AI error
-        console.log("Lovable AI failed, trying Pollinations fallback (Key 1 → Key 2)...", error);
-        if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
-          try {
-            reply = await callWithFallbackChain(messages, systemPrompt, 'openai');
-            usePollinations = true;
-          } catch (pollError) {
-            console.error("Pollinations fallback also failed:", pollError);
-            throw error; // Re-throw original error if fallback also fails
-          }
-        } else {
-          throw error;
-        }
+        console.error("Lovable AI error (used as fallback):", error);
+        throw error;
       }
     }
 
