@@ -328,6 +328,16 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       aiModel = 'google/gemini-2.5-flash-image-preview';
     }
     
+    // If an image is attached, force a vision-capable model (some external providers don't support images)
+    if (hasImage) {
+      console.log("Image provided; forcing vision-capable model");
+      aiModel = 'google/gemini-2.5-flash';
+      useExternalApi = false;
+      externalApiUrl = '';
+      externalApiKey = '';
+      usePollinationsModel = '';
+    }
+
     // If using Pollinations model directly (not as fallback)
     if (usePollinationsModel && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
       try {
