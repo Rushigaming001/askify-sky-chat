@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb } from 'lucide-react';
+import { Send, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
@@ -20,8 +20,53 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
   const [showEmoji, setShowEmoji] = useState(false);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Handle Ctrl+V paste for images
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            processImageFile(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
+  const processImageFile = (file: File) => {
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast({
+        title: 'File too large',
+        description: 'Please select an image under 10MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAttachedImage(reader.result as string);
+      toast({
+        title: 'Image attached',
+        description: `${file.name || 'Screenshot'} is ready to send`
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSend = () => {
     if ((message.trim() || attachedImage) && !disabled) {
@@ -47,18 +92,14 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
     fileInputRef.current?.click();
   };
 
+  const handleCameraCapture = () => {
+    cameraInputRef.current?.click();
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAttachedImage(reader.result as string);
-        toast({
-          title: 'Image attached',
-          description: `${file.name} is ready to send`
-        });
-      };
-      reader.readAsDataURL(file);
+      processImageFile(file);
     } else if (file) {
       toast({
         title: 'Invalid file',
@@ -130,8 +171,21 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled }: ChatI
             onChange={handleFileChange}
             accept="image/*"
           />
-          <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200">
+          {/* Camera input for mobile */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+            accept="image/*"
+            capture="environment"
+          />
+          <Button variant="ghost" size="icon" onClick={handleFileUpload} className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200" title="Attach image (or Ctrl+V to paste)">
             <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
+          </Button>
+          {/* Camera button - visible on mobile */}
+          <Button variant="ghost" size="icon" onClick={handleCameraCapture} className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200 sm:hidden" title="Take photo">
+            <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
 
           <div className="flex-1 space-y-2">
