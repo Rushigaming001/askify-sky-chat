@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Download, Video, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function VideoGenerator() {
   const [prompt, setPrompt] = useState('');
+  const [videoModel, setVideoModel] = useState('luma');
   const [loading, setLoading] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const { toast } = useToast();
@@ -28,7 +30,7 @@ export function VideoGenerator() {
     
     try {
       const { data, error } = await supabase.functions.invoke('video-ai', {
-        body: { prompt }
+        body: { prompt, videoModel }
       });
 
       if (error) throw error;
@@ -58,6 +60,7 @@ export function VideoGenerator() {
     const link = document.createElement('a');
     link.href = generatedVideo;
     link.download = 'askify-generated-video.mp4';
+    link.target = '_blank';
     link.click();
   };
 
@@ -89,6 +92,19 @@ export function VideoGenerator() {
             placeholder="A person walking through a futuristic city..."
             disabled={loading}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="video-model">Model</Label>
+          <Select value={videoModel} onValueChange={setVideoModel} disabled={loading}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="luma">Luma Ray (Default)</SelectItem>
+              <SelectItem value="pollinations">Pollinations AI</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Button 

@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('default');
+  const [imageModel, setImageModel] = useState('gemini');
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const { toast } = useToast();
@@ -28,7 +29,7 @@ export function ImageGenerator() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('image-ai', {
-        body: { action: 'generate', prompt, style }
+        body: { action: 'generate', prompt, style, imageModel }
       });
 
       if (error) throw error;
@@ -56,6 +57,7 @@ export function ImageGenerator() {
     const link = document.createElement('a');
     link.href = generatedImage;
     link.download = 'askify-generated-image.png';
+    link.target = '_blank';
     link.click();
   };
 
@@ -79,20 +81,40 @@ export function ImageGenerator() {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="style">Style</Label>
-          <Select value={style} onValueChange={setStyle} disabled={loading}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Default</SelectItem>
-              <SelectItem value="ghibli">Studio Ghibli</SelectItem>
-              <SelectItem value="realistic">Realistic</SelectItem>
-              <SelectItem value="artistic">Artistic</SelectItem>
-              <SelectItem value="abstract">Abstract</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="model">Model</Label>
+            <Select value={imageModel} onValueChange={setImageModel} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gemini">Gemini (Default)</SelectItem>
+                <SelectItem value="flux">Flux</SelectItem>
+                <SelectItem value="flux-realism">Flux Realism</SelectItem>
+                <SelectItem value="flux-cablyai">Flux CablyAI</SelectItem>
+                <SelectItem value="flux-anime">Flux Anime</SelectItem>
+                <SelectItem value="flux-3d">Flux 3D</SelectItem>
+                <SelectItem value="turbo">Turbo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="style">Style</Label>
+            <Select value={style} onValueChange={setStyle} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default</SelectItem>
+                <SelectItem value="ghibli">Studio Ghibli</SelectItem>
+                <SelectItem value="realistic">Realistic</SelectItem>
+                <SelectItem value="artistic">Artistic</SelectItem>
+                <SelectItem value="abstract">Abstract</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Button 
