@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Download, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Download, Image as ImageIcon, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState('');
@@ -14,7 +15,23 @@ export function ImageGenerator() {
   const [imageModel, setImageModel] = useState('gemini');
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -23,6 +40,16 @@ export function ImageGenerator() {
         description: 'Please enter a prompt',
         variant: 'destructive'
       });
+      return;
+    }
+
+    if (!isLoggedIn) {
+      toast({
+        title: 'Login Required',
+        description: 'Please log in to generate images',
+        variant: 'destructive'
+      });
+      navigate('/auth');
       return;
     }
 
@@ -39,13 +66,17 @@ export function ImageGenerator() {
         title: 'Success',
         description: 'Image generated successfully!'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating image:', error);
+      const errorMessage = error?.message || 'Failed to generate image';
       toast({
         title: 'Error',
-        description: 'Failed to generate image',
+        description: errorMessage.includes('Unauthorized') ? 'Please log in to generate images' : errorMessage,
         variant: 'destructive'
       });
+      if (errorMessage.includes('Unauthorized')) {
+        navigate('/auth');
+      }
     } finally {
       setLoading(false);
     }
@@ -60,6 +91,26 @@ export function ImageGenerator() {
     link.target = '_blank';
     link.click();
   };
+
+  if (isLoggedIn === false) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            AI Image Generator
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-muted-foreground">Please log in to use the image generator</p>
+          <Button onClick={() => navigate('/auth')} className="gap-2">
+            <LogIn className="h-4 w-4" />
+            Log In
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">

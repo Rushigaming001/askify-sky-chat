@@ -58,8 +58,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (typeof msg.content !== 'string' || msg.content.length === 0) {
-        return new Response(JSON.stringify({ error: "Message content is required" }), {
+      // Allow empty content only if image is attached
+      if (typeof msg.content !== 'string') {
+        return new Response(JSON.stringify({ error: "Message content must be a string" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -70,6 +71,15 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    }
+
+    // Require either message content or image
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.content.length === 0 && !image) {
+      return new Response(JSON.stringify({ error: "Message content or image is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // If image is attached, use vision model
@@ -440,10 +450,12 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         const lastUserMsgIndex = messages.length - 1;
         processedMessages = messages.map((msg: any, i: number) => {
           if (i === lastUserMsgIndex && msg.role === 'user') {
+            // Handle empty message content when only image is sent
+            const textContent = msg.content.trim() || "What's in this image? Please analyze it.";
             return {
               role: 'user',
               content: [
-                { type: 'text', text: msg.content },
+                { type: 'text', text: textContent },
                 { type: 'image_url', image_url: { url: image } }
               ]
             };
