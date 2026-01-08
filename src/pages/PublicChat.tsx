@@ -595,7 +595,7 @@ const PublicChat = () => {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full relative bg-card shadow-lg rounded-none md:rounded-lg md:my-4 md:mx-4 border-0 md:border border-border">
+      <div className="flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border">
         <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
@@ -891,14 +891,17 @@ const PublicChat = () => {
         </Dialog>
 
         <Sheet open={showUsersList} onOpenChange={setShowUsersList}>
-          <SheetContent side="left" className="w-80 p-0">
+          <SheetContent side="left" className="w-80 p-0 z-[60]">
             <SheetHeader className="sr-only">
               <SheetTitle>Users</SheetTitle>
             </SheetHeader>
             <UsersList
               onOpenDM={(userId, userName) => {
-                setActiveDM({ userId, userName });
                 setShowUsersList(false);
+                // Small delay to prevent sheet close from interfering
+                setTimeout(() => {
+                  setActiveDM({ userId, userName });
+                }, 100);
               }}
             />
           </SheetContent>
@@ -919,53 +922,25 @@ const PublicChat = () => {
         </Sheet>
 
         {activeDM && (
-          <>
-            {/* Desktop: side panel */}
-            <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
-              <DirectMessageChat
-                recipientId={activeDM.userId}
-                recipientName={activeDM.userName}
-                onClose={() => setActiveDM(null)}
-              />
-            </div>
-            {/* Mobile: full screen dialog */}
-            <Dialog open={!!activeDM} onOpenChange={() => setActiveDM(null)}>
-              <DialogContent className="md:hidden max-w-full w-full h-full max-h-screen p-0 gap-0">
-                <DirectMessageChat
-                  recipientId={activeDM.userId}
-                  recipientName={activeDM.userName}
-                  onClose={() => setActiveDM(null)}
-                />
-              </DialogContent>
-            </Dialog>
-          </>
+          <div className="fixed inset-y-0 right-0 w-full md:w-96 z-[70] bg-background shadow-xl">
+            <DirectMessageChat
+              recipientId={activeDM.userId}
+              recipientName={activeDM.userName}
+              onClose={() => setActiveDM(null)}
+            />
+          </div>
         )}
 
         {activeGroup && (
-          <>
-            {/* Desktop: side panel */}
-            <div className="fixed inset-y-0 right-0 w-96 z-50 hidden md:block">
-              <GroupChat
-                groupId={activeGroup.groupId}
-                groupName={activeGroup.groupName}
-                onClose={() => setActiveGroup(null)}
-                onVideoCall={() => setShowVideoCall(true)}
-                onVoiceCall={() => setShowVoiceCall(true)}
-              />
-            </div>
-            {/* Mobile: full screen dialog */}
-            <Dialog open={!!activeGroup} onOpenChange={() => setActiveGroup(null)}>
-              <DialogContent className="md:hidden max-w-full w-full h-full max-h-screen p-0 gap-0">
-                <GroupChat
-                  groupId={activeGroup.groupId}
-                  groupName={activeGroup.groupName}
-                  onClose={() => setActiveGroup(null)}
-                  onVideoCall={() => setShowVideoCall(true)}
-                  onVoiceCall={() => setShowVoiceCall(true)}
-                />
-              </DialogContent>
-            </Dialog>
-          </>
+          <div className="fixed inset-y-0 right-0 w-full md:w-96 z-[70] bg-background shadow-xl">
+            <GroupChat
+              groupId={activeGroup.groupId}
+              groupName={activeGroup.groupName}
+              onClose={() => setActiveGroup(null)}
+              onVideoCall={() => setShowVideoCall(true)}
+              onVoiceCall={() => setShowVoiceCall(true)}
+            />
+          </div>
         )}
 
         <WebRTCCall
