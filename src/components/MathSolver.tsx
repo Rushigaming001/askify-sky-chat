@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 
 const MAHARASHTRA_BOARD_CHAPTERS = {
   algebra: [
@@ -44,6 +46,19 @@ export function MathSolver() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const { restrictions } = useUserRestrictions();
+
+  // Check if user is restricted from math solver
+  if (restrictions.math_solver_disabled) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          You have been restricted from using the Math Solver. Contact an admin for assistance.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   // Get available camera devices
   useEffect(() => {

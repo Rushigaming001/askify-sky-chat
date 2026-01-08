@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Video, VideoOff, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 
 export function LiveVideoCall() {
   const [isActive, setIsActive] = useState(false);
@@ -16,6 +18,19 @@ export function LiveVideoCall() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const { restrictions } = useUserRestrictions();
+
+  // Check if user is restricted from live video
+  if (restrictions.live_video_call_disabled) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          You have been restricted from using Live Video Call. Contact an admin for assistance.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   const getIntervalTime = () => {
     switch (quality) {
