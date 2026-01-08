@@ -174,97 +174,6 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
               <Search className="h-3 w-3 mr-1" />
               Search
             </Toggle>
-
-            <div className="h-4 w-px bg-border mx-1" />
-
-            {/* AI Tools */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                  <Calculator className="h-3 w-3" />
-                  <span className="hidden sm:inline">Math</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Math Solver</DialogTitle>
-                </DialogHeader>
-                <MathSolver />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                  <Video className="h-3 w-3" />
-                  <span className="hidden sm:inline">Live</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Live Video Call with AI</DialogTitle>
-                </DialogHeader>
-                <LiveVideoCall />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                  <Film className="h-3 w-3" />
-                  <span className="hidden sm:inline">Video</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>AI Video Generator</DialogTitle>
-                </DialogHeader>
-                <VideoGenerator />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                  <Box className="h-3 w-3" />
-                  <span className="hidden sm:inline">MC</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Minecraft Creator Studio</DialogTitle>
-                </DialogHeader>
-                <MinecraftPluginMaker />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                  <Clapperboard className="h-3 w-3" />
-                  <span className="hidden sm:inline">CapCut</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>CapCut Pro Video Editor</DialogTitle>
-                </DialogHeader>
-                <CapCutPro />
-              </DialogContent>
-            </Dialog>
-
-            <div className="ml-auto flex items-center gap-1">
-              <MemoryDialog />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/ai-features')}
-                className="h-7 px-2 text-xs"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">AI</span>
-              </Button>
-            </div>
           </div>
         )}
 
@@ -356,6 +265,96 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
             className="flex-shrink-0 rounded-full h-9 w-9 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200 disabled:hover:scale-100"
           >
             <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />
+          </Button>
+        </div>
+
+        {/* AI Tools - Always visible below input */}
+        <div className="flex items-center justify-center gap-1 sm:gap-2 flex-wrap pt-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                <Calculator className="h-3 w-3" />
+                <span className="hidden sm:inline">Math</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Math Solver</DialogTitle>
+              </DialogHeader>
+              <MathSolver />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                <Video className="h-3 w-3" />
+                <span className="hidden sm:inline">Live Video</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Live Video Call with AI</DialogTitle>
+              </DialogHeader>
+              <LiveVideoCall />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                <Film className="h-3 w-3" />
+                <span className="hidden sm:inline">Video Gen</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>AI Video Generator</DialogTitle>
+              </DialogHeader>
+              <VideoGenerator />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                <Box className="h-3 w-3" />
+                <span className="hidden sm:inline">Minecraft</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Minecraft Creator Studio</DialogTitle>
+              </DialogHeader>
+              <MinecraftPluginMaker />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                <Clapperboard className="h-3 w-3" />
+                <span className="hidden sm:inline">CapCut</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+              </DialogHeader>
+              <CapCutPro />
+            </DialogContent>
+          </Dialog>
+
+          <MemoryDialog />
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/ai-features')}
+            className="h-7 px-2 text-xs"
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            <span className="hidden sm:inline">AI Features</span>
           </Button>
         </div>
       </div>
