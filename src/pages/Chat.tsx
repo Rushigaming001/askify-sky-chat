@@ -5,15 +5,8 @@ import { useChat } from '@/contexts/ChatContext';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
-import { MathSolver } from '@/components/MathSolver';
-import { LiveVideoCall } from '@/components/LiveVideoCall';
-import { VideoGenerator } from '@/components/VideoGenerator';
-import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
-import CapCutPro from '@/components/CapCutPro';
-import { MultiplayerShooter } from '@/components/MultiplayerShooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,7 +14,7 @@ import { callAI } from '@/services/chatService';
 import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyMessageLimit } from '@/hooks/useDailyMessageLimit';
-import { Loader2, Calculator, Lock, Video, Film, Box, Clapperboard, Target, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, MoreHorizontal, X } from 'lucide-react';
+import { Loader2, Lock, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, MoreHorizontal, X } from 'lucide-react';
 import { AskifyLogo } from '@/components/AskifyLogo';
 
 const Chat = () => {
@@ -111,7 +104,7 @@ const Chat = () => {
     }
   }, []);
 
-  const handleSendMessage = async (content: string, image?: string) => {
+  const handleSendMessage = async (content: string, images?: string[]) => {
     if (!currentChat) return;
 
     // Check daily limit
@@ -125,7 +118,9 @@ const Chat = () => {
       return;
     }
 
-    addMessage({ role: 'user', content, image });
+    // For multiple images, only pass the first one (current API limitation)
+    const firstImage = images?.[0];
+    addMessage({ role: 'user', content, image: firstImage });
     setIsLoading(true);
 
     try {
@@ -134,7 +129,7 @@ const Chat = () => {
         { role: 'user', content }
       ];
 
-      const response = await callAI(messages, selectedModel, currentChat.mode, image);
+      const response = await callAI(messages, selectedModel, currentChat.mode, firstImage);
       addMessage({ role: 'assistant', content: response });
       
       // Refresh limit after successful message
@@ -444,16 +439,19 @@ const Chat = () => {
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           {showWelcome ? (
-            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-fade-in">
-              <div className="mb-4 sm:mb-6 animate-float">
-                <AskifyLogo size="lg" iconOnly />
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 animate-fade-in">
+              <div className="flex-1 flex flex-col items-center justify-center max-w-2xl w-full">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium mb-8 text-foreground text-center animate-scale-in">
+                  Ready when you are.
+                </h1>
+                <ChatInput
+                  onSendMessage={handleSendMessage}
+                  onModeChange={handleModeChange}
+                  mode={currentChat?.mode || 'normal'}
+                  disabled={isLoading}
+                  centered={true}
+                />
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent px-4 animate-scale-in">
-                How can I help you?
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-md px-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                Ask me anything. I'm powered by advanced AI models to assist you with your questions.
-              </p>
             </div>
           ) : (
             <div className="animate-fade-in">
@@ -475,90 +473,15 @@ const Chat = () => {
           )}
         </ScrollArea>
 
-        {/* AI Tools Toolbar */}
-        <div className="border-t border-border bg-background/95 backdrop-blur px-2 py-2 flex items-center gap-1 sm:gap-2 overflow-x-auto">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
-                <Calculator className="h-4 w-4" />
-                <span className="hidden sm:inline">Math</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Math Solver</DialogTitle>
-              </DialogHeader>
-              <MathSolver />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
-                <Video className="h-4 w-4" />
-                <span className="hidden sm:inline">Live Video</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Live Video Call with AI</DialogTitle>
-              </DialogHeader>
-              <LiveVideoCall />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
-                <Film className="h-4 w-4" />
-                <span className="hidden sm:inline">Video Gen</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>AI Video Generator</DialogTitle>
-              </DialogHeader>
-              <VideoGenerator />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
-                <Box className="h-4 w-4" />
-                <span className="hidden sm:inline">Minecraft</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Minecraft Creator Studio</DialogTitle>
-              </DialogHeader>
-              <MinecraftPluginMaker />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex-shrink-0 gap-1 text-xs sm:text-sm">
-                <Clapperboard className="h-4 w-4" />
-                <span className="hidden sm:inline">CapCut</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>CapCut Pro Video Editor</DialogTitle>
-              </DialogHeader>
-              <CapCutPro />
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          onModeChange={handleModeChange}
-          mode={currentChat?.mode || 'normal'}
-          disabled={isLoading}
-        />
+        {/* Only show bottom ChatInput when there are messages */}
+        {!showWelcome && (
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            onModeChange={handleModeChange}
+            mode={currentChat?.mode || 'normal'}
+            disabled={isLoading}
+          />
+        )}
       </div>
 
       {/* Floating Features Menu Button */}
