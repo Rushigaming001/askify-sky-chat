@@ -142,49 +142,51 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
     <div className={`${centered ? '' : 'border-t border-border'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
       <div className={`max-w-3xl mx-auto ${centered ? 'px-4' : 'p-3 sm:p-4'} space-y-3`}>
         
-        {/* Mode toggles row - Always visible */}
-        <div className="flex items-center justify-between gap-1 sm:gap-2">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Toggle
-              pressed={mode === 'deepthink'}
-              onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-            >
-              <Brain className="h-3 w-3 mr-1" />
-              DeepThink
-            </Toggle>
-            <Toggle
-              pressed={mode === 'reasoning'}
-              onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-            >
-              <Lightbulb className="h-3 w-3 mr-1" />
-              Reasoning
-            </Toggle>
-            <Toggle
-              pressed={mode === 'search'}
-              onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-            >
-              <Search className="h-3 w-3 mr-1" />
-              Search
-            </Toggle>
-          </div>
-          
-          <div className="flex items-center gap-1 sm:gap-2">
-            <MemoryDialog />
+        {/* Mode toggles row - Only visible when input is at bottom (not centered) */}
+        {!centered && (
+          <div className="flex items-center justify-between gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Toggle
+                pressed={mode === 'deepthink'}
+                onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
+                className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+              >
+                <Brain className="h-3 w-3 mr-1" />
+                DeepThink
+              </Toggle>
+              <Toggle
+                pressed={mode === 'reasoning'}
+                onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
+                className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+              >
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Reasoning
+              </Toggle>
+              <Toggle
+                pressed={mode === 'search'}
+                onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
+                className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+              >
+                <Search className="h-3 w-3 mr-1" />
+                Search
+              </Toggle>
+            </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/ai-features')}
-              className="h-7 px-2 text-xs"
-            >
-              <Sparkles className="h-3 w-3 mr-1" />
-              AI Features
-            </Button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <MemoryDialog />
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/ai-features')}
+                className="h-7 px-2 text-xs"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                AI Features
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Image previews */}
         {attachedImages.length > 0 && (
