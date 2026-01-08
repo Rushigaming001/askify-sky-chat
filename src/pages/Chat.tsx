@@ -10,13 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { callAI } from '@/services/chatService';
 import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyMessageLimit } from '@/hooks/useDailyMessageLimit';
 import { useUserRestrictions } from '@/hooks/useUserRestrictions';
-import { Loader2, Lock, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, MoreHorizontal, X } from 'lucide-react';
+import { Loader2, Lock, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, Menu, X, Calculator, Video, Film, Box, Clapperboard, MoreHorizontal } from 'lucide-react';
 import { AskifyLogo } from '@/components/AskifyLogo';
+import { MathSolver } from '@/components/MathSolver';
+import { LiveVideoCall } from '@/components/LiveVideoCall';
+import { VideoGenerator } from '@/components/VideoGenerator';
+import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
+import CapCutPro from '@/components/CapCutPro';
 
 const Chat = () => {
   const { user, session, isLoading: authLoading } = useAuth();
@@ -514,7 +520,7 @@ const Chat = () => {
           className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-110"
           size="icon"
         >
-          {showFeaturesMenu ? <X className="h-5 w-5" /> : <MoreHorizontal className="h-5 w-5" />}
+          {showFeaturesMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
@@ -525,8 +531,117 @@ const Chat = () => {
             className="fixed inset-0 bg-background/50 backdrop-blur-sm z-40"
             onClick={() => setShowFeaturesMenu(false)}
           />
-          <div className="fixed bottom-40 right-4 z-50 bg-background border border-border rounded-xl shadow-2xl p-3 w-56 animate-scale-in">
+          <div className="fixed bottom-40 right-4 z-50 bg-background border border-border rounded-xl shadow-2xl p-3 w-60 animate-scale-in">
+            {/* AI Tools Section */}
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+              AI Tools
+            </div>
+            <div className="space-y-1 mb-3">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-sm"
+                    disabled={restrictions.math_solver_disabled}
+                  >
+                    <Calculator className="h-4 w-4 text-blue-500" />
+                    Math Solver
+                  </Button>
+                </DialogTrigger>
+                {!restrictions.math_solver_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Math Solver</DialogTitle>
+                    </DialogHeader>
+                    <MathSolver />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-sm"
+                    disabled={restrictions.live_video_call_disabled}
+                  >
+                    <Video className="h-4 w-4 text-green-500" />
+                    Live Video
+                  </Button>
+                </DialogTrigger>
+                {!restrictions.live_video_call_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Live Video Call with AI</DialogTitle>
+                    </DialogHeader>
+                    <LiveVideoCall />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-sm"
+                    disabled={restrictions.video_generation_disabled}
+                  >
+                    <Film className="h-4 w-4 text-purple-500" />
+                    Video Gen
+                  </Button>
+                </DialogTrigger>
+                {!restrictions.video_generation_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>AI Video Generator</DialogTitle>
+                    </DialogHeader>
+                    <VideoGenerator />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-sm"
+                    disabled={restrictions.minecraft_plugin_disabled}
+                  >
+                    <Box className="h-4 w-4 text-orange-500" />
+                    Minecraft
+                  </Button>
+                </DialogTrigger>
+                {!restrictions.minecraft_plugin_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Minecraft Creator Studio</DialogTitle>
+                    </DialogHeader>
+                    <MinecraftPluginMaker />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-sm"
+                  >
+                    <Clapperboard className="h-4 w-4 text-pink-500" />
+                    CapCut
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+                  </DialogHeader>
+                  <CapCutPro />
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            {/* Features Section */}
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2 border-t pt-2">
               Features
             </div>
             <div className="space-y-1">
