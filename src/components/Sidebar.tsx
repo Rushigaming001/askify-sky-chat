@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play, BookOpen, Crown, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play, BookOpen, Crown, PanelLeftClose, PanelLeft, Calculator, Video, Film, Box, Clapperboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,6 +14,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo.png';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { MathSolver } from '@/components/MathSolver';
+import { LiveVideoCall } from '@/components/LiveVideoCall';
+import { VideoGenerator } from '@/components/VideoGenerator';
+import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
+import CapCutPro from '@/components/CapCutPro';
+import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,11 +35,24 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isInstallable, installPWA, isInstalled } = usePWAInstall();
+  const { restrictions } = useUserRestrictions();
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [unreadDMCount, setUnreadDMCount] = useState(0);
+
+  const handleToolClick = (toolName: string, restrictionKey: keyof typeof restrictions) => {
+    if (restrictions[restrictionKey]) {
+      toast({
+        title: 'Access Restricted',
+        description: `You don't have access to ${toolName}. Contact an admin for assistance.`,
+        variant: 'destructive'
+      });
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     checkAdminStatus();
@@ -363,6 +382,115 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
           <div className="border-t border-border p-2 space-y-1">
             {collapsed ? (
               <>
+                {/* AI Tools - Collapsed */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="w-full">
+                      <Menu className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Math Solver', 'math_solver_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Calculator className="h-4 w-4 mr-2" />
+                          Math
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.math_solver_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Math Solver</DialogTitle>
+                          </DialogHeader>
+                          <MathSolver />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Live Video', 'live_video_call_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Video className="h-4 w-4 mr-2" />
+                          Live Video
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.live_video_call_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Live Video Call with AI</DialogTitle>
+                          </DialogHeader>
+                          <LiveVideoCall />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Video Generator', 'video_generation_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Film className="h-4 w-4 mr-2" />
+                          Video Gen
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.video_generation_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>AI Video Generator</DialogTitle>
+                          </DialogHeader>
+                          <VideoGenerator />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Minecraft Plugin Maker', 'minecraft_plugin_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Box className="h-4 w-4 mr-2" />
+                          Minecraft
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.minecraft_plugin_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Minecraft Creator Studio</DialogTitle>
+                          </DialogHeader>
+                          <MinecraftPluginMaker />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem>
+                          <Clapperboard className="h-4 w-4 mr-2" />
+                          CapCut
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+                        </DialogHeader>
+                        <CapCutPro />
+                      </DialogContent>
+                    </Dialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -460,6 +588,116 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
               </>
             ) : (
               <>
+                {/* AI Tools Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start hover:bg-accent transition-all duration-200" size="sm">
+                      <Menu className="h-4 w-4 mr-2" />
+                      AI Tools
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Math Solver', 'math_solver_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Calculator className="h-4 w-4 mr-2" />
+                          Math
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.math_solver_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Math Solver</DialogTitle>
+                          </DialogHeader>
+                          <MathSolver />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Live Video', 'live_video_call_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Video className="h-4 w-4 mr-2" />
+                          Live Video
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.live_video_call_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Live Video Call with AI</DialogTitle>
+                          </DialogHeader>
+                          <LiveVideoCall />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Video Generator', 'video_generation_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Film className="h-4 w-4 mr-2" />
+                          Video Gen
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.video_generation_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>AI Video Generator</DialogTitle>
+                          </DialogHeader>
+                          <VideoGenerator />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => {
+                          if (!handleToolClick('Minecraft Plugin Maker', 'minecraft_plugin_disabled')) {
+                            e.preventDefault();
+                          }
+                        }}>
+                          <Box className="h-4 w-4 mr-2" />
+                          Minecraft
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      {!restrictions.minecraft_plugin_disabled && (
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Minecraft Creator Studio</DialogTitle>
+                          </DialogHeader>
+                          <MinecraftPluginMaker />
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem>
+                          <Clapperboard className="h-4 w-4 mr-2" />
+                          CapCut
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+                        </DialogHeader>
+                        <CapCutPro />
+                      </DialogContent>
+                    </Dialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start hover:bg-accent transition-all duration-200" 
@@ -686,6 +924,116 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
         </ScrollArea>
 
         <div className="border-t border-border p-2 space-y-1 animate-fade-in">
+          {/* AI Tools Menu for Mobile */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" size="sm">
+                <Menu className="h-4 w-4 mr-2" />
+                AI Tools
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" className="w-48">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => {
+                    if (!handleToolClick('Math Solver', 'math_solver_disabled')) {
+                      e.preventDefault();
+                    }
+                  }}>
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Math
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                {!restrictions.math_solver_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Math Solver</DialogTitle>
+                    </DialogHeader>
+                    <MathSolver />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => {
+                    if (!handleToolClick('Live Video', 'live_video_call_disabled')) {
+                      e.preventDefault();
+                    }
+                  }}>
+                    <Video className="h-4 w-4 mr-2" />
+                    Live Video
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                {!restrictions.live_video_call_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Live Video Call with AI</DialogTitle>
+                    </DialogHeader>
+                    <LiveVideoCall />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => {
+                    if (!handleToolClick('Video Generator', 'video_generation_disabled')) {
+                      e.preventDefault();
+                    }
+                  }}>
+                    <Film className="h-4 w-4 mr-2" />
+                    Video Gen
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                {!restrictions.video_generation_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>AI Video Generator</DialogTitle>
+                    </DialogHeader>
+                    <VideoGenerator />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => {
+                    if (!handleToolClick('Minecraft Plugin Maker', 'minecraft_plugin_disabled')) {
+                      e.preventDefault();
+                    }
+                  }}>
+                    <Box className="h-4 w-4 mr-2" />
+                    Minecraft
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                {!restrictions.minecraft_plugin_disabled && (
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Minecraft Creator Studio</DialogTitle>
+                    </DialogHeader>
+                    <MinecraftPluginMaker />
+                  </DialogContent>
+                )}
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem>
+                    <Clapperboard className="h-4 w-4 mr-2" />
+                    CapCut
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+                  </DialogHeader>
+                  <CapCutPro />
+                </DialogContent>
+              </Dialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button 
             variant="ghost" 
             className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 

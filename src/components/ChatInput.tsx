@@ -1,20 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUp, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X, Calculator, Video, Film, Box, Clapperboard } from 'lucide-react';
+import { ArrowUp, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { MathSolver } from '@/components/MathSolver';
-import { LiveVideoCall } from '@/components/LiveVideoCall';
-import { VideoGenerator } from '@/components/VideoGenerator';
-import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
-import CapCutPro from '@/components/CapCutPro';
 import { MemoryDialog } from '@/components/MemoryDialog';
-import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 
 interface ChatInputProps {
   onSendMessage: (message: string, images?: string[]) => void;
@@ -33,9 +26,11 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { restrictions } = useUserRestrictions();
 
   const MAX_IMAGES = 100;
+
+  // Show mode toggles only when there's a message typed
+  const showModeToggles = message.trim().length > 0 || attachedImages.length > 0;
 
   // Handle Ctrl+V paste for images
   useEffect(() => {
@@ -146,65 +141,55 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
     e.target.value = '';
   };
 
-  const handleToolClick = (toolName: string, restrictionKey: keyof typeof restrictions) => {
-    if (restrictions[restrictionKey]) {
-      toast({
-        title: 'Access Restricted',
-        description: `You don't have access to ${toolName}. Contact an admin for assistance.`,
-        variant: 'destructive'
-      });
-      return false;
-    }
-    return true;
-  };
-
   return (
     <div className={`${centered ? '' : 'border-t border-border'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
       <div className={`max-w-3xl mx-auto ${centered ? 'px-4' : 'p-3 sm:p-4'} space-y-3`}>
         
-        {/* Mode toggles row - DeepThink, Reasoning, Search + Memory & AI Features on right */}
-        <div className="flex items-center justify-between gap-1 sm:gap-2">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Toggle
-              pressed={mode === 'deepthink'}
-              onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-            >
-              <Brain className="h-3 w-3 mr-1" />
-              DeepThink
-            </Toggle>
-            <Toggle
-              pressed={mode === 'reasoning'}
-              onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-            >
-              <Lightbulb className="h-3 w-3 mr-1" />
-              Reasoning
-            </Toggle>
-            <Toggle
-              pressed={mode === 'search'}
-              onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-            >
-              <Search className="h-3 w-3 mr-1" />
-              Search
-            </Toggle>
-          </div>
-          
-          <div className="flex items-center gap-1 sm:gap-2">
-            <MemoryDialog />
+        {/* Mode toggles row - Only show when message is typed */}
+        {showModeToggles && (
+          <div className="flex items-center justify-between gap-1 sm:gap-2 animate-fade-in">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Toggle
+                pressed={mode === 'deepthink'}
+                onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
+                className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+              >
+                <Brain className="h-3 w-3 mr-1" />
+                DeepThink
+              </Toggle>
+              <Toggle
+                pressed={mode === 'reasoning'}
+                onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
+                className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+              >
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Reasoning
+              </Toggle>
+              <Toggle
+                pressed={mode === 'search'}
+                onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
+                className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+              >
+                <Search className="h-3 w-3 mr-1" />
+                Search
+              </Toggle>
+            </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/ai-features')}
-              className="h-7 px-2 text-xs"
-            >
-              <Sparkles className="h-3 w-3 mr-1" />
-              AI Features
-            </Button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <MemoryDialog />
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/ai-features')}
+                className="h-7 px-2 text-xs"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                AI Features
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Image previews */}
         {attachedImages.length > 0 && (
@@ -295,128 +280,6 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
           >
             <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-        </div>
-
-        {/* AI Tools Row - Bottom left horizontal (Math, Live Video, Video Gen, Minecraft, CapCut) */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs gap-1"
-                onClick={(e) => {
-                  if (!handleToolClick('Math Solver', 'math_solver_disabled')) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <Calculator className="h-3 w-3" />
-                Math
-              </Button>
-            </DialogTrigger>
-            {!restrictions.math_solver_disabled && (
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Math Solver</DialogTitle>
-                </DialogHeader>
-                <MathSolver />
-              </DialogContent>
-            )}
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs gap-1"
-                onClick={(e) => {
-                  if (!handleToolClick('Live Video', 'live_video_call_disabled')) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <Video className="h-3 w-3" />
-                Live Video
-              </Button>
-            </DialogTrigger>
-            {!restrictions.live_video_call_disabled && (
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Live Video Call with AI</DialogTitle>
-                </DialogHeader>
-                <LiveVideoCall />
-              </DialogContent>
-            )}
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs gap-1"
-                onClick={(e) => {
-                  if (!handleToolClick('Video Generator', 'video_generation_disabled')) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <Film className="h-3 w-3" />
-                Video Gen
-              </Button>
-            </DialogTrigger>
-            {!restrictions.video_generation_disabled && (
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>AI Video Generator</DialogTitle>
-                </DialogHeader>
-                <VideoGenerator />
-              </DialogContent>
-            )}
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs gap-1"
-                onClick={(e) => {
-                  if (!handleToolClick('Minecraft Plugin Maker', 'minecraft_plugin_disabled')) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <Box className="h-3 w-3" />
-                Minecraft
-              </Button>
-            </DialogTrigger>
-            {!restrictions.minecraft_plugin_disabled && (
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Minecraft Creator Studio</DialogTitle>
-                </DialogHeader>
-                <MinecraftPluginMaker />
-              </DialogContent>
-            )}
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                <Clapperboard className="h-3 w-3" />
-                CapCut
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>CapCut Pro Video Editor</DialogTitle>
-              </DialogHeader>
-              <CapCutPro />
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
     </div>
