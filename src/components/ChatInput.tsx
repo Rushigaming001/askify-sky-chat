@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUp, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X, Calculator, Video, Film, Box, Clapperboard, Menu } from 'lucide-react';
+import { ArrowUp, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X, Calculator, Video, Film, Box, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
@@ -162,177 +162,48 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
     <div className={`${centered ? '' : 'border-t border-border'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
       <div className={`max-w-3xl mx-auto ${centered ? 'px-4' : 'p-3 sm:p-4'} space-y-3`}>
         
-        {/* AI Tools Row - Fixed at bottom left (Math, Live Video, Video Gen, Minecraft, CapCut) */}
-        <div className="fixed bottom-20 left-4 z-50 hidden lg:block">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-full shadow-lg">
-                <Menu className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent side="top" align="start" className="w-auto p-2">
-              <div className="flex flex-col gap-1">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="justify-start gap-2"
-                      onClick={(e) => {
-                        if (!handleToolClick('Math Solver', 'math_solver_disabled')) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <Calculator className="h-4 w-4" />
-                      Math
-                    </Button>
-                  </DialogTrigger>
-                  {!restrictions.math_solver_disabled && (
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Math Solver</DialogTitle>
-                      </DialogHeader>
-                      <MathSolver />
-                    </DialogContent>
-                  )}
-                </Dialog>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="justify-start gap-2"
-                      onClick={(e) => {
-                        if (!handleToolClick('Live Video', 'live_video_call_disabled')) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <Video className="h-4 w-4" />
-                      Live Video
-                    </Button>
-                  </DialogTrigger>
-                  {!restrictions.live_video_call_disabled && (
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Live Video Call with AI</DialogTitle>
-                      </DialogHeader>
-                      <LiveVideoCall />
-                    </DialogContent>
-                  )}
-                </Dialog>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="justify-start gap-2"
-                      onClick={(e) => {
-                        if (!handleToolClick('Video Generator', 'video_generation_disabled')) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <Film className="h-4 w-4" />
-                      Video Gen
-                    </Button>
-                  </DialogTrigger>
-                  {!restrictions.video_generation_disabled && (
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>AI Video Generator</DialogTitle>
-                      </DialogHeader>
-                      <VideoGenerator />
-                    </DialogContent>
-                  )}
-                </Dialog>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="justify-start gap-2"
-                      onClick={(e) => {
-                        if (!handleToolClick('Minecraft Plugin Maker', 'minecraft_plugin_disabled')) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <Box className="h-4 w-4" />
-                      Minecraft
-                    </Button>
-                  </DialogTrigger>
-                  {!restrictions.minecraft_plugin_disabled && (
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Minecraft Creator Studio</DialogTitle>
-                      </DialogHeader>
-                      <MinecraftPluginMaker />
-                    </DialogContent>
-                  )}
-                </Dialog>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="justify-start gap-2">
-                      <Clapperboard className="h-4 w-4" />
-                      CapCut
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>CapCut Pro Video Editor</DialogTitle>
-                    </DialogHeader>
-                    <CapCutPro />
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Mode toggles row - DeepThink, Reasoning, Search, Memory, AI Features */}
-        <div className="flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
-          <Toggle
-            pressed={mode === 'deepthink'}
-            onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-          >
-            <Brain className="h-3 w-3 mr-1" />
-            DeepThink
-          </Toggle>
-          <Toggle
-            pressed={mode === 'reasoning'}
-            onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-          >
-            <Lightbulb className="h-3 w-3 mr-1" />
-            Reasoning
-          </Toggle>
-          <Toggle
-            pressed={mode === 'search'}
-            onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-          >
-            <Search className="h-3 w-3 mr-1" />
-            Search
-          </Toggle>
+        {/* Mode toggles row - DeepThink, Reasoning, Search + Memory & AI Features on right */}
+        <div className="flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Toggle
+              pressed={mode === 'deepthink'}
+              onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+            >
+              <Brain className="h-3 w-3 mr-1" />
+              DeepThink
+            </Toggle>
+            <Toggle
+              pressed={mode === 'reasoning'}
+              onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+            >
+              <Lightbulb className="h-3 w-3 mr-1" />
+              Reasoning
+            </Toggle>
+            <Toggle
+              pressed={mode === 'search'}
+              onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+            >
+              <Search className="h-3 w-3 mr-1" />
+              Search
+            </Toggle>
+          </div>
           
-          <MemoryDialog />
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/ai-features')}
-            className="h-7 px-2 text-xs"
-          >
-            <Sparkles className="h-3 w-3 mr-1" />
-            AI Features
-          </Button>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <MemoryDialog />
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/ai-features')}
+              className="h-7 px-2 text-xs"
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              AI Features
+            </Button>
+          </div>
         </div>
 
         {/* Image previews */}
@@ -426,8 +297,8 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
           </Button>
         </div>
 
-        {/* Mobile AI Tools - show in bottom bar on mobile */}
-        <div className="flex items-center justify-center gap-1 flex-wrap lg:hidden">
+        {/* AI Tools Row - Bottom left horizontal (Math, Live Video, Video Gen, Minecraft, CapCut) */}
+        <div className="flex items-center gap-1 sm:gap-2">
           <Dialog>
             <DialogTrigger asChild>
               <Button 
@@ -519,7 +390,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
                 }}
               >
                 <Box className="h-3 w-3" />
-                MC
+                Minecraft
               </Button>
             </DialogTrigger>
             {!restrictions.minecraft_plugin_disabled && (
