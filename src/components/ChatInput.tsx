@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X, Calculator, Video, Film, Box, Clapperboard } from 'lucide-react';
+import { ArrowUp, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X, Calculator, Video, Film, Box, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
@@ -147,128 +147,126 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
   return (
     <div className={`${centered ? '' : 'border-t border-border'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
       <div className={`max-w-3xl mx-auto ${centered ? 'px-4' : 'p-3 sm:p-4'} space-y-3`}>
-        {/* Mode toggles - show in both centered and non-centered mode */}
-        <div className="flex items-center justify-center gap-1 sm:gap-2 flex-wrap overflow-x-auto pb-1">
-          <Toggle
-            pressed={mode === 'deepthink'}
-            onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-          >
-            <Brain className="h-3 w-3 mr-1" />
-            DeepThink
-          </Toggle>
-          <Toggle
-            pressed={mode === 'reasoning'}
-            onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-          >
-            <Lightbulb className="h-3 w-3 mr-1" />
-            Reasoning
-          </Toggle>
-          <Toggle
-            pressed={mode === 'search'}
-            onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
-          >
-            <Search className="h-3 w-3 mr-1" />
-            Search
-          </Toggle>
+        {/* Mode toggles - only show when typing and not in centered mode */}
+        {!centered && message.trim().length > 0 && (
+          <div className="flex items-center justify-center gap-1 sm:gap-2 flex-wrap overflow-x-auto pb-1">
+            <Toggle
+              pressed={mode === 'deepthink'}
+              onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+            >
+              <Brain className="h-3 w-3 mr-1" />
+              DeepThink
+            </Toggle>
+            <Toggle
+              pressed={mode === 'reasoning'}
+              onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+            >
+              <Lightbulb className="h-3 w-3 mr-1" />
+              Reasoning
+            </Toggle>
+            <Toggle
+              pressed={mode === 'search'}
+              onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
+            >
+              <Search className="h-3 w-3 mr-1" />
+              Search
+            </Toggle>
 
-          {!centered && (
-            <>
-              <div className="h-4 w-px bg-border mx-1" />
+            <div className="h-4 w-px bg-border mx-1" />
 
-              {/* AI Tools */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                    <Calculator className="h-3 w-3" />
-                    <span className="hidden sm:inline">Math</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Math Solver</DialogTitle>
-                  </DialogHeader>
-                  <MathSolver />
-                </DialogContent>
-              </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                    <Video className="h-3 w-3" />
-                    <span className="hidden sm:inline">Live</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Live Video Call with AI</DialogTitle>
-                  </DialogHeader>
-                  <LiveVideoCall />
-                </DialogContent>
-              </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                    <Film className="h-3 w-3" />
-                    <span className="hidden sm:inline">Video</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>AI Video Generator</DialogTitle>
-                  </DialogHeader>
-                  <VideoGenerator />
-                </DialogContent>
-              </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                    <Box className="h-3 w-3" />
-                    <span className="hidden sm:inline">MC</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Minecraft Creator Studio</DialogTitle>
-                  </DialogHeader>
-                  <MinecraftPluginMaker />
-                </DialogContent>
-              </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                    <Clapperboard className="h-3 w-3" />
-                    <span className="hidden sm:inline">CapCut</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>CapCut Pro Video Editor</DialogTitle>
-                  </DialogHeader>
-                  <CapCutPro />
-                </DialogContent>
-              </Dialog>
-
-              <div className="ml-auto flex items-center gap-1">
-                <MemoryDialog />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/ai-features')}
-                  className="h-7 px-2 text-xs"
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">AI</span>
+            {/* AI Tools */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Calculator className="h-3 w-3" />
+                  <span className="hidden sm:inline">Math</span>
                 </Button>
-              </div>
-            </>
-          )}
-        </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Math Solver</DialogTitle>
+                </DialogHeader>
+                <MathSolver />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Video className="h-3 w-3" />
+                  <span className="hidden sm:inline">Live</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Live Video Call with AI</DialogTitle>
+                </DialogHeader>
+                <LiveVideoCall />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Film className="h-3 w-3" />
+                  <span className="hidden sm:inline">Video</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>AI Video Generator</DialogTitle>
+                </DialogHeader>
+                <VideoGenerator />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Box className="h-3 w-3" />
+                  <span className="hidden sm:inline">MC</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Minecraft Creator Studio</DialogTitle>
+                </DialogHeader>
+                <MinecraftPluginMaker />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Clapperboard className="h-3 w-3" />
+                  <span className="hidden sm:inline">CapCut</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+                </DialogHeader>
+                <CapCutPro />
+              </DialogContent>
+            </Dialog>
+
+            <div className="ml-auto flex items-center gap-1">
+              <MemoryDialog />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/ai-features')}
+                className="h-7 px-2 text-xs"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">AI</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Image previews */}
         {attachedImages.length > 0 && (
@@ -357,7 +355,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
             size="icon"
             className="flex-shrink-0 rounded-full h-9 w-9 sm:h-10 sm:w-10 hover:scale-110 transition-all duration-200 disabled:hover:scale-100"
           >
-            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+            <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </div>
