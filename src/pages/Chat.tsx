@@ -448,6 +448,9 @@ const Chat = () => {
           {showWelcome ? (
             <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 animate-fade-in">
               <div className="flex-1 flex flex-col items-center justify-center max-w-2xl w-full">
+                <p className="text-muted-foreground text-sm sm:text-base mb-4 text-center">
+                  What can I help you with today?
+                </p>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium mb-8 text-foreground text-center animate-scale-in">
                   Ready when you are.
                 </h1>

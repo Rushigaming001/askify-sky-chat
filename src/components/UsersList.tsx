@@ -15,6 +15,7 @@ interface User {
   status?: 'online' | 'offline' | 'away';
   friendship_status?: 'none' | 'pending' | 'accepted' | 'blocked';
   friendship_id?: string;
+  is_request_receiver?: boolean;
 }
 
 interface UsersListProps {
@@ -124,17 +125,21 @@ export function UsersList({ onOpenDM }: UsersListProps) {
 
       let friendshipStatus: 'none' | 'pending' | 'accepted' | 'blocked' = 'none';
       let friendshipId: string | undefined;
+      let isRequestReceiver = false; // Track if current user received the request
 
       if (friendship) {
         friendshipStatus = friendship.status as any;
         friendshipId = friendship.id;
+        // If current user is friend_id (receiver) and status is pending, they can accept
+        isRequestReceiver = friendship.friend_id === user.id && friendship.status === 'pending';
       }
 
       return {
         ...profile,
         status: (presence?.status as 'online' | 'offline' | 'away') || 'offline',
         friendship_status: friendshipStatus,
-        friendship_id: friendshipId
+        friendship_id: friendshipId,
+        is_request_receiver: isRequestReceiver
       };
     });
 
@@ -271,7 +276,7 @@ export function UsersList({ onOpenDM }: UsersListProps) {
                 <div
                   className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
                     u.status === 'online'
-                      ? 'bg-green-500'
+                      ? 'bg-blue-500'
                       : u.status === 'away'
                       ? 'bg-yellow-500'
                       : 'bg-gray-400'
@@ -299,16 +304,18 @@ export function UsersList({ onOpenDM }: UsersListProps) {
                 {u.friendship_status === 'pending' && (
                   <>
                     <Badge variant="secondary" className="text-xs">
-                      Pending
+                      {u.is_request_receiver ? 'Incoming' : 'Sent'}
                     </Badge>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => u.friendship_id && acceptFriendRequest(u.friendship_id)}
-                      title="Accept friend request"
-                    >
-                      <UserPlus className="h-4 w-4 text-green-500" />
-                    </Button>
+                    {u.is_request_receiver && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => u.friendship_id && acceptFriendRequest(u.friendship_id)}
+                        title="Accept friend request"
+                      >
+                        <UserPlus className="h-4 w-4 text-green-500" />
+                      </Button>
+                    )}
                   </>
                 )}
 

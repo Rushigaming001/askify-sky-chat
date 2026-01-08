@@ -33,6 +33,48 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
   const [newTitle, setNewTitle] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [unreadDMCount, setUnreadDMCount] = useState(0);
+
+  useEffect(() => {
+    checkAdminStatus();
+    fetchUserRole();
+    fetchUnreadDMCount();
+    
+    // Subscribe to DM updates
+    if (user) {
+      const dmChannel = supabase
+        .channel('sidebar-dm-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            filter: `receiver_id=eq.${user.id}`
+          },
+          () => {
+            fetchUnreadDMCount();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(dmChannel);
+      };
+    }
+  }, [user]);
+
+  const fetchUnreadDMCount = async () => {
+    if (!user) return;
+    
+    const { count } = await supabase
+      .from('direct_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('receiver_id', user.id)
+      .is('read_at', null);
+      
+    setUnreadDMCount(count || 0);
+  };
 
   useEffect(() => {
     checkAdminStatus();
@@ -178,7 +220,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
   if (alwaysOpen) {
     return (
       <TooltipProvider>
-        <aside className={`hidden lg:flex fixed left-0 top-0 h-full ${collapsed ? 'w-16' : 'w-72'} bg-card border-r border-border z-40 flex-col shadow-lg transition-all duration-300`}>
+        <aside className={`hidden lg:flex fixed left-0 top-0 h-full ${collapsed ? 'w-16' : 'w-72'} bg-sidebar border-r border-sidebar-border z-40 flex-col shadow-lg transition-all duration-300`}>
           <div className="p-3 border-b border-border flex items-center justify-between">
             <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
               <img src={logo} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
@@ -341,12 +383,19 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                       variant="ghost" 
                       size="icon"
                       onClick={() => navigate('/public-chat')}
-                      className="w-full"
+                      className="w-full relative"
                     >
                       <MessageCircle className="h-4 w-4" />
+                      {unreadDMCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-[10px] font-bold text-white flex items-center justify-center">
+                          {unreadDMCount > 9 ? '9+' : unreadDMCount}
+                        </span>
+                      )}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">Public Chat</TooltipContent>
+                  <TooltipContent side="right">
+                    Public Chat {unreadDMCount > 0 ? `(${unreadDMCount} new)` : ''}
+                  </TooltipContent>
                 </Tooltip>
                 
                 <Tooltip>
@@ -423,12 +472,17 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                 
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start hover:bg-accent transition-all duration-200" 
+                  className="w-full justify-start hover:bg-accent transition-all duration-200 relative" 
                   size="sm"
                   onClick={() => navigate('/public-chat')}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Public Chat
+                  {unreadDMCount > 0 && (
+                    <Badge className="ml-auto bg-blue-500 text-white text-[10px] px-1.5 py-0 h-4">
+                      {unreadDMCount > 99 ? '99+' : unreadDMCount}
+                    </Badge>
+                  )}
                 </Button>
                 
                 <Button 
@@ -519,7 +573,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
         className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 animate-fade-in lg:hidden" 
         onClick={onToggle} 
       />
-      <aside className="fixed left-0 top-0 h-full w-64 md:w-72 bg-card border-r border-border z-50 flex flex-col shadow-2xl animate-slide-in-left lg:hidden">
+      <aside className="fixed left-0 top-0 h-full w-64 md:w-72 bg-sidebar border-r border-sidebar-border z-50 flex flex-col shadow-2xl animate-slide-in-left lg:hidden">
         <div className="p-4 border-b border-border flex items-center justify-between backdrop-blur">
           <div className="flex items-center gap-2 animate-scale-in">
             <img src={logo} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />

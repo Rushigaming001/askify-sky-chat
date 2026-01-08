@@ -124,33 +124,59 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const content = message.content.toLowerCase().trim();
         
         // Intelligent title generation based on message content
-        if (content.includes('hello') || content.includes('hi ') || content === 'hi' || content.includes('hey')) {
-          updatedTitle = 'Greetings Exchange';
-        } else if (content.includes('help') || content.includes('how to') || content.includes('assist')) {
-          updatedTitle = 'Help Request';
-        } else if (content.includes('code') || content.includes('program') || content.includes('debug')) {
-          updatedTitle = 'Coding Assistance';
-        } else if (content.includes('write') || content.includes('create') || content.includes('generate')) {
-          updatedTitle = 'Content Creation';
-        } else if (content.includes('explain') || content.includes('what is') || content.includes('tell me about')) {
-          updatedTitle = 'Information Query';
-        } else if (content.includes('solve') || content.includes('calculate') || content.includes('math')) {
-          updatedTitle = 'Problem Solving';
-        } else if (content.includes('translate') || content.includes('language')) {
-          updatedTitle = 'Translation Request';
-        } else if (content.includes('design') || content.includes('ui') || content.includes('layout')) {
-          updatedTitle = 'Design Discussion';
+        if (content.includes('hello') || content.includes('hi ') || content === 'hi' || content.includes('hey') || content.includes('greetings')) {
+          updatedTitle = '👋 Greeting Chat';
+        } else if (content.includes('help me') || content.includes('how do i') || content.includes('can you help')) {
+          updatedTitle = '❓ Help Request';
+        } else if (content.includes('code') || content.includes('programming') || content.includes('function') || content.includes('debug') || content.includes('javascript') || content.includes('python') || content.includes('react')) {
+          updatedTitle = '💻 Coding Session';
+        } else if (content.includes('write') && (content.includes('essay') || content.includes('story') || content.includes('article'))) {
+          updatedTitle = '✍️ Writing Project';
+        } else if (content.includes('email') || content.includes('letter')) {
+          updatedTitle = '📧 Email Draft';
+        } else if (content.includes('explain') || content.includes('what is') || content.includes('tell me about') || content.includes('define')) {
+          updatedTitle = '📚 Learning Query';
+        } else if (content.includes('solve') || content.includes('calculate') || content.includes('math') || content.includes('equation')) {
+          updatedTitle = '🧮 Math Problem';
+        } else if (content.includes('translate') || content.includes('language') || content.includes('spanish') || content.includes('french') || content.includes('hindi')) {
+          updatedTitle = '🌐 Translation';
+        } else if (content.includes('recipe') || content.includes('cook') || content.includes('food')) {
+          updatedTitle = '🍳 Recipe Help';
+        } else if (content.includes('travel') || content.includes('trip') || content.includes('vacation')) {
+          updatedTitle = '✈️ Travel Planning';
+        } else if (content.includes('business') || content.includes('startup') || content.includes('marketing')) {
+          updatedTitle = '💼 Business Ideas';
+        } else if (content.includes('health') || content.includes('fitness') || content.includes('exercise')) {
+          updatedTitle = '💪 Health & Fitness';
+        } else if (content.includes('game') || content.includes('minecraft') || content.includes('gaming')) {
+          updatedTitle = '🎮 Gaming Chat';
+        } else if (content.includes('image') || content.includes('picture') || content.includes('photo') || content.includes('draw')) {
+          updatedTitle = '🖼️ Image Request';
+        } else if (content.includes('video') || content.includes('youtube')) {
+          updatedTitle = '🎬 Video Topic';
+        } else if (content.includes('music') || content.includes('song') || content.includes('playlist')) {
+          updatedTitle = '🎵 Music Chat';
+        } else if (content.includes('summarize') || content.includes('summary') || content.includes('tldr')) {
+          updatedTitle = '📝 Summary Request';
+        } else if (content.includes('review') || content.includes('feedback')) {
+          updatedTitle = '⭐ Review Discussion';
+        } else if (content.includes('joke') || content.includes('funny') || content.includes('humor')) {
+          updatedTitle = '😄 Fun & Jokes';
         } else {
-          // Extract key words from the message for a meaningful title
-          const words = content.split(' ').filter(w => w.length > 3);
-          if (words.length > 0) {
-            const title = words.slice(0, 3).join(' ');
-            updatedTitle = title.charAt(0).toUpperCase() + title.slice(1);
-            if (updatedTitle.length > 30) {
-              updatedTitle = updatedTitle.slice(0, 30) + '...';
+          // Extract meaningful words for title
+          const stopWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'what', 'how', 'why', 'when', 'where', 'who', 'can', 'you', 'me', 'my', 'your', 'this', 'that', 'please', 'could', 'would', 'should', 'do', 'does', 'did', 'have', 'has', 'had', 'will', 'be', 'to', 'of', 'and', 'or', 'for', 'with', 'about', 'from', 'in', 'on', 'at', 'by', 'it', 'its', 'i', 'im', "i'm"];
+          const words = content.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+          
+          if (words.length >= 2) {
+            const titleWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1));
+            updatedTitle = titleWords.join(' ');
+            if (updatedTitle.length > 25) {
+              updatedTitle = updatedTitle.slice(0, 25) + '...';
             }
+          } else if (words.length === 1) {
+            updatedTitle = words[0].charAt(0).toUpperCase() + words[0].slice(1) + ' Chat';
           } else {
-            updatedTitle = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
+            updatedTitle = message.content.slice(0, 25) + (message.content.length > 25 ? '...' : '');
           }
         }
       }
