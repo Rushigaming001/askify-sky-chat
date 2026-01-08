@@ -1,12 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X } from 'lucide-react';
+import { Send, Paperclip, Smile, Brain, Search, Sparkles, Lightbulb, Camera, Plus, X, Calculator, Video, Film, Box, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { MathSolver } from '@/components/MathSolver';
+import { LiveVideoCall } from '@/components/LiveVideoCall';
+import { VideoGenerator } from '@/components/VideoGenerator';
+import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
+import CapCutPro from '@/components/CapCutPro';
+import { MemoryDialog } from '@/components/MemoryDialog';
 
 interface ChatInputProps {
   onSendMessage: (message: string, images?: string[]) => void;
@@ -140,45 +147,124 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
   return (
     <div className={`${centered ? '' : 'border-t border-border'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
       <div className={`max-w-3xl mx-auto ${centered ? 'px-4' : 'p-3 sm:p-4'} space-y-3`}>
-        {/* Mode toggles - only show when not centered */}
+        {/* Mode toggles and AI tools */}
         {!centered && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap overflow-x-auto pb-1">
             <Toggle
               pressed={mode === 'deepthink'}
               onPressedChange={(pressed) => onModeChange(pressed ? 'deepthink' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
             >
-              <Brain className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">DeepThink</span>
-              <span className="sm:hidden">Deep</span>
+              <Brain className="h-3 w-3 mr-1" />
+              Deep
             </Toggle>
             <Toggle
               pressed={mode === 'reasoning'}
               onPressedChange={(pressed) => onModeChange(pressed ? 'reasoning' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
             >
-              <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Reasoning</span>
-              <span className="sm:hidden">Reason</span>
+              <Lightbulb className="h-3 w-3 mr-1" />
+              Reason
             </Toggle>
             <Toggle
               pressed={mode === 'search'}
               onPressedChange={(pressed) => onModeChange(pressed ? 'search' : 'normal')}
-              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
+              className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs h-7 px-2 hover:scale-105 transition-all duration-200"
             >
-              <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <Search className="h-3 w-3 mr-1" />
               Search
             </Toggle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/ai-features')}
-              className="ml-auto text-xs sm:text-sm h-8 px-2 sm:px-3 hover:scale-105 transition-all duration-200"
-            >
-              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">AI Features</span>
-              <span className="sm:hidden">AI</span>
-            </Button>
+
+            <div className="h-4 w-px bg-border mx-1" />
+
+            {/* AI Tools */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Calculator className="h-3 w-3" />
+                  <span className="hidden sm:inline">Math</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Math Solver</DialogTitle>
+                </DialogHeader>
+                <MathSolver />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Video className="h-3 w-3" />
+                  <span className="hidden sm:inline">Live</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Live Video Call with AI</DialogTitle>
+                </DialogHeader>
+                <LiveVideoCall />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Film className="h-3 w-3" />
+                  <span className="hidden sm:inline">Video</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>AI Video Generator</DialogTitle>
+                </DialogHeader>
+                <VideoGenerator />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Box className="h-3 w-3" />
+                  <span className="hidden sm:inline">MC</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Minecraft Creator Studio</DialogTitle>
+                </DialogHeader>
+                <MinecraftPluginMaker />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Clapperboard className="h-3 w-3" />
+                  <span className="hidden sm:inline">CapCut</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>CapCut Pro Video Editor</DialogTitle>
+                </DialogHeader>
+                <CapCutPro />
+              </DialogContent>
+            </Dialog>
+
+            <div className="ml-auto flex items-center gap-1">
+              <MemoryDialog />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/ai-features')}
+                className="h-7 px-2 text-xs"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">AI</span>
+              </Button>
+            </div>
           </div>
         )}
 

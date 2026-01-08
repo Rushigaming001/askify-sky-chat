@@ -23,6 +23,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('grok');
   const [modelAccess, setModelAccess] = useState<Record<string, boolean>>({});
@@ -199,12 +200,18 @@ const Chat = () => {
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       {/* Desktop permanent sidebar */}
-      <Sidebar isOpen={true} onToggle={() => {}} alwaysOpen={true} />
+      <Sidebar 
+        isOpen={true} 
+        onToggle={() => {}} 
+        alwaysOpen={true} 
+        collapsed={sidebarCollapsed}
+        onCollapse={setSidebarCollapsed}
+      />
       
       {/* Mobile overlay sidebar */}
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className="flex-1 flex flex-col min-w-0 animate-fade-in lg:ml-72">
+      <div className={`flex-1 flex flex-col min-w-0 animate-fade-in transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-72'}`}>
         <header className="border-b border-border px-2 py-2 sm:px-3 sm:py-3 md:p-4 flex items-center justify-between gap-1 sm:gap-2 md:gap-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 relative z-50 animate-fade-in">
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">
             <Button 
