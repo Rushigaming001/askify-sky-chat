@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type AppRole = 'user' | 'admin' | 'moderator' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend';
+export type AppRole = 'user' | 'admin' | 'moderator' | 'owner' | 'ceo' | 'founder' | 'co_founder' | 'friend' | 'plus' | 'pro' | 'elite' | 'silver' | 'gold' | 'platinum' | 'basic' | 'premium' | 'vip';
 
 export interface ModelPermission {
   id: string;

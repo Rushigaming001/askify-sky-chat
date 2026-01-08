@@ -14,6 +14,7 @@ import { callAI } from '@/services/chatService';
 import { canAccessModel } from '@/services/modelPermissionService';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyMessageLimit } from '@/hooks/useDailyMessageLimit';
+import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 import { Loader2, Lock, AlertCircle, MessageCircle, Sparkles, Pencil, Gamepad2, Wind, BarChart3, Play, BookOpen, MoreHorizontal, X } from 'lucide-react';
 import { AskifyLogo } from '@/components/AskifyLogo';
 
@@ -30,6 +31,7 @@ const Chat = () => {
   const [showFeaturesMenu, setShowFeaturesMenu] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { used, remaining, total, canSend, loading: limitLoading, refresh: refreshLimit } = useDailyMessageLimit();
+  const { restrictions } = useUserRestrictions();
 
   useEffect(() => {
     if (authLoading) return;
@@ -107,6 +109,17 @@ const Chat = () => {
 
   const handleSendMessage = async (content: string, images?: string[]) => {
     if (!currentChat) return;
+
+    // Check if user is banned from AI chat
+    if (restrictions.ai_chat_disabled) {
+      toast({
+        title: '🚫 Access Restricted',
+        description: 'You have been restricted from using AI chat. Contact an admin for assistance.',
+        variant: 'destructive',
+        duration: 6000
+      });
+      return;
+    }
 
     // Check daily limit
     if (!canSend) {

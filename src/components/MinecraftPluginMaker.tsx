@@ -6,9 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Download, Package, Blocks, Box } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Download, Package, Blocks, Box, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRestrictions } from "@/hooks/useUserRestrictions";
 
 const MinecraftPluginMaker = () => {
   const [creationType, setCreationType] = useState<"plugin" | "mod" | "addon">("plugin");
@@ -23,6 +25,19 @@ const MinecraftPluginMaker = () => {
   const [downloadUrl, setDownloadUrl] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const { restrictions } = useUserRestrictions();
+
+  // Check if user is restricted from minecraft plugin maker
+  if (restrictions.minecraft_plugin_disabled) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          You have been restricted from using Minecraft Plugin Maker. Contact an admin for assistance.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   const handleGenerate = async () => {
     if (!pluginName || !description || !functionality) {

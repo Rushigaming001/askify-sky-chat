@@ -4,9 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Download, Video, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Download, Video, X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 
 export function VideoGenerator() {
   const [prompt, setPrompt] = useState('');
@@ -14,6 +16,19 @@ export function VideoGenerator() {
   const [loading, setLoading] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const { toast } = useToast();
+  const { restrictions } = useUserRestrictions();
+
+  // Check if user is restricted from video generation
+  if (restrictions.video_generation_disabled) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          You have been restricted from using video generation. Contact an admin for assistance.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
