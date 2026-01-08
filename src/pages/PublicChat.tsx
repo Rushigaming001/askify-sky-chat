@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield } from 'lucide-react';
@@ -15,6 +14,8 @@ import { PublicChatMusicPlayer } from '@/components/PublicChatMusicPlayer';
 import { UserModerationDialog } from '@/components/UserModerationDialog';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useUserRestrictions } from '@/hooks/useUserRestrictions';
+import { MentionInput } from '@/components/MentionInput';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -525,12 +526,20 @@ const PublicChat = () => {
   };
 
   const renderMessageContent = (content: string) => {
-    // Parse @mentions and highlight them
+    // Parse @mentions and highlight them with better visibility
     const parts = content.split(/(@\w+)/g);
     return parts.map((part, i) => {
       if (part.startsWith('@')) {
+        const isEveryone = part.toLowerCase() === '@everyone';
         return (
-          <span key={i} className="text-primary font-semibold">
+          <span 
+            key={i} 
+            className={`font-bold px-1 py-0.5 rounded ${
+              isEveryone 
+                ? 'bg-warning/30 text-warning-foreground' 
+                : 'bg-amber-500/30 text-amber-700 dark:text-amber-300'
+            }`}
+          >
             {part}
           </span>
         );
@@ -539,9 +548,54 @@ const PublicChat = () => {
     });
   };
 
+  // Role badge helper function
+  const getRoleBadgeStyle = (role: string) => {
+    const styles: Record<string, string> = {
+      owner: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30',
+      founder: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-amber-300 shadow-amber-500/30',
+      co_founder: 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-300 shadow-orange-500/30',
+      ceo: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300 shadow-purple-500/30',
+      admin: 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300 shadow-red-500/30',
+      moderator: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 shadow-orange-500/30',
+      friend: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-pink-300 shadow-pink-500/30',
+      vip: 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black border-yellow-200 shadow-yellow-500/40',
+      premium: 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-fuchsia-300 shadow-fuchsia-500/30',
+      platinum: 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-cyan-200 shadow-cyan-500/30',
+      gold: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30',
+      silver: 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-slate-200 shadow-slate-500/20',
+      elite: 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-violet-400 shadow-violet-500/30',
+      pro: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-300 shadow-blue-500/30',
+      plus: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-cyan-300 shadow-cyan-500/30',
+      basic: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300 shadow-emerald-500/30',
+    };
+    return styles[role] || 'bg-muted text-muted-foreground border-border';
+  };
+
+  const getRoleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      owner: '👑 OWNER',
+      founder: '⭐ FOUNDER',
+      co_founder: '✦ CO-FOUNDER',
+      ceo: '💎 CEO',
+      admin: '🛡️ ADMIN',
+      moderator: '⚔️ MOD',
+      friend: '💖 FRIEND',
+      vip: '✨ VIP',
+      premium: '💫 PREMIUM',
+      platinum: '🏆 PLATINUM',
+      gold: '🥇 GOLD',
+      silver: '🥈 SILVER',
+      elite: '🔥 ELITE',
+      pro: '⚡ PRO',
+      plus: '➕ PLUS',
+      basic: '✓ BASIC',
+    };
+    return labels[role] || role.toUpperCase();
+  };
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full relative">
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full relative bg-card shadow-lg rounded-none md:rounded-lg md:my-4 md:mx-4 border-0 md:border border-border">
         <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
@@ -647,51 +701,8 @@ const PublicChat = () => {
                           {isOwnMessage ? 'You' : (message.profiles?.name || 'Anonymous')}
                         </span>
                         {message.user_role && message.user_role !== 'user' && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border shadow-sm ${
-                            // Owner/Founder tier - Gold/Yellow prestigious
-                            message.user_role === 'owner' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30' :
-                            message.user_role === 'founder' ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-amber-300 shadow-amber-500/30' :
-                            message.user_role === 'co_founder' ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-300 shadow-orange-500/30' :
-                            message.user_role === 'ceo' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300 shadow-purple-500/30' :
-                            // Staff tier
-                            message.user_role === 'admin' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300 shadow-red-500/30' :
-                            message.user_role === 'moderator' ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 shadow-orange-500/30' :
-                            message.user_role === 'friend' ? 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-pink-300 shadow-pink-500/30' :
-                            // VIP Tier - Most premium looking
-                            message.user_role === 'vip' ? 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black border-yellow-200 shadow-yellow-500/40 animate-pulse' :
-                            // Premium tier
-                            message.user_role === 'premium' ? 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-fuchsia-300 shadow-fuchsia-500/30' :
-                            // Platinum tier - Silver-blue elegant
-                            message.user_role === 'platinum' ? 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-cyan-200 shadow-cyan-500/30' :
-                            // Gold tier
-                            message.user_role === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30' :
-                            // Silver tier
-                            message.user_role === 'silver' ? 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-slate-200 shadow-slate-500/20' :
-                            // Elite tier - Deep purple
-                            message.user_role === 'elite' ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-violet-400 shadow-violet-500/30' :
-                            // Pro tier - Blue professional
-                            message.user_role === 'pro' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-300 shadow-blue-500/30' :
-                            // Plus tier - Cyan fresh
-                            message.user_role === 'plus' ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-cyan-300 shadow-cyan-500/30' :
-                            // Basic tier - Green starter
-                            message.user_role === 'basic' ? 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300 shadow-emerald-500/30' :
-                            'bg-muted text-muted-foreground border-border'
-                          }`}>
-                            {message.user_role === 'co_founder' ? '✦ CO-FOUNDER' : 
-                             message.user_role === 'owner' ? '👑 OWNER' :
-                             message.user_role === 'founder' ? '⭐ FOUNDER' :
-                             message.user_role === 'ceo' ? '💎 CEO' :
-                             message.user_role === 'admin' ? '🛡️ ADMIN' :
-                             message.user_role === 'vip' ? '✨ VIP' :
-                             message.user_role === 'premium' ? '💫 PREMIUM' :
-                             message.user_role === 'platinum' ? '🏆 PLATINUM' :
-                             message.user_role === 'gold' ? '🥇 GOLD' :
-                             message.user_role === 'silver' ? '🥈 SILVER' :
-                             message.user_role === 'elite' ? '🔥 ELITE' :
-                             message.user_role === 'pro' ? '⚡ PRO' :
-                             message.user_role === 'plus' ? '➕ PLUS' :
-                             message.user_role === 'basic' ? '✓ BASIC' :
-                             message.user_role.toUpperCase()}
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border shadow-sm ${getRoleBadgeStyle(message.user_role)}`}>
+                            {getRoleLabel(message.user_role)}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground">
@@ -835,14 +846,16 @@ const PublicChat = () => {
             </div>
           )}
           <div className="mb-2 text-xs text-muted-foreground">
-            Tip: /play [song] to play music • /askify [question] for AI help • @username to mention
+            Tip: /play [song] to play music • /askify [question] for AI help • Type @ to mention users
           </div>
           <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
+            <MentionInput
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={setNewMessage}
+              onSubmit={handleSendMessage}
               placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message..."}
               disabled={isLoading}
+              profiles={allProfiles}
               className="flex-1"
             />
             <Button 

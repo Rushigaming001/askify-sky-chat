@@ -8,26 +8,27 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* New color scheme - Light blue theme */
+    --background: 213 60% 97%; /* #F5F9FF */
     --foreground: 220 14% 10%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%; /* #FFFFFF */
     --card-foreground: 220 14% 10%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 220 14% 10%;
 
-    --primary: 221 83% 53%;
+    --primary: 221 83% 53%; /* #2563EB */
     --primary-foreground: 0 0% 100%;
     --primary-glow: 221 100% 70%;
 
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 14% 30%;
 
-    --muted: 220 14% 94%;
+    --muted: 220 40% 96%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 220 14% 96%;
+    --accent: 220 40% 96%;
     --accent-foreground: 220 14% 30%;
 
     --success: 150 84% 40%;
@@ -39,14 +40,14 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 90%;
-    --input: 220 14% 90%;
+    --border: 220 60% 93%; /* #E5EDFF */
+    --input: 0 0% 100%; /* #FFFFFF */
     --ring: 221 83% 53%;
 
     --radius: 1rem;
 
     --chat-user-bg: 221 83% 53%;
-    --chat-ai-bg: 220 14% 96%;
+    --chat-ai-bg: 220 40% 96%;
     --sidebar-width: 280px;
     --sidebar-collapsed: 0px;
 
@@ -62,10 +63,14 @@ All colors MUST be HSL.
     --sidebar-foreground: 220 14% 20%;
     --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent: 220 40% 96%;
     --sidebar-accent-foreground: 220 14% 30%;
-    --sidebar-border: 220 14% 90%;
+    --sidebar-border: 220 60% 93%;
     --sidebar-ring: 221 83% 53%;
+
+    /* Mention highlight */
+    --mention-bg: 38 100% 50%;
+    --mention-text: 38 100% 30%;
 
     /* Gradient definitions */
     --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(250 91% 60%));
@@ -113,6 +118,10 @@ All colors MUST be HSL.
     --chat-user-bg: 221 83% 53%;
     --chat-ai-bg: 220 20% 12%;
     --sidebar-background: 220 20% 6%;
+
+    /* Mention highlight - dark mode */
+    --mention-bg: 38 100% 45%;
+    --mention-text: 38 100% 90%;
     
     /* Auth page vibrant colors - dark mode */
     --auth-gradient-1: 221 83% 58%;
@@ -310,6 +319,13 @@ All colors MUST be HSL.
   
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Mention highlight styling */
+  .mention-highlight {
+    @apply font-bold px-1 py-0.5 rounded;
+    background-color: hsl(var(--mention-bg) / 0.3);
+    color: hsl(var(--mention-text));
   }
 }
 
