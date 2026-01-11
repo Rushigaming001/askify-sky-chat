@@ -71,9 +71,32 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the JWT token and get user
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { userId, title, body, icon, data }: PushPayload = await req.json();
 
-    console.log(`Sending push notification to user: ${userId}`);
+    console.log(`User ${user.id} requesting push notification to user: ${userId}`);
     console.log(`Title: ${title}, Body: ${body}`);
 
     if (!userId || !title || !body) {
@@ -83,7 +106,22 @@ serve(async (req) => {
       );
     }
 
-    // Get user's push subscriptions
+    // Authorization check: Only allow sending to self OR if user is admin/owner
+    if (userId !== user.id) {
+      const { data: isAdminOrOwner } = await supabase.rpc('is_owner_or_admin', {
+        _user_id: user.id
+      });
+
+      if (!isAdminOrOwner) {
+        console.error(`User ${user.id} attempted to send notification to ${userId} without permission`);
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Cannot send notifications to other users' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Get user's push subscriptions (using service role to bypass RLS)
     const { data: subscriptions, error: fetchError } = await supabase
       .from('push_subscriptions')
       .select('*')
