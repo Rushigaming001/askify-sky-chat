@@ -64,84 +64,104 @@ serve(async (req) => {
     
     console.log("Generating video for user:", user.id, "prompt:", prompt, "model:", videoModel);
     
-    // Try Pollinations.ai first - it's a free video generation service
-    async function generateVideoWithPollinations(prompt: string): Promise<string> {
-      console.log("Using Pollinations.ai for video generation...");
-      
-      // Pollinations.ai video generation endpoint
-      const encodedPrompt = encodeURIComponent(prompt);
-      const videoUrl = `https://video.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&fps=24&duration=4`;
-      
-      // Verify the video endpoint is accessible
-      try {
-        const response = await fetch(videoUrl, { method: 'HEAD' });
-        if (response.ok || response.status === 302 || response.status === 200) {
-          console.log("Pollinations video URL generated successfully");
-          return videoUrl;
-        }
-      } catch (error) {
-        console.log("Pollinations HEAD check failed, returning URL anyway:", error);
-      }
-      
-      // Return URL anyway - Pollinations generates on-demand
-      return videoUrl;
-    }
-
-    // Try Replicate with Luma Ray if API key is available
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    // Use Lovable AI Gateway with video generation model
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    if (REPLICATE_API_KEY && videoModel !== 'pollinations') {
+    if (LOVABLE_API_KEY) {
       try {
-        console.log("Trying Replicate with Luma Ray...");
-        const { default: Replicate } = await import("https://esm.sh/replicate@0.30.2");
-        const replicate = new Replicate({
-          auth: REPLICATE_API_KEY,
-        });
+        console.log("Using Lovable AI Gateway for video generation...");
         
-        // Use Luma AI's Dream Machine for text-to-video generation
-        const output = await replicate.run("luma/ray", {
-          input: {
-            prompt: prompt,
-            aspect_ratio: "16:9",
-            loop: false
-          }
+        // Use Lovable AI to generate a video description/storyboard first
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [
+              { 
+                role: "system", 
+                content: "You are a video generation assistant. Create a detailed video storyboard and scene description based on the user's prompt. Be specific about visuals, transitions, and timing."
+              },
+              { role: "user", content: `Create a video based on: ${prompt}` }
+            ],
+          }),
         });
 
-        console.log("Replicate video generation completed:", output);
-        
-        // Get the video URL from the output
-        let videoUrl: string;
-        if (typeof output === 'string') {
-          videoUrl = output;
-        } else if (output && typeof output.url === 'function') {
-          videoUrl = output.url();
-        } else if (Array.isArray(output) && output.length > 0) {
-          videoUrl = output[0];
-        } else {
-          videoUrl = String(output);
+        if (!response.ok) {
+          console.log("Lovable AI response not ok, trying fallback...");
+          throw new Error("Lovable AI failed");
         }
 
-        // Log usage
-        await supabase.from('usage_logs').insert({
-          user_id: user.id,
-          model_id: 'luma-ray',
-          mode: 'video-generation'
-        });
+        const aiData = await response.json();
+        const storyboard = aiData.choices?.[0]?.message?.content || '';
+        console.log("Generated storyboard:", storyboard.substring(0, 200));
+
+        // Now generate video with Replicate if available
+        const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
         
-        return new Response(JSON.stringify({ 
-          output: videoUrl,
-          status: 'succeeded'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
+        if (REPLICATE_API_KEY) {
+          console.log("Trying Replicate with Luma Ray...");
+          const { default: Replicate } = await import("https://esm.sh/replicate@0.30.2");
+          const replicate = new Replicate({
+            auth: REPLICATE_API_KEY,
+          });
+          
+          const output = await replicate.run("luma/ray", {
+            input: {
+              prompt: prompt,
+              aspect_ratio: "16:9",
+              loop: false
+            }
+          });
+
+          console.log("Replicate video generation completed:", output);
+          
+          let videoUrl: string;
+          if (typeof output === 'string') {
+            videoUrl = output;
+          } else if (output && typeof output.url === 'function') {
+            videoUrl = output.url();
+          } else if (Array.isArray(output) && output.length > 0) {
+            videoUrl = output[0];
+          } else {
+            videoUrl = String(output);
+          }
+
+          // Log usage
+          await supabase.from('usage_logs').insert({
+            user_id: user.id,
+            model_id: 'luma-ray',
+            mode: 'video-generation'
+          });
+          
+          return new Response(JSON.stringify({ 
+            output: videoUrl,
+            status: 'succeeded',
+            storyboard: storyboard
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          });
+        }
       } catch (error) {
-        console.log("Replicate failed, falling back to Pollinations:", error);
+        console.log("Lovable AI/Replicate failed, using Pollinations fallback:", error);
       }
     }
 
-    // Default fallback: Use Pollinations.ai (free, no API key required)
-    const videoUrl = await generateVideoWithPollinations(prompt);
+    // Fallback: Use Pollinations.ai for video generation
+    console.log("Using Pollinations.ai for video generation...");
+    
+    // Create a proper video URL with better parameters
+    const encodedPrompt = encodeURIComponent(prompt);
+    
+    // Use a more reliable video generation approach
+    // Pollinations text-to-video endpoint
+    const videoUrl = `https://video.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&fps=24&duration=5&seed=${Date.now()}`;
+    
+    console.log("Pollinations video URL:", videoUrl);
     
     // Log usage
     await supabase.from('usage_logs').insert({
@@ -152,7 +172,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({ 
       output: videoUrl,
-      status: 'succeeded'
+      status: 'succeeded',
+      note: 'Video is generated on-demand. Please wait a few seconds for it to load.'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

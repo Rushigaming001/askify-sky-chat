@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Message {
   id: string;
@@ -22,13 +23,14 @@ export interface Chat {
 interface ChatContextType {
   chats: Chat[];
   currentChat: Chat | null;
-  createNewChat: () => void;
+  isLoading: boolean;
+  createNewChat: () => Promise<void>;
   selectChat: (chatId: string) => void;
-  deleteChat: (chatId: string) => void;
-  renameChat: (chatId: string, newTitle: string) => void;
-  togglePinChat: (chatId: string) => void;
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
-  updateChatSettings: (model: string, mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => void;
+  deleteChat: (chatId: string) => Promise<void>;
+  renameChat: (chatId: string, newTitle: string) => Promise<void>;
+  togglePinChat: (chatId: string) => Promise<void>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  updateChatSettings: (model: string, mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -37,41 +39,113 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChat, setCurrentChat] = useState<Chat | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      const savedChats = localStorage.getItem(`askify_chats_${user.email}`);
-      if (savedChats) {
-        const parsedChats = JSON.parse(savedChats);
-        setChats(parsedChats);
-        if (parsedChats.length > 0) {
-          setCurrentChat(parsedChats[0]);
-        }
+  // Load chats from database
+  const loadChats = useCallback(async () => {
+    if (!user) {
+      setChats([]);
+      setCurrentChat(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Load all chats for this user
+      const { data: chatData, error: chatError } = await supabase
+        .from('ai_chats')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (chatError) throw chatError;
+
+      // Load messages for all chats
+      const chatIds = chatData?.map(c => c.id) || [];
+      let messagesData: any[] = [];
+      
+      if (chatIds.length > 0) {
+        const { data: msgData, error: msgError } = await supabase
+          .from('ai_chat_messages')
+          .select('*')
+          .in('chat_id', chatIds)
+          .order('created_at', { ascending: true });
+        
+        if (msgError) throw msgError;
+        messagesData = msgData || [];
       }
+
+      // Map to Chat interface
+      const loadedChats: Chat[] = (chatData || []).map(chat => ({
+        id: chat.id,
+        title: chat.title,
+        createdAt: new Date(chat.created_at).getTime(),
+        model: chat.model,
+        mode: chat.mode as 'normal' | 'deepthink' | 'search' | 'reasoning',
+        pinned: chat.pinned || false,
+        messages: messagesData
+          .filter(msg => msg.chat_id === chat.id)
+          .map(msg => ({
+            id: msg.id,
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: new Date(msg.created_at).getTime(),
+            image: msg.image || undefined
+          }))
+      }));
+
+      setChats(loadedChats);
+      if (loadedChats.length > 0 && !currentChat) {
+        setCurrentChat(loadedChats[0]);
+      } else if (currentChat) {
+        // Update current chat if it exists
+        const updated = loadedChats.find(c => c.id === currentChat.id);
+        if (updated) setCurrentChat(updated);
+      }
+    } catch (error) {
+      console.error('Error loading chats:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      if (chats.length > 0) {
-        localStorage.setItem(`askify_chats_${user.email}`, JSON.stringify(chats));
-      } else {
-        localStorage.removeItem(`askify_chats_${user.email}`);
-      }
-    }
-  }, [chats, user]);
+    loadChats();
+  }, [loadChats]);
 
-  const createNewChat = () => {
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      title: 'New Chat',
-      messages: [],
-      createdAt: Date.now(),
-      model: 'grok',
-      mode: 'normal'
-    };
-    setChats([newChat, ...chats]);
-    setCurrentChat(newChat);
+  const createNewChat = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ai_chats')
+        .insert({
+          user_id: user.id,
+          title: 'New Chat',
+          model: 'grok',
+          mode: 'normal'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newChat: Chat = {
+        id: data.id,
+        title: data.title,
+        messages: [],
+        createdAt: new Date(data.created_at).getTime(),
+        model: data.model,
+        mode: data.mode as 'normal' | 'deepthink' | 'search' | 'reasoning',
+        pinned: false
+      };
+
+      setChats([newChat, ...chats]);
+      setCurrentChat(newChat);
+    } catch (error) {
+      console.error('Error creating chat:', error);
+    }
   };
 
   const selectChat = (chatId: string) => {
@@ -81,128 +155,180 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const deleteChat = (chatId: string) => {
-    const updatedChats = chats.filter(c => c.id !== chatId);
-    setChats(updatedChats);
-    if (currentChat?.id === chatId) {
-      setCurrentChat(updatedChats[0] || null);
+  const deleteChat = async (chatId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_chats')
+        .delete()
+        .eq('id', chatId);
+
+      if (error) throw error;
+
+      const updatedChats = chats.filter(c => c.id !== chatId);
+      setChats(updatedChats);
+      if (currentChat?.id === chatId) {
+        setCurrentChat(updatedChats[0] || null);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
     }
   };
 
-  const renameChat = (chatId: string, newTitle: string) => {
-    setChats(chats.map(c => c.id === chatId ? { ...c, title: newTitle } : c));
-    if (currentChat?.id === chatId) {
-      setCurrentChat({ ...currentChat, title: newTitle });
+  const renameChat = async (chatId: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_chats')
+        .update({ title: newTitle, updated_at: new Date().toISOString() })
+        .eq('id', chatId);
+
+      if (error) throw error;
+
+      setChats(chats.map(c => c.id === chatId ? { ...c, title: newTitle } : c));
+      if (currentChat?.id === chatId) {
+        setCurrentChat({ ...currentChat, title: newTitle });
+      }
+    } catch (error) {
+      console.error('Error renaming chat:', error);
     }
   };
 
-  const togglePinChat = (chatId: string) => {
-    setChats(chats.map(c => c.id === chatId ? { ...c, pinned: !c.pinned } : c));
-    if (currentChat?.id === chatId) {
-      setCurrentChat({ ...currentChat, pinned: !currentChat.pinned });
+  const togglePinChat = async (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat) return;
+
+    try {
+      const { error } = await supabase
+        .from('ai_chats')
+        .update({ pinned: !chat.pinned, updated_at: new Date().toISOString() })
+        .eq('id', chatId);
+
+      if (error) throw error;
+
+      setChats(chats.map(c => c.id === chatId ? { ...c, pinned: !c.pinned } : c));
+      if (currentChat?.id === chatId) {
+        setCurrentChat({ ...currentChat, pinned: !currentChat.pinned });
+      }
+    } catch (error) {
+      console.error('Error toggling pin:', error);
     }
   };
 
-  const addMessage = (message: Omit<Message, 'id' | 'timestamp'>) => {
-    if (!currentChat) return;
-
-    const newMessage: Message = {
-      ...message,
-      id: Date.now().toString(),
-      timestamp: Date.now()
-    };
-
-    setChats(prevChats => {
-      const targetChat = prevChats.find(c => c.id === currentChat.id);
-      if (!targetChat) return prevChats;
-
-      const updatedMessages = [...targetChat.messages, newMessage];
+  const generateSmartTitle = (content: string): string => {
+    const lowerContent = content.toLowerCase().trim();
+    
+    if (lowerContent.includes('hello') || lowerContent.includes('hi ') || lowerContent === 'hi' || lowerContent.includes('hey')) {
+      return '👋 Greeting Chat';
+    } else if (lowerContent.includes('help me') || lowerContent.includes('how do i') || lowerContent.includes('can you help')) {
+      return '❓ Help Request';
+    } else if (lowerContent.includes('code') || lowerContent.includes('programming') || lowerContent.includes('function') || lowerContent.includes('debug')) {
+      return '💻 Coding Session';
+    } else if (lowerContent.includes('write') && (lowerContent.includes('essay') || lowerContent.includes('story') || lowerContent.includes('article'))) {
+      return '✍️ Writing Project';
+    } else if (lowerContent.includes('explain') || lowerContent.includes('what is') || lowerContent.includes('tell me about')) {
+      return '📚 Learning Query';
+    } else if (lowerContent.includes('solve') || lowerContent.includes('calculate') || lowerContent.includes('math')) {
+      return '🧮 Math Problem';
+    } else if (lowerContent.includes('translate') || lowerContent.includes('language')) {
+      return '🌐 Translation';
+    } else if (lowerContent.includes('image') || lowerContent.includes('picture') || lowerContent.includes('draw')) {
+      return '🖼️ Image Request';
+    } else if (lowerContent.includes('video') || lowerContent.includes('youtube')) {
+      return '🎬 Video Topic';
+    } else {
+      const stopWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'what', 'how', 'why', 'when', 'where', 'who', 'can', 'you', 'me', 'my', 'your', 'please', 'could', 'would', 'should', 'do', 'does', 'did', 'have', 'has', 'had', 'will', 'be', 'to', 'of', 'and', 'or', 'for', 'with', 'about', 'from', 'in', 'on', 'at', 'by', 'it', 'its', 'i', 'im', "i'm"];
+      const words = lowerContent.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
       
-      // Smart auto-rename based on first user message
-      let updatedTitle = targetChat.title;
-      if (targetChat.messages.length === 0 && message.role === 'user') {
-        const content = message.content.toLowerCase().trim();
-        
-        // Intelligent title generation based on message content
-        if (content.includes('hello') || content.includes('hi ') || content === 'hi' || content.includes('hey') || content.includes('greetings')) {
-          updatedTitle = '👋 Greeting Chat';
-        } else if (content.includes('help me') || content.includes('how do i') || content.includes('can you help')) {
-          updatedTitle = '❓ Help Request';
-        } else if (content.includes('code') || content.includes('programming') || content.includes('function') || content.includes('debug') || content.includes('javascript') || content.includes('python') || content.includes('react')) {
-          updatedTitle = '💻 Coding Session';
-        } else if (content.includes('write') && (content.includes('essay') || content.includes('story') || content.includes('article'))) {
-          updatedTitle = '✍️ Writing Project';
-        } else if (content.includes('email') || content.includes('letter')) {
-          updatedTitle = '📧 Email Draft';
-        } else if (content.includes('explain') || content.includes('what is') || content.includes('tell me about') || content.includes('define')) {
-          updatedTitle = '📚 Learning Query';
-        } else if (content.includes('solve') || content.includes('calculate') || content.includes('math') || content.includes('equation')) {
-          updatedTitle = '🧮 Math Problem';
-        } else if (content.includes('translate') || content.includes('language') || content.includes('spanish') || content.includes('french') || content.includes('hindi')) {
-          updatedTitle = '🌐 Translation';
-        } else if (content.includes('recipe') || content.includes('cook') || content.includes('food')) {
-          updatedTitle = '🍳 Recipe Help';
-        } else if (content.includes('travel') || content.includes('trip') || content.includes('vacation')) {
-          updatedTitle = '✈️ Travel Planning';
-        } else if (content.includes('business') || content.includes('startup') || content.includes('marketing')) {
-          updatedTitle = '💼 Business Ideas';
-        } else if (content.includes('health') || content.includes('fitness') || content.includes('exercise')) {
-          updatedTitle = '💪 Health & Fitness';
-        } else if (content.includes('game') || content.includes('minecraft') || content.includes('gaming')) {
-          updatedTitle = '🎮 Gaming Chat';
-        } else if (content.includes('image') || content.includes('picture') || content.includes('photo') || content.includes('draw')) {
-          updatedTitle = '🖼️ Image Request';
-        } else if (content.includes('video') || content.includes('youtube')) {
-          updatedTitle = '🎬 Video Topic';
-        } else if (content.includes('music') || content.includes('song') || content.includes('playlist')) {
-          updatedTitle = '🎵 Music Chat';
-        } else if (content.includes('summarize') || content.includes('summary') || content.includes('tldr')) {
-          updatedTitle = '📝 Summary Request';
-        } else if (content.includes('review') || content.includes('feedback')) {
-          updatedTitle = '⭐ Review Discussion';
-        } else if (content.includes('joke') || content.includes('funny') || content.includes('humor')) {
-          updatedTitle = '😄 Fun & Jokes';
-        } else {
-          // Extract meaningful words for title
-          const stopWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'what', 'how', 'why', 'when', 'where', 'who', 'can', 'you', 'me', 'my', 'your', 'this', 'that', 'please', 'could', 'would', 'should', 'do', 'does', 'did', 'have', 'has', 'had', 'will', 'be', 'to', 'of', 'and', 'or', 'for', 'with', 'about', 'from', 'in', 'on', 'at', 'by', 'it', 'its', 'i', 'im', "i'm"];
-          const words = content.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
-          
-          if (words.length >= 2) {
-            const titleWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1));
-            updatedTitle = titleWords.join(' ');
-            if (updatedTitle.length > 25) {
-              updatedTitle = updatedTitle.slice(0, 25) + '...';
-            }
-          } else if (words.length === 1) {
-            updatedTitle = words[0].charAt(0).toUpperCase() + words[0].slice(1) + ' Chat';
-          } else {
-            updatedTitle = message.content.slice(0, 25) + (message.content.length > 25 ? '...' : '');
-          }
-        }
+      if (words.length >= 2) {
+        const titleWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1));
+        let title = titleWords.join(' ');
+        if (title.length > 25) title = title.slice(0, 25) + '...';
+        return title;
+      } else if (words.length === 1) {
+        return words[0].charAt(0).toUpperCase() + words[0].slice(1) + ' Chat';
+      }
+      return content.slice(0, 25) + (content.length > 25 ? '...' : '');
+    }
+  };
+
+  const addMessage = async (message: Omit<Message, 'id' | 'timestamp'>) => {
+    if (!currentChat || !user) return;
+
+    try {
+      // Insert message to database
+      const { data: msgData, error: msgError } = await supabase
+        .from('ai_chat_messages')
+        .insert({
+          chat_id: currentChat.id,
+          role: message.role,
+          content: message.content,
+          image: message.image || null
+        })
+        .select()
+        .single();
+
+      if (msgError) throw msgError;
+
+      const newMessage: Message = {
+        id: msgData.id,
+        role: message.role as 'user' | 'assistant',
+        content: message.content,
+        timestamp: new Date(msgData.created_at).getTime(),
+        image: message.image
+      };
+
+      // Auto-rename if first user message
+      let newTitle = currentChat.title;
+      if (currentChat.messages.length === 0 && message.role === 'user') {
+        newTitle = generateSmartTitle(message.content);
+        await supabase
+          .from('ai_chats')
+          .update({ title: newTitle, updated_at: new Date().toISOString() })
+          .eq('id', currentChat.id);
+      } else {
+        // Just update timestamp
+        await supabase
+          .from('ai_chats')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', currentChat.id);
       }
 
       const updatedChat = {
-        ...targetChat,
-        messages: updatedMessages,
-        title: updatedTitle
+        ...currentChat,
+        messages: [...currentChat.messages, newMessage],
+        title: newTitle
       };
 
       setCurrentChat(updatedChat);
-      return prevChats.map(c => c.id === currentChat.id ? updatedChat : c);
-    });
+      setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
+    } catch (error) {
+      console.error('Error adding message:', error);
+    }
   };
 
-  const updateChatSettings = (model: string, mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => {
+  const updateChatSettings = async (model: string, mode: 'normal' | 'deepthink' | 'search' | 'reasoning') => {
     if (!currentChat) return;
-    const updatedChat = { ...currentChat, model, mode };
-    setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
-    setCurrentChat(updatedChat);
+
+    try {
+      const { error } = await supabase
+        .from('ai_chats')
+        .update({ model, mode, updated_at: new Date().toISOString() })
+        .eq('id', currentChat.id);
+
+      if (error) throw error;
+
+      const updatedChat = { ...currentChat, model, mode };
+      setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
+      setCurrentChat(updatedChat);
+    } catch (error) {
+      console.error('Error updating chat settings:', error);
+    }
   };
 
   return (
     <ChatContext.Provider value={{
       chats,
       currentChat,
+      isLoading,
       createNewChat,
       selectChat,
       deleteChat,

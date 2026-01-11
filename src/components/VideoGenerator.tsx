@@ -143,9 +143,21 @@ export function VideoGenerator() {
               <video 
                 src={generatedVideo} 
                 controls 
-                className="w-full h-auto"
-              />
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-auto min-h-[200px]"
+                onError={() => {
+                  console.log('Video failed to load, it may still be generating...');
+                }}
+              >
+                <source src={generatedVideo} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Video may take a few moments to generate. If it doesn't play, wait and refresh.
+            </p>
             <Button onClick={handleDownload} variant="outline" className="w-full">
               <Download className="mr-2 h-4 w-4" />
               Download Video
