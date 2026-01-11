@@ -52,18 +52,21 @@ serve(async (req) => {
     
     console.log(`Generating Minecraft ${creationType} for user:`, user.id, { name, version, serverType, modLoader, addonType });
 
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-    if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY is not configured');
+    // Use Lovable AI Gateway (no API key needed from user)
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!LOVABLE_API_KEY) {
+      // Fallback to GROQ if available
+      const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+      if (!GROQ_API_KEY) {
+        throw new Error('No AI API key configured');
+      }
     }
 
     let systemPrompt = '';
     let userPrompt = '';
-    let configFile = 'plugin.yml';
 
     if (creationType === 'addon') {
-      // Bedrock addon generation
-      configFile = 'manifest.json';
       systemPrompt = `You are an expert Minecraft Bedrock addon developer. Generate complete, production-ready addon files.
 
 Generate a response in this EXACT JSON format (no markdown, no code blocks, just raw JSON):
@@ -94,7 +97,6 @@ ${functionality}
 
 Return ONLY valid JSON with manifest, behaviorFiles, and resourceFiles fields. No markdown formatting.`;
     } else if (creationType === 'mod') {
-      // Mod generation
       const modInfo = getModInfo(modLoader);
       systemPrompt = `You are an expert Minecraft ${modLoader} mod developer. Generate complete, production-ready mod code.
 
@@ -122,14 +124,13 @@ Minecraft Version: ${version}
 Mod Loader: ${modLoader}
 
 Commands:
-${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
+${commands?.length > 0 ? commands.join('\n') : 'No specific commands'}
 
 Functionality:
 ${functionality}
 
 Return ONLY valid JSON with mainClass, modConfig, and packageName fields. No markdown formatting.`;
     } else {
-      // Plugin generation
       const pluginInfo = getPluginInfo(serverType);
       systemPrompt = `You are an expert Minecraft plugin developer. Generate complete, production-ready Java code.
 
@@ -157,7 +158,7 @@ Minecraft Version: ${version}
 Server Software: ${serverType}
 
 Commands:
-${commands.length > 0 ? commands.join('\n') : 'No specific commands'}
+${commands?.length > 0 ? commands.join('\n') : 'No specific commands'}
 
 Functionality:
 ${functionality}
@@ -165,38 +166,79 @@ ${functionality}
 Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No markdown formatting.`;
     }
 
+    // Try Lovable AI Gateway first
+    let generatedContent: string | null = null;
+    
+    if (LOVABLE_API_KEY) {
+      try {
+        console.log("Using Lovable AI Gateway for code generation...");
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000,
+          }),
+        });
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      throw new Error(`AI Gateway error: ${response.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          generatedContent = data.choices?.[0]?.message?.content;
+          console.log("Lovable AI response received");
+        } else {
+          console.log("Lovable AI Gateway failed:", response.status);
+        }
+      } catch (error) {
+        console.log("Lovable AI Gateway error:", error);
+      }
     }
 
-    const data = await response.json();
-    let generatedContent = data.choices?.[0]?.message?.content;
+    // Fallback to GROQ
+    if (!generatedContent) {
+      const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+      if (GROQ_API_KEY) {
+        console.log("Falling back to GROQ API...");
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('GROQ error:', response.status, errorText);
+          throw new Error(`AI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        generatedContent = data.choices?.[0]?.message?.content;
+      }
+    }
 
     if (!generatedContent) {
       throw new Error('No code generated from AI');
     }
 
-    console.log("Raw AI response:", generatedContent);
+    console.log("Raw AI response received, parsing...");
 
     // Clean markdown formatting if present
     generatedContent = generatedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -207,7 +249,7 @@ Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No mar
       pluginData = JSON.parse(generatedContent);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.error('Content that failed to parse:', generatedContent);
+      console.error('Content that failed to parse:', generatedContent.substring(0, 500));
       throw new Error('Failed to parse AI response as JSON');
     }
 
@@ -233,7 +275,7 @@ Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No mar
     // Log usage
     await supabase.from('usage_logs').insert({
       user_id: user.id,
-      model_id: 'groq-llama',
+      model_id: 'lovable-ai',
       mode: `minecraft-${creationType}`
     });
 
@@ -334,11 +376,8 @@ async function createSourceJar(
   packageName: string,
   creationType: string
 ): Promise<string> {
-  // Create a simple text-based archive since we can't compile Java
-  // This creates a ZIP file that users can extract and build
   const encoder = new TextEncoder();
   
-  // Create file contents
   const packagePath = packageName.replace(/\./g, '/');
   const files = new Map<string, Uint8Array>();
   
@@ -416,9 +455,6 @@ Note: This is a source archive. You need to compile it before use.
 `;
   files.set('README.md', encoder.encode(readme));
   
-  // Create a simple archive format (concatenated files with headers)
-  // For a proper implementation, we'd use a real ZIP library
-  // But for now, we'll create a tar-like structure
   let archiveContent = '';
   
   for (const [path, content] of files.entries()) {
@@ -426,7 +462,6 @@ Note: This is a source archive. You need to compile it before use.
     archiveContent += `\n\n========== ${path} ==========\n\n${contentStr}`;
   }
   
-  // Convert to base64
   const archiveBytes = encoder.encode(archiveContent);
   return base64Encode(archiveBytes.buffer);
 }

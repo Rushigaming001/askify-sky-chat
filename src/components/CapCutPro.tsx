@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Upload, Download, Save, Film
+  Upload, Download, Save, Film, Play, Pause, SkipBack, SkipForward,
+  Volume2, VolumeX, Scissors, RotateCcw, Info, Maximize
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { VideoPlayer } from './capcut/VideoPlayer';
-import { VideoTimeline } from './capcut/VideoTimeline';
-import { EffectsPanel } from './capcut/EffectsPanel';
-import { AIPanel } from './capcut/AIPanel';
 
 interface Track {
   id: string;
@@ -34,10 +33,21 @@ export default function CapCutPro() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  
+  // Video ref
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   // Timeline state
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [activePanel, setActivePanel] = useState<'effects' | 'ai'>('effects');
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(100);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,10 +62,12 @@ export default function CapCutPro() {
         type: 'video',
         src: url,
         start: 0,
-        duration: 0, // Will be updated when metadata loads
+        duration: 0,
         volume: 1,
       };
       setTracks([videoTrack]);
+      setTrimStart(0);
+      setTrimEnd(100);
       
       toast.success('Video uploaded successfully!');
     } else {
@@ -64,21 +76,51 @@ export default function CapCutPro() {
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
-  const handleSeek = (time: number) => {
+  const handleSeek = (value: number[]) => {
+    const time = (value[0] / 100) * duration;
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+    }
     setCurrentTime(time);
-    setIsPlaying(false);
   };
 
-  const handleDurationChange = (newDuration: number) => {
-    setDuration(newDuration);
-    // Update video track duration
-    if (tracks.length > 0 && tracks[0].type === 'video') {
-      const updatedTracks = [...tracks];
-      updatedTracks[0].duration = newDuration;
-      setTracks(updatedTracks);
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+      // Update video track duration
+      if (tracks.length > 0 && tracks[0].type === 'video') {
+        const updatedTracks = [...tracks];
+        updatedTracks[0].duration = videoRef.current.duration;
+        setTracks(updatedTracks);
+      }
+    }
+  };
+
+  const handleSkipBack = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 5);
+    }
+  };
+
+  const handleSkipForward = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 5);
     }
   };
 
@@ -88,33 +130,70 @@ export default function CapCutPro() {
       aspectRatio,
       tracks,
       duration,
+      trimStart,
+      trimEnd,
     };
     localStorage.setItem('capcut-project', JSON.stringify(project));
     toast.success('Project saved successfully!');
   };
 
   const handleExport = () => {
-    toast.info('Export feature coming soon! This will render your final video.');
+    if (!videoUrl) {
+      toast.error('Please upload a video first');
+      return;
+    }
+    
+    // Create download link for the original video
+    const link = document.createElement('a');
+    link.href = videoUrl;
+    link.download = `${projectName || 'video'}.mp4`;
+    link.click();
+    
+    toast.info('Video downloaded! Note: Browser-based editing is limited. For advanced edits, use desktop video editors.');
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getAspectRatioClass = () => {
+    switch (aspectRatio) {
+      case '9:16': return 'aspect-[9/16] max-h-[400px]';
+      case '1:1': return 'aspect-square max-h-[400px]';
+      case '4:5': return 'aspect-[4/5] max-h-[400px]';
+      default: return 'aspect-video';
+    }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="flex flex-col bg-background rounded-lg overflow-hidden">
+      {/* Info Alert */}
+      <Alert className="m-4 mb-0">
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          This is a basic video preview tool. For professional video editing with effects, transitions, and rendering, please use desktop software like CapCut, DaVinci Resolve, or Adobe Premiere.
+        </AlertDescription>
+      </Alert>
+
       {/* Top Bar */}
       <div className="h-14 border-b border-border flex items-center px-4 gap-4">
         <div className="flex items-center gap-2">
           <Film className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">CapCut Pro</h1>
+          <h1 className="text-lg font-semibold">Video Preview</h1>
         </div>
         
         <Input
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
           className="max-w-xs"
+          placeholder="Project name"
         />
 
         <div className="flex items-center gap-2 ml-auto">
           <Select value={aspectRatio} onValueChange={setAspectRatio}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -146,7 +225,7 @@ export default function CapCutPro() {
             Save
           </Button>
 
-          <Button onClick={handleExport}>
+          <Button onClick={handleExport} disabled={!videoUrl}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -154,52 +233,103 @@ export default function CapCutPro() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Video Player Section */}
-        <div className="flex-1 flex flex-col">
-          <VideoPlayer
-            videoUrl={videoUrl}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            onPlayPause={handlePlayPause}
-            onTimeUpdate={setCurrentTime}
-            onVolumeChange={setVolume}
-            onDurationChange={handleDurationChange}
-          />
-
-          {/* Timeline */}
-          <VideoTimeline
-            tracks={tracks}
-            onTracksUpdate={setTracks}
-            currentTime={currentTime}
-            totalDuration={duration || 100}
-            onSeek={handleSeek}
-          />
+      <div className="flex-1 flex flex-col p-4 gap-4">
+        {/* Video Player */}
+        <div className="flex-1 flex items-center justify-center bg-black/50 rounded-lg min-h-[300px]">
+          {videoUrl ? (
+            <div className={`relative ${getAspectRatioClass()} w-full max-w-3xl`}>
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                className="w-full h-full object-contain rounded"
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={() => setIsPlaying(false)}
+              />
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <Film className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p>Upload a video to preview</p>
+              <p className="text-sm mt-2">Supports MP4, WebM, MOV formats</p>
+            </div>
+          )}
         </div>
 
-        {/* Right Panel */}
-        <div className="w-80 flex flex-col border-l border-border">
-          <div className="flex border-b border-border">
-            <Button
-              variant={activePanel === 'effects' ? 'default' : 'ghost'}
-              className="flex-1 rounded-none"
-              onClick={() => setActivePanel('effects')}
-            >
-              Effects
-            </Button>
-            <Button
-              variant={activePanel === 'ai' ? 'default' : 'ghost'}
-              className="flex-1 rounded-none"
-              onClick={() => setActivePanel('ai')}
-            >
-              AI Tools
-            </Button>
+        {/* Playback Controls */}
+        {videoUrl && (
+          <div className="space-y-3 bg-muted/30 rounded-lg p-4">
+            {/* Progress Bar */}
+            <div className="space-y-1">
+              <Slider
+                value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
+                onValueChange={handleSeek}
+                max={100}
+                step={0.1}
+                className="cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="ghost" size="icon" onClick={handleSkipBack}>
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              <Button variant="default" size="icon" onClick={handlePlayPause}>
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleSkipForward}>
+                <SkipForward className="h-4 w-4" />
+              </Button>
+              
+              <div className="flex items-center gap-2 ml-4">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsMuted(!isMuted)}
+                >
+                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+                <Slider
+                  value={[volume * 100]}
+                  onValueChange={(v) => setVolume(v[0] / 100)}
+                  max={100}
+                  className="w-24"
+                />
+              </div>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="ml-4"
+                onClick={() => videoRef.current?.requestFullscreen()}
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+        )}
 
-          {activePanel === 'effects' ? <EffectsPanel /> : <AIPanel />}
-        </div>
+        {/* Quick Actions */}
+        {videoUrl && (
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" disabled>
+              <Scissors className="h-4 w-4 mr-2" />
+              Trim (Desktop Only)
+            </Button>
+            <Button variant="outline" size="sm" disabled>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Rotate (Desktop Only)
+            </Button>
+            <p className="text-xs text-muted-foreground flex items-center">
+              Advanced editing features require desktop software
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
