@@ -40,7 +40,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
   const [newTitle, setNewTitle] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [unreadDMCount, setUnreadDMCount] = useState(0);
+  const [unreadPublicCount, setUnreadPublicCount] = useState(0);
 
   const handleToolClick = (toolName: string, restrictionKey: keyof typeof restrictions) => {
     if (restrictions[restrictionKey]) {
@@ -57,43 +57,31 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
   useEffect(() => {
     checkAdminStatus();
     fetchUserRole();
-    fetchUnreadDMCount();
     
-    // Subscribe to DM updates
-    if (user) {
-      const dmChannel = supabase
-        .channel('sidebar-dm-updates')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'direct_messages',
-            filter: `receiver_id=eq.${user.id}`
-          },
-          () => {
-            fetchUnreadDMCount();
-          }
-        )
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(dmChannel);
-      };
-    }
+    // Clear unread count when user views public chat
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && window.location.pathname === '/public-chat') {
+        setUnreadPublicCount(0);
+        if (user) {
+          localStorage.setItem(`askify_last_public_read_${user.id}`, Date.now().toString());
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
-  const fetchUnreadDMCount = async () => {
-    if (!user) return;
-    
-    const { count } = await supabase
-      .from('direct_messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('receiver_id', user.id)
-      .is('read_at', null);
-      
-    setUnreadDMCount(count || 0);
-  };
+  // Clear public chat unread count when on that page
+  useEffect(() => {
+    if (window.location.pathname === '/public-chat' && user) {
+      setUnreadPublicCount(0);
+      localStorage.setItem(`askify_last_public_read_${user.id}`, Date.now().toString());
+    }
+  }, [user]);
 
   useEffect(() => {
     checkAdminStatus();
@@ -514,15 +502,15 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                       className="w-full relative"
                     >
                       <MessageCircle className="h-4 w-4" />
-                      {unreadDMCount > 0 && (
+                      {unreadPublicCount > 0 && (
                         <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-[10px] font-bold text-white flex items-center justify-center">
-                          {unreadDMCount > 9 ? '9+' : unreadDMCount}
+                          {unreadPublicCount > 9 ? '9+' : unreadPublicCount}
                         </span>
                       )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    Public Chat {unreadDMCount > 0 ? `(${unreadDMCount} new)` : ''}
+                    Public Chat
                   </TooltipContent>
                 </Tooltip>
                 
@@ -716,9 +704,9 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Public Chat
-                  {unreadDMCount > 0 && (
+                  {unreadPublicCount > 0 && (
                     <Badge className="ml-auto bg-blue-500 text-white text-[10px] px-1.5 py-0 h-4">
-                      {unreadDMCount > 99 ? '99+' : unreadDMCount}
+                      {unreadPublicCount > 99 ? '99+' : unreadPublicCount}
                     </Badge>
                   )}
                 </Button>

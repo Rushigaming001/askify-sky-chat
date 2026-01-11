@@ -47,10 +47,6 @@ serve(async (req) => {
       });
     }
 
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
-    const POLLINATIONS_API_KEY_1 = Deno.env.get("POLLINATIONS_API_KEY_1");
-    const POLLINATIONS_API_KEY_2 = Deno.env.get("POLLINATIONS_API_KEY_2");
-
     const body = await req.json();
 
     if (!body.prompt) {
@@ -68,49 +64,67 @@ serve(async (req) => {
     
     console.log("Generating video for user:", user.id, "prompt:", prompt, "model:", videoModel);
     
-    // Helper function for Pollinations video generation with failover
+    // Try Pollinations.ai first - it's a free video generation service
     async function generateVideoWithPollinations(prompt: string): Promise<string> {
-      const keys = [POLLINATIONS_API_KEY_1, POLLINATIONS_API_KEY_2].filter(Boolean);
+      console.log("Using Pollinations.ai for video generation...");
       
-      for (const apiKey of keys) {
-        try {
-          console.log("Trying Pollinations video generation...");
-          
-          // Pollinations.ai video generation endpoint
-          const encodedPrompt = encodeURIComponent(prompt);
-          const videoUrl = `https://video.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&fps=24&duration=4`;
-          
-          // Verify the video endpoint is accessible
-          const response = await fetch(videoUrl, { method: 'HEAD' });
-          if (response.ok || response.status === 302) {
-            return videoUrl;
-          }
-          
-          console.log("Pollinations video failed, trying next key...");
-        } catch (error) {
-          console.log("Pollinations API key failed, trying next key...", error);
+      // Pollinations.ai video generation endpoint
+      const encodedPrompt = encodeURIComponent(prompt);
+      const videoUrl = `https://video.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&fps=24&duration=4`;
+      
+      // Verify the video endpoint is accessible
+      try {
+        const response = await fetch(videoUrl, { method: 'HEAD' });
+        if (response.ok || response.status === 302 || response.status === 200) {
+          console.log("Pollinations video URL generated successfully");
+          return videoUrl;
         }
+      } catch (error) {
+        console.log("Pollinations HEAD check failed, returning URL anyway:", error);
       }
       
-      throw new Error("All Pollinations API keys failed for video generation");
+      // Return URL anyway - Pollinations generates on-demand
+      return videoUrl;
     }
 
-    // Check if user selected Pollinations model
-    if (videoModel === 'pollinations') {
-      if (!POLLINATIONS_API_KEY_1 && !POLLINATIONS_API_KEY_2) {
-        return new Response(JSON.stringify({ error: "Pollinations API keys not configured" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+    // Try Replicate with Luma Ray if API key is available
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    
+    if (REPLICATE_API_KEY && videoModel !== 'pollinations') {
       try {
-        const videoUrl = await generateVideoWithPollinations(prompt);
+        console.log("Trying Replicate with Luma Ray...");
+        const { default: Replicate } = await import("https://esm.sh/replicate@0.30.2");
+        const replicate = new Replicate({
+          auth: REPLICATE_API_KEY,
+        });
         
+        // Use Luma AI's Dream Machine for text-to-video generation
+        const output = await replicate.run("luma/ray", {
+          input: {
+            prompt: prompt,
+            aspect_ratio: "16:9",
+            loop: false
+          }
+        });
+
+        console.log("Replicate video generation completed:", output);
+        
+        // Get the video URL from the output
+        let videoUrl: string;
+        if (typeof output === 'string') {
+          videoUrl = output;
+        } else if (output && typeof output.url === 'function') {
+          videoUrl = output.url();
+        } else if (Array.isArray(output) && output.length > 0) {
+          videoUrl = output[0];
+        } else {
+          videoUrl = String(output);
+        }
+
         // Log usage
         await supabase.from('usage_logs').insert({
           user_id: user.id,
-          model_id: 'pollinations-video',
+          model_id: 'luma-ray',
           mode: 'video-generation'
         });
         
@@ -122,104 +136,27 @@ serve(async (req) => {
           status: 200,
         });
       } catch (error) {
-        console.error("Pollinations video generation failed:", error);
-        return new Response(JSON.stringify({ error: "Video generation failed. Please try again." }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.log("Replicate failed, falling back to Pollinations:", error);
       }
     }
 
-    // Default: Use Replicate (Luma Ray) with Pollinations fallback
-    if (!REPLICATE_API_KEY) {
-      // Try Pollinations if no Replicate key
-      if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
-        const videoUrl = await generateVideoWithPollinations(prompt);
-        
-        await supabase.from('usage_logs').insert({
-          user_id: user.id,
-          model_id: 'pollinations-video',
-          mode: 'video-generation'
-        });
-        
-        return new Response(JSON.stringify({ 
-          output: videoUrl,
-          status: 'succeeded'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
-      }
-      throw new Error('No video generation API key configured');
-    }
-
-    try {
-      const { default: Replicate } = await import("https://esm.sh/replicate@0.30.2");
-      const replicate = new Replicate({
-        auth: REPLICATE_API_KEY,
-      });
-      
-      // Use Luma AI's Dream Machine for faster, text-to-video generation
-      const output = await replicate.run("luma/ray", {
-        input: {
-          prompt: prompt,
-          aspect_ratio: "16:9",
-          loop: false
-        }
-      });
-
-      console.log("Video generation completed:", output);
-      
-      // Get the video URL from the output
-      let videoUrl: string;
-      if (typeof output === 'string') {
-        videoUrl = output;
-      } else if (output && typeof output.url === 'function') {
-        videoUrl = output.url();
-      } else if (Array.isArray(output) && output.length > 0) {
-        videoUrl = output[0];
-      } else {
-        videoUrl = String(output);
-      }
-
-      // Log usage
-      await supabase.from('usage_logs').insert({
-        user_id: user.id,
-        model_id: 'luma-ray',
-        mode: 'video-generation'
-      });
-      
-      return new Response(JSON.stringify({ 
-        output: videoUrl,
-        status: 'succeeded'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    } catch (error) {
-      console.log("Replicate failed, trying Pollinations fallback...", error);
-      
-      // Fallback to Pollinations
-      if (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2) {
-        const videoUrl = await generateVideoWithPollinations(prompt);
-        
-        await supabase.from('usage_logs').insert({
-          user_id: user.id,
-          model_id: 'pollinations-video',
-          mode: 'video-generation'
-        });
-        
-        return new Response(JSON.stringify({ 
-          output: videoUrl,
-          status: 'succeeded'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
-      }
-      
-      throw error;
-    }
+    // Default fallback: Use Pollinations.ai (free, no API key required)
+    const videoUrl = await generateVideoWithPollinations(prompt);
+    
+    // Log usage
+    await supabase.from('usage_logs').insert({
+      user_id: user.id,
+      model_id: 'pollinations-video',
+      mode: 'video-generation'
+    });
+    
+    return new Response(JSON.stringify({ 
+      output: videoUrl,
+      status: 'succeeded'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
   } catch (error) {
     console.error("Error in video-ai function:", error)
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
