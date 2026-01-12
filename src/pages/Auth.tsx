@@ -228,7 +228,6 @@ const Auth = () => {
                   fill="none" 
                   stroke="rgba(0,255,255,0.3)" 
                   strokeWidth="0.5"
-                  className="animate-pulse"
                 />
               </pattern>
             </defs>
@@ -660,40 +659,51 @@ const Auth = () => {
       {/* Custom CSS for tech animations */}
       <style>{`
         @keyframes scan-horizontal {
-          0% { transform: translateY(-100vh); }
-          100% { transform: translateY(100vh); }
+          0% { transform: translate3d(0, -100vh, 0); }
+          100% { transform: translate3d(0, 100vh, 0); }
         }
         @keyframes scan-vertical {
-          0% { transform: translateX(-100vw); }
-          100% { transform: translateX(100vw); }
+          0% { transform: translate3d(-100vw, 0, 0); }
+          100% { transform: translate3d(100vw, 0, 0); }
         }
         @keyframes glow-pulse {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.5); }
+          0%, 100% { opacity: 0.25; transform: translate3d(0,0,0) scale(1); }
+          50% { opacity: 0.9; transform: translate3d(0,0,0) scale(1.35); }
         }
         @keyframes line-flow {
-          0% { opacity: 0; transform: translateX(-100%); }
+          0% { opacity: 0; transform: translate3d(-100%, 0, 0); }
           50% { opacity: 1; }
-          100% { opacity: 0; transform: translateX(100%); }
+          100% { opacity: 0; transform: translate3d(100%, 0, 0); }
         }
         @keyframes border-glow {
           0%, 100% { opacity: 0; }
           50% { opacity: 0.5; }
         }
-        .animate-scan-horizontal {
-          animation: scan-horizontal 4s linear infinite;
-        }
-        .animate-scan-vertical {
-          animation: scan-vertical 5s linear infinite;
-        }
-        .animate-glow-pulse {
-          animation: glow-pulse 2s ease-in-out infinite;
-        }
-        .animate-line-flow {
-          animation: line-flow 4s ease-in-out infinite;
-        }
+
+        .animate-scan-horizontal { animation: scan-horizontal 10s linear infinite; }
+        .animate-scan-vertical { animation: scan-vertical 12s linear infinite; }
+        .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+        .animate-line-flow { animation: line-flow 8s ease-in-out infinite; }
+        .animate-border-glow { animation: border-glow 4s ease-in-out infinite; }
+
+        /* Performance hints */
+        .animate-scan-horizontal,
+        .animate-scan-vertical,
+        .animate-glow-pulse,
+        .animate-line-flow,
         .animate-border-glow {
-          animation: border-glow 3s ease-in-out infinite;
+          will-change: transform, opacity;
+          backface-visibility: hidden;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-scan-horizontal,
+          .animate-scan-vertical,
+          .animate-glow-pulse,
+          .animate-line-flow,
+          .animate-border-glow {
+            animation: none !important;
+          }
         }
       `}</style>
     </div>
