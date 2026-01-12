@@ -479,102 +479,30 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
       // Generate a unique seed for each generation
       const uniqueSeed = Date.now() + Math.random();
 
-      const prompt = `You are an expert Maharashtra State Board (MSBSHSE) examiner creating UNIQUE question papers following shala.com and Balbharti textbook standards.
-
-**CRITICAL INSTRUCTIONS:**
-1. Generate a COMPLETELY NEW and UNIQUE question paper - NEVER repeat questions from previous generations
-2. Use this unique seed for randomization: ${uniqueSeed}
-3. Each question must be meaningful, clear, and appropriate for Class 9 students
-4. Follow the EXACT Maharashtra Board exam pattern
-5. Questions must be ${difficulty.toUpperCase()} level: ${difficultyNote}
-6. Reference actual content from the selected chapters
-
-**Test Details:**
-- Class: 9th Standard (Maharashtra Board)
-- Subject: ${subject}
-- Selected Units: ${selectedUnits.join(', ')}
-- Chapters: ${selectedChapters.join(', ')}
-- Total Marks: ${totalMarks}
-- Time: ${timeAllotted}
-- Title: ${testTitle || `Class 9 - ${subject} Test`}
-- Difficulty: ${difficulty}
-${grammarWritingNote}
-
-**Generate a COMPLETE question paper with PROPER marking scheme:**
-
----
-**${testTitle || `Class 9 - ${subject} Examination`}**
-**Maharashtra State Board of Secondary and Higher Secondary Education**
-**Total Marks: ${totalMarks} | Time: ${timeAllotted}**
-**Difficulty Level: ${difficulty}**
-
----
-
-**General Instructions:**
-1. All questions are compulsory.
-2. Draw neat diagrams wherever necessary.
-3. Use of calculator is not allowed.
-4. Figures to the right indicate full marks.
-
----
-
-${marksNum >= 80 ? `
-**SECTION A - Objective Type Questions** [${Math.round(marksNum * 0.15)} Marks]
-- MCQ (Multiple Choice Questions) [1 mark each]
-- Fill in the blanks [1 mark each]
-- True/False with correction [1 mark each]
-- Match the following [1 mark each]
-
-**SECTION B - Short Answer Questions Type-I** [${Math.round(marksNum * 0.20)} Marks]
-- Answer in 2-3 sentences [2 marks each]
-- Define/Give reasons/Distinguish between
-
-**SECTION C - Short Answer Questions Type-II** [${Math.round(marksNum * 0.25)} Marks]
-- Answer in 4-5 sentences [3 marks each]
-- Explain/Describe/State and explain
-
-**SECTION D - Long Answer Questions** [${Math.round(marksNum * 0.25)} Marks]
-- Detailed answers [4-5 marks each]
-- Derivations/Prove/Solve with steps
-
-**SECTION E - Very Long Answer / Application Based** [${Math.round(marksNum * 0.15)} Marks]
-- Comprehensive answers [5-6 marks each]
-- Case study/Activity based questions
-` : marksNum >= 40 ? `
-**SECTION A - Objective Questions** [${Math.round(marksNum * 0.20)} Marks]
-- MCQ, Fill in blanks, True/False
-
-**SECTION B - Short Answer Questions** [${Math.round(marksNum * 0.35)} Marks]
-- 2-3 marks each, answer briefly
-
-**SECTION C - Long Answer Questions** [${Math.round(marksNum * 0.30)} Marks]
-- 4-5 marks each, detailed answers
-
-**SECTION D - Application Based** [${Math.round(marksNum * 0.15)} Marks]
-- Higher order questions
-` : `
-**SECTION A - Objective Questions** [${Math.round(marksNum * 0.25)} Marks]
-- MCQ, Fill in blanks, True/False [1 mark each]
-
-**SECTION B - Short Answers** [${Math.round(marksNum * 0.40)} Marks]
-- Brief explanations [2 marks each]
-
-**SECTION C - Long Answers** [${Math.round(marksNum * 0.35)} Marks]
-- Detailed answers [3-4 marks each]
-`}
-
-**IMPORTANT:**
-- Number all questions clearly (Q.1, Q.2, etc.)
-- Show marks for each question in brackets like [2 marks]
-- Cover ALL selected chapters proportionally
-- For Math/Science: Include numerical problems and diagrams
-- For Languages: Include comprehension, grammar, writing sections
-- Make questions ${difficulty.toLowerCase()} but meaningful and exam-standard
-- End with: ✱✱✱ Best of Luck! ✱✱✱`;
+      const prompt = [
+        `You are an expert Maharashtra State Board (Class 9) paper setter.`,
+        `Create a NEW and UNIQUE question paper every time. Do not repeat previous papers.`,
+        `Randomization seed: ${uniqueSeed}.`,
+        `Subject: ${subject}.`,
+        `Total Marks: ${totalMarks}. Time: ${timeAllotted}.`,
+        `Difficulty: ${difficulty}. ${difficultyNote}`,
+        `Syllabus coverage (use proportionally): ${selectedChapters.join(' | ')}.`,
+        isLanguageSubject()
+          ? `Include sections as applicable: ${includeGrammar ? 'Grammar' : ''}${includeGrammar && includeWriting ? ' + ' : ''}${includeWriting ? 'Writing Skills' : ''}.`
+          : '',
+        `Format rules:`,
+        `- Number questions clearly (Q.1, Q.2, ...)`,
+        `- Show marks for each question like [2 marks]`,
+        `- Follow Maharashtra Board pattern for ${totalMarks} marks (objective + short + long + application/HOTS as needed)`,
+        `- Questions must be meaningful, exam-standard, and appropriate for Class 9`,
+        `Return ONLY the question paper (no explanation). End with: ✱✱✱ Best of Luck! ✱✱✱`,
+      ]
+        .filter(Boolean)
+        .join('\n');
 
       // Try GPT-5.2 first, fallback to other models
       let response;
-      const models = ['openai/gpt-5.2', 'google/gemini-2.5-pro', 'openai/gpt-5'];
+      const models = ['gpt-5.2', 'askify', 'gemini-3', 'gpt'];
       
       for (const model of models) {
         try {

@@ -513,16 +513,16 @@ const Chat = () => {
         )}
       </div>
 
-      {/* Floating Features Menu Button - positioned above the chat input */}
-      <div className="fixed bottom-20 sm:bottom-24 right-3 sm:right-4 z-50 lg:hidden">
-        <Button
-          onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}
-          className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-110"
-          size="icon"
-        >
-          {showFeaturesMenu ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Menu className="h-4 w-4 sm:h-5 sm:w-5" />}
-        </Button>
-      </div>
+        {/* Floating Features Menu Button - positioned above the chat input */}
+        <div className="fixed bottom-20 sm:bottom-24 right-3 sm:right-4 z-50">
+          <Button
+            onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-110"
+            size="icon"
+          >
+            {showFeaturesMenu ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Menu className="h-4 w-4 sm:h-5 sm:w-5" />}
+          </Button>
+        </div>
 
       {/* Features Menu Popup */}
       {showFeaturesMenu && (
