@@ -6,373 +6,61 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, FileText, Download, Sparkles, GraduationCap, BookOpen, AlertCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, FileText, Download, Sparkles, GraduationCap, BookOpen, AlertCircle, Upload, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
-// Class 9 Complete Curriculum with Units - EXACT as specified by user
+// Class 9 Complete Curriculum with Units
 const CLASS_9_CURRICULUM = {
   'English': {
-    'Unit One': [
-      '1.1: Life',
-      '1.2: A Synopsis-The Swiss Family Robinson',
-      '1.3: Have you ever seen...?',
-      '1.4: Have you thought of the verb \'have\'',
-      '1.5: The Necklace'
-    ],
-    'Unit Two': [
-      '2.1: Invictus',
-      '2.2: A True Story of Sea Turtles',
-      '2.3: Somebody\'s Mother',
-      '2.4: The Fall of Troy',
-      '2.5: Autumn',
-      '2.6: The Past in the Present'
-    ],
-    'Unit Three': [
-      '3.1: Silver',
-      '3.2: Reading Works of Art',
-      '3.3: The Road Not Taken',
-      '3.4: How the First Letter was Written'
-    ],
-    'Unit Four': [
-      '4.1: Please Listen!',
-      '4.2: The Storyteller',
-      '4.3: Intellectual Rubbish',
-      '4.4: My Financial Career',
-      '4.5: Tansen'
-    ],
-    'Grammar & Writing Skills': [
-      'Grammar',
-      'Writing Skills'
-    ]
+    'Unit One': ['1.1: Life', '1.2: A Synopsis-The Swiss Family Robinson', '1.3: Have you ever seen...?', '1.4: Have you thought of the verb \'have\'', '1.5: The Necklace'],
+    'Unit Two': ['2.1: Invictus', '2.2: A True Story of Sea Turtles', '2.3: Somebody\'s Mother', '2.4: The Fall of Troy', '2.5: Autumn', '2.6: The Past in the Present'],
+    'Unit Three': ['3.1: Silver', '3.2: Reading Works of Art', '3.3: The Road Not Taken', '3.4: How the First Letter was Written'],
+    'Unit Four': ['4.1: Please Listen!', '4.2: The Storyteller', '4.3: Intellectual Rubbish', '4.4: My Financial Career', '4.5: Tansen'],
+    'Grammar & Writing Skills': ['Grammar', 'Writing Skills']
   },
   'Hindi (हिंदी)': {
-    'पहली इकाई (First Unit)': [
-      '१: नदी की पुकार',
-      '२: झुमका',
-      '३: निज भाषा',
-      '४: मान जा मेरे मन',
-      '५: किताबें कुछ कहना चाहती हैं',
-      '६: \'इत्यादि\' की आत्मकहानी',
-      '७: छोटा जादुगर',
-      '८: जिंदगी की बड़ी जरुरत है हार...!'
-    ],
-    'दूसरी इकाई (Second Unit)': [
-      '१: गागर में सागर',
-      '२: मैं बरतन माँजूँगा',
-      '३: ग्रामदेवता',
-      '४: साहित्य की निष्कपट विधा है - डायरी',
-      '५: उम्मीद',
-      '६: सागर और मेघ',
-      '७: लघुकथाएँ',
-      '८: झंडा ऊँचा सदा रहेगा',
-      '९: रचना विभाग एवं व्याकरण विभाग'
-    ]
+    'पहली इकाई': ['१: नदी की पुकार', '२: झुमका', '३: निज भाषा', '४: मान जा मेरे मन', '५: किताबें कुछ कहना चाहती हैं', '६: \'इत्यादि\' की आत्मकहानी', '७: छोटा जादुगर', '८: जिंदगी की बड़ी जरुरत है हार...!'],
+    'दूसरी इकाई': ['१: गागर में सागर', '२: मैं बरतन माँजूँगा', '३: ग्रामदेवता', '४: साहित्य की निष्कपट विधा है - डायरी', '५: उम्मीद', '६: सागर और मेघ', '७: लघुकथाएँ', '८: झंडा ऊँचा सदा रहेगा', '९: रचना विभाग एवं व्याकरण विभाग']
   },
   'Sanskrit (संस्कृत)': {
-    'गद्यात्मकम् (Prose)': [
-      'संस्कृतम्',
-      'विद्यावन्तः',
-      'समयः'
-    ],
-    'पद्यात्मकम् (Poetry)': [
-      'सुभाषिते खरे',
-      'कालमहत्त्वम्',
-      'किं कर्तव्यम्? किं न कर्तव्यम्?',
-      'विद्याधनम्',
-      'वैराग्यस्य महत्त्वम्',
-      'नभसि विद्युतः, मनुजाः संस्कृताः'
-    ],
-    'संवादात्मकम् / कथात्मकम्': [
-      'सूत्रधारा',
-      'मम स्वदेशः',
-      'अस्माकं जीवनम्',
-      'कालस्य महत्त्वम्'
-    ],
-    'व्याकरणम् (Grammar)': [
-      'कः कदा? किं कुत्र?',
-      'वाक्य संरचना',
-      'क्रिया कर्ता च',
-      'विभक्तयः',
-      'कालाः (लट्, लङ्, लृट्)',
-      'उपसर्गाः',
-      'समासाः',
-      'सन्धयः',
-      'शब्दरूपाणि – १',
-      'शब्दरूपाणि – २',
-      'धातुरूपाणि'
-    ],
-    'भाषा-कौशलम्': [
-      'अनुवादः',
-      'संवादलेखनम्',
-      'चित्रवर्णनम्',
-      'पत्रलेखनम्'
-    ]
+    'गद्यात्मकम्': ['संस्कृतम्', 'विद्यावन्तः', 'समयः'],
+    'पद्यात्मकम्': ['सुभाषिते खरे', 'कालमहत्त्वम्', 'किं कर्तव्यम्? किं न कर्तव्यम्?', 'विद्याधनम्', 'वैराग्यस्य महत्त्वम्', 'नभसि विद्युतः, मनुजाः संस्कृताः'],
+    'व्याकरणम्': ['कः कदा? किं कुत्र?', 'वाक्य संरचना', 'क्रिया कर्ता च', 'विभक्तयः', 'कालाः', 'उपसर्गाः', 'समासाः', 'सन्धयः', 'शब्दरूपाणि', 'धातुरूपाणि']
   },
   'Marathi (मराठी)': {
-    'भाग – १': [
-      'संतवाणीचे संदर्भ',
-      '(अ) संतवाणी – माणसाचा जीवन : संत एकनाथ',
-      '(आ) संतवाणी – संतवाणी शाळा : संत तुकाराम',
-      'दलितांचे आंबेडकर',
-      'डॉ. आ. पां. रेगे',
-      'कालचक्र'
-    ],
-    'भाग – २': [
-      'ध्यानातले पहाट',
-      'ओळखीचा वेडाचा गाव',
-      'विज्ञान यात्रेची दिवस',
-      'सूत्र आणि',
-      'हरवलेलं मूल'
-    ],
-    'भाग – ३': [
-      'उजाड उघडे माळरान',
-      'छपर',
-      'आमच्यातल्या पाखराला',
-      'मुला एकदा',
-      'होमी'
-    ],
-    'भाग – ४': [
-      'निष्पन्न',
-      'जीवनातला आनंद',
-      'माझी हिरवळ संस्कार',
-      'स्वतंत्र लेख',
-      'विज्ञापन',
-      'उपयोजित लेखन'
-    ]
+    'भाग – १': ['संतवाणीचे संदर्भ', 'दलितांचे आंबेडकर', 'डॉ. आ. पां. रेगे', 'कालचक्र'],
+    'भाग – २': ['ध्यानातले पहाट', 'ओळखीचा वेडाचा गाव', 'विज्ञान यात्रेची दिवस', 'सूत्र आणि', 'हरवलेलं मूल'],
+    'भाग – ३': ['उजाड उघडे माळरान', 'छपर', 'आमच्यातल्या पाखराला', 'मुला एकदा', 'होमी'],
+    'भाग – ४': ['निष्पन्न', 'जीवनातला आनंद', 'माझी हिरवळ संस्कार', 'स्वतंत्र लेख', 'विज्ञापन', 'उपयोजित लेखन']
   },
   'Math 1 - Algebra': {
-    'All Chapters': [
-      'Sets',
-      'Real Numbers',
-      'Polynomials',
-      'Ratio and Proportion',
-      'Linear Equations in Two Variables',
-      'Financial Planning',
-      'Statistics'
-    ]
+    'All Chapters': ['Sets', 'Real Numbers', 'Polynomials', 'Ratio and Proportion', 'Linear Equations in Two Variables', 'Financial Planning', 'Statistics']
   },
   'Math 2 - Geometry': {
-    'All Chapters': [
-      'Basic Concepts in Geometry',
-      'Parallel Lines',
-      'Triangles',
-      'Constructions of Triangles',
-      'Quadrilaterals',
-      'Circle',
-      'Co-ordinate Geometry',
-      'Trigonometry',
-      'Surface Area and Volume'
-    ]
+    'All Chapters': ['Basic Concepts in Geometry', 'Parallel Lines', 'Triangles', 'Constructions of Triangles', 'Quadrilaterals', 'Circle', 'Co-ordinate Geometry', 'Trigonometry', 'Surface Area and Volume']
   },
   'Science 1': {
-    'Unit 1': [
-      '1: Laws of Motion',
-      '2: Work and Energy',
-      '3: Current Electricity',
-      '4: Measurement of Matter',
-      '5: Acids, Bases and Salts',
-      '6: Classification of Plants',
-      '7: Energy Flow in an Ecosystem',
-      '8: Useful and Harmful Microbes',
-      '9: Environmental Management',
-      '10: Information Communication Technology (ICT)'
-    ]
+    'Unit 1': ['1: Laws of Motion', '2: Work and Energy', '3: Current Electricity', '4: Measurement of Matter', '5: Acids, Bases and Salts', '6: Classification of Plants', '7: Energy Flow in an Ecosystem', '8: Useful and Harmful Microbes', '9: Environmental Management', '10: Information Communication Technology']
   },
   'Science 2': {
-    'Unit 2 (Second Unit)': [
-      '11: Reflection of Light',
-      '12: Study of Sound',
-      '13: Carbon: An important element',
-      '14: Substances in Common Use',
-      '15: Life Processes in Living Organisms',
-      '16: Heredity and Variation',
-      '17: Introduction to Biotechnology',
-      '18: Observing Space: Telescopes'
-    ]
+    'Unit 2': ['11: Reflection of Light', '12: Study of Sound', '13: Carbon: An important element', '14: Substances in Common Use', '15: Life Processes in Living Organisms', '16: Heredity and Variation', '17: Introduction to Biotechnology', '18: Observing Space: Telescopes']
   },
   'History & Political Science': {
-    'History - India after Independence (1961 CE to 2000 CE)': [
-      '1: Sources of History',
-      '2: India : Events after 1960',
-      '3: India\'s Internal Challenges',
-      '4: Economic Development',
-      '5: Education',
-      '6: Empowerment of Women and other Weaker Sections',
-      '7: Science and Technology',
-      '8: Industry and Trade',
-      '9: Changing Life: 1',
-      '10: Changing Life: 2'
-    ],
-    'Political Science - India and World': [
-      '1: Post World War Political Developments',
-      '2: India\'s Foreign Policy',
-      '3: India\'s Defence System',
-      '4: The United Nations',
-      '5: India and Other Countries',
-      '6: International Problems'
-    ]
+    'History': ['1: Sources of History', '2: India : Events after 1960', '3: India\'s Internal Challenges', '4: Economic Development', '5: Education', '6: Empowerment of Women and other Weaker Sections', '7: Science and Technology', '8: Industry and Trade', '9: Changing Life: 1', '10: Changing Life: 2'],
+    'Political Science': ['1: Post World War Political Developments', '2: India\'s Foreign Policy', '3: India\'s Defence System', '4: The United Nations', '5: India and Other Countries', '6: International Problems']
   },
   'Geography': {
-    'Unit 1': [
-      '1: Distributional Maps',
-      '2: Endogenetic Movements',
-      '3: Exogenetic Movements Part-1',
-      '4: Exogenetic Movements Part-2',
-      '5: Precipitation',
-      '6: Properties of sea water'
-    ],
-    'Unit 2 (Second Unit)': [
-      '7: International Date Line',
-      '8: Introduction to Economics',
-      '9: Trade',
-      '10: Urbanisation',
-      '11: Transport and Communication',
-      '12: Tourism'
-    ]
+    'Unit 1': ['1: Distributional Maps', '2: Endogenetic Movements', '3: Exogenetic Movements Part-1', '4: Exogenetic Movements Part-2', '5: Precipitation', '6: Properties of sea water'],
+    'Unit 2': ['7: International Date Line', '8: Introduction to Economics', '9: Trade', '10: Urbanisation', '11: Transport and Communication', '12: Tourism']
   }
 };
 
 const MARKS_OPTIONS = ['20', '40', '80', '100'];
 const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard'];
-
-// Default question paper templates for each subject
-const DEFAULT_PAPERS: Record<string, string> = {
-  'English': `
-**ENGLISH - CLASS 9 - STANDARD TEST PAPER**
-**Maharashtra State Board Pattern**
-**Total Marks: 40 | Time: 1.5 Hours**
-
----
-
-**SECTION A - READING COMPREHENSION** [10 Marks]
-
-Q.1 Read the following passage and answer the questions: [5]
-(Passage from Unit One - Life)
-
-a) What is the central theme of the passage? [1]
-b) Explain the meaning of any two difficult words. [1]
-c) What message does the author convey? [2]
-d) Give a suitable title to the passage. [1]
-
-Q.2 Read the poem extract and answer: [5]
-(From "Invictus" or "Silver")
-
-a) Name the poem and poet. [1]
-b) What emotions are expressed? [2]
-c) Explain any one poetic device used. [2]
-
----
-
-**SECTION B - GRAMMAR** [10 Marks]
-
-Q.3 Do as directed: [5]
-a) Change the voice: "The teacher praised the students."
-b) Fill in the blank with correct tense: She ___ (write) a letter now.
-c) Identify the clause: "When the bell rang, the students left."
-d) Make a question tag: "You have completed your homework, ___?"
-e) Use the correct form of verb 'have': They ___ a beautiful garden.
-
-Q.4 Rewrite as directed: [5]
-a) Combine using 'although'
-b) Change to indirect speech
-c) Fill in with appropriate preposition
-d) Identify the type of sentence
-e) Punctuate correctly
-
----
-
-**SECTION C - WRITING SKILLS** [10 Marks]
-
-Q.5 Write an essay on any ONE topic: [5]
-a) The Importance of Education
-b) Environmental Conservation
-c) My Favourite Book
-
-Q.6 Write a letter to your friend describing your summer vacation. [5]
-
----
-
-**SECTION D - TEXTUAL QUESTIONS** [10 Marks]
-
-Q.7 Answer in brief (any 2): [4]
-a) Describe the Swiss Family Robinson's adventure.
-b) What lesson do we learn from "The Necklace"?
-c) Explain the moral of "Somebody's Mother".
-
-Q.8 Answer in detail (any 1): [6]
-a) Character sketch of Mathilde Loisel from "The Necklace".
-b) Explain the significance of the title "Invictus".
-
----
-✱✱✱ Best of Luck! ✱✱✱
-`,
-  'Math 1 - Algebra': `
-**MATHEMATICS PART 1 (ALGEBRA) - CLASS 9**
-**Maharashtra State Board Pattern**
-**Total Marks: 40 | Time: 1.5 Hours**
-
----
-
-**SECTION A - OBJECTIVE QUESTIONS** [10 Marks]
-
-Q.1 Choose the correct answer: [5]
-a) Which of the following is an irrational number?
-   i) √4  ii) √5  iii) 0.25  iv) 3/4
-
-b) The degree of polynomial 3x² + 5x - 7 is:
-   i) 1  ii) 2  iii) 3  iv) 0
-
-c) If A = {1, 2, 3} and B = {2, 3, 4}, then A ∩ B is:
-   i) {1, 2, 3, 4}  ii) {2, 3}  iii) {1}  iv) {4}
-
-d) The ratio 3:5 can be written as:
-   i) 3/5  ii) 5/3  iii) 8  iv) 15
-
-e) In linear equation ax + by = c, if a = 0, the graph is:
-   i) Vertical line  ii) Horizontal line  iii) Passing through origin  iv) None
-
-Q.2 Fill in the blanks: [3]
-a) A set with no elements is called _____.
-b) √2 × √8 = _____.
-c) If x:y = 2:3 and y:z = 3:4, then x:z = _____.
-
-Q.3 State True or False: [2]
-a) Every rational number is a real number.
-b) Empty set is a subset of every set.
-
----
-
-**SECTION B - SHORT ANSWERS** [15 Marks]
-
-Q.4 Solve (any 3): [9]
-a) Find the HCF of 12, 18, and 24 using prime factorization.
-b) Simplify: √75 + √27 - √12
-c) If A = {a, b, c, d} and B = {c, d, e, f}, find A ∪ B and A - B.
-d) Divide the polynomial: (x³ + 2x² - 5x + 2) ÷ (x - 1)
-
-Q.5 Solve the linear equations graphically: [6]
-x + y = 5
-2x - y = 4
-
----
-
-**SECTION C - LONG ANSWERS** [15 Marks]
-
-Q.6 Solve (any 2): [10]
-a) A sum of ₹10,000 is invested at 10% p.a. compound interest. Find the amount after 2 years.
-b) Find the mean, median, and mode of: 5, 8, 10, 12, 8, 6, 8, 15
-c) If the ratio of ages of father and son is 7:2 and after 10 years it will be 9:4, find their present ages.
-
-Q.7 Answer in detail: [5]
-Explain the properties of real numbers with examples.
-
----
-✱✱✱ Best of Luck! ✱✱✱
-`
-};
 
 export function TestGenerator() {
   const [subject, setSubject] = useState<string>('');
@@ -383,9 +71,12 @@ export function TestGenerator() {
   const [testTitle, setTestTitle] = useState<string>('');
   const [includeGrammar, setIncludeGrammar] = useState(true);
   const [includeWriting, setIncludeWriting] = useState(true);
-  const [useDefaultPaper, setUseDefaultPaper] = useState(false);
+  const [includePassage, setIncludePassage] = useState(true);
   const [loading, setLoading] = useState(false);
   const [generatedTest, setGeneratedTest] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('generate');
+  const [remakeInput, setRemakeInput] = useState('');
+  const [remakeLoading, setRemakeLoading] = useState(false);
   const { toast } = useToast();
 
   const subjects = Object.keys(CLASS_9_CURRICULUM);
@@ -406,7 +97,6 @@ export function TestGenerator() {
   const toggleUnit = (unit: string) => {
     if (selectedUnits.includes(unit)) {
       setSelectedUnits(selectedUnits.filter(u => u !== unit));
-      // Remove chapters from this unit
       const subjectData = CLASS_9_CURRICULUM[subject as keyof typeof CLASS_9_CURRICULUM];
       const unitChapters = subjectData[unit as keyof typeof subjectData] as string[];
       setSelectedChapters(selectedChapters.filter(c => !unitChapters.includes(c)));
@@ -442,13 +132,6 @@ export function TestGenerator() {
   };
 
   const generateTest = async () => {
-    // If using default paper
-    if (useDefaultPaper && DEFAULT_PAPERS[subject]) {
-      setGeneratedTest(DEFAULT_PAPERS[subject]);
-      toast({ title: 'Default Paper Loaded!', description: 'Standard paper template ready for download' });
-      return;
-    }
-
     if (!subject || selectedChapters.length === 0) {
       toast({ title: 'Error', description: 'Please select subject and at least one chapter', variant: 'destructive' });
       return;
@@ -465,68 +148,67 @@ export function TestGenerator() {
       const marksNum = parseInt(totalMarks);
       const timeAllotted = marksNum === 20 ? '45 Minutes' : marksNum === 40 ? '1.5 Hours' : marksNum === 80 ? '2.5 Hours' : '3 Hours';
       
-      const grammarWritingNote = isLanguageSubject() ? `
-Include these sections for language:
-${includeGrammar ? '- Grammar section with appropriate marks' : ''}
-${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : '';
-
       const difficultyNote = difficulty === 'Easy' 
-        ? 'Questions should be straightforward, testing basic understanding and recall. Focus on definitions, simple applications, and direct questions from the textbook.' 
+        ? 'Focus on basic understanding, definitions, and simple recall questions.' 
         : difficulty === 'Hard' 
-        ? 'Questions should be challenging, requiring deep understanding, application, analysis, and Higher Order Thinking Skills (HOTS). Include numerical problems, case studies, and questions that require critical thinking and multi-step reasoning.'
-        : 'Balanced mix of basic recall questions, application-based questions, and some analytical questions.';
+        ? 'Include challenging HOTS questions, application-based problems, case studies, and multi-step reasoning.'
+        : 'Balanced mix of basic and application-based questions.';
 
-      // Generate a unique seed for each generation
-      const uniqueSeed = Date.now() + Math.random();
+      const passageSection = (subject === 'English' && includePassage) ? `
 
-      const prompt = [
-        `You are an expert Maharashtra State Board (Class 9) paper setter.`,
-        `Create a NEW and UNIQUE question paper every time. Do not repeat previous papers.`,
-        `Randomization seed: ${uniqueSeed}.`,
-        `Subject: ${subject}.`,
-        `Total Marks: ${totalMarks}. Time: ${timeAllotted}.`,
-        `Difficulty: ${difficulty}. ${difficultyNote}`,
-        `Syllabus coverage (use proportionally): ${selectedChapters.join(' | ')}.`,
-        isLanguageSubject()
-          ? `Include sections as applicable: ${includeGrammar ? 'Grammar' : ''}${includeGrammar && includeWriting ? ' + ' : ''}${includeWriting ? 'Writing Skills' : ''}.`
-          : '',
-        `Format rules:`,
-        `- Number questions clearly (Q.1, Q.2, ...)`,
-        `- Show marks for each question like [2 marks]`,
-        `- Follow Maharashtra Board pattern for ${totalMarks} marks (objective + short + long + application/HOTS as needed)`,
-        `- Questions must be meaningful, exam-standard, and appropriate for Class 9`,
-        `Return ONLY the question paper (no explanation). End with: ✱✱✱ Best of Luck! ✱✱✱`,
-      ]
-        .filter(Boolean)
-        .join('\n');
+**IMPORTANT: Include an UNSEEN PASSAGE section (not from textbook) with 5 comprehension questions worth 10 marks.**
+The passage should be around 150-200 words on a general topic (nature, technology, environment, etc.).` : '';
 
-      // Try GPT-5.2 first, fallback to other models
-      let response;
-      const models = ['gpt-5.2', 'askify', 'gemini-3', 'gpt'];
+      const prompt = `Create a ${totalMarks} marks ${subject} question paper for Class 9 Maharashtra State Board.
+
+**FORMAT REQUIREMENTS:**
+- Time: ${timeAllotted}
+- Difficulty: ${difficulty} - ${difficultyNote}
+- Pattern: Follow shala.com and balbharti.com exam pattern exactly
+
+**CHAPTERS TO COVER (distribute questions proportionally):**
+${selectedChapters.join(', ')}
+
+${isLanguageSubject() ? `**LANGUAGE SECTIONS:**
+${includeGrammar ? '- Grammar section with appropriate marks' : ''}
+${includeWriting ? '- Writing Skills (Essay/Letter/Paragraph)' : ''}` : ''}
+${passageSection}
+
+**SPACING & FORMATTING:**
+- Use clear section headers: **SECTION A**, **SECTION B**, etc.
+- Add blank lines between questions
+- Show marks clearly: [2 marks], [5 marks], etc.
+- Number all questions: Q.1, Q.2, Q.3, etc.
+- Add proper sub-question numbering: a), b), c) or i), ii), iii)
+
+**STRUCTURE:**
+- Section A: Objective/MCQ (if applicable)
+- Section B: Short Answer Questions (2-3 marks each)
+- Section C: Long Answer Questions (5-6 marks each)
+- Section D: Application/HOTS (for Hard difficulty)
+
+**IMPORTANT:**
+- Generate UNIQUE questions each time
+- Questions must be exam-standard and appropriate for Class 9
+- End with: ✱✱✱ Best of Luck! ✱✱✱
+
+Generate the complete question paper now:`;
+
+      const response = await supabase.functions.invoke('test-generator', {
+        body: { prompt },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (response.error) throw response.error;
       
-      for (const model of models) {
-        try {
-          response = await supabase.functions.invoke('chat', {
-            body: { 
-              messages: [{ role: 'user', content: prompt }], 
-              model: model,
-              mode: 'normal'
-            },
-            headers: { Authorization: `Bearer ${session.access_token}` }
-          });
-          
-          if (!response.error && response.data?.reply) {
-            break;
-          }
-        } catch (e) {
-          console.log(`Model ${model} failed, trying next...`);
-        }
+      const paper = response.data?.paper;
+      if (!paper) {
+        throw new Error('No response generated');
       }
 
-      if (response?.error) throw response.error;
-
-      setGeneratedTest(response?.data?.reply || 'Failed to generate test');
-      toast({ title: 'Test Generated!', description: `${difficulty} difficulty paper ready for download` });
+      setGeneratedTest(paper);
+      setActiveTab('result');
+      toast({ title: 'Test Generated!', description: `${difficulty} difficulty paper ready in seconds!` });
     } catch (error: any) {
       console.error('Error generating test:', error);
       toast({ title: 'Error', description: error.message || 'Failed to generate test', variant: 'destructive' });
@@ -535,11 +217,61 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
     }
   };
 
+  const remakeQuestions = async () => {
+    if (!remakeInput.trim()) {
+      toast({ title: 'Error', description: 'Please paste your question paper', variant: 'destructive' });
+      return;
+    }
+
+    setRemakeLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
+        return;
+      }
+
+      const prompt = `You are an expert question paper modifier. Take the following question paper and create a NEW version with DIFFERENT questions on the SAME topics and format.
+
+**ORIGINAL PAPER:**
+${remakeInput}
+
+**INSTRUCTIONS:**
+1. Keep the SAME format, marks distribution, and structure
+2. Keep the SAME section headers and time
+3. REPLACE all questions with NEW, DIFFERENT questions on similar topics
+4. Maintain the same difficulty level
+5. For MCQs, change both questions and options
+6. For descriptive questions, ask about different aspects
+7. End with: ✱✱✱ Best of Luck! ✱✱✱
+
+Generate the modified question paper now:`;
+
+      const response = await supabase.functions.invoke('test-generator', {
+        body: { prompt },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (response.error) throw response.error;
+      
+      const paper = response.data?.paper;
+      if (!paper) throw new Error('No response generated');
+
+      setGeneratedTest(paper);
+      setActiveTab('result');
+      toast({ title: 'Questions Remade!', description: 'New version ready with different questions' });
+    } catch (error: any) {
+      console.error('Error remaking questions:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to remake questions', variant: 'destructive' });
+    } finally {
+      setRemakeLoading(false);
+    }
+  };
+
   const downloadPDF = () => {
     if (!generatedTest) return;
 
-    const printContent = `
-<!DOCTYPE html>
+    const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -547,28 +279,36 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
-      font-family: 'Times New Roman', serif; 
-      padding: 40px; 
-      line-height: 1.8; 
-      max-width: 800px; 
+      font-family: 'Times New Roman', Georgia, serif; 
+      padding: 50px 60px; 
+      line-height: 2; 
+      max-width: 900px; 
       margin: auto; 
       background: white;
-      color: black;
+      color: #1a1a1a;
+      font-size: 14px;
     }
-    h1, h2, h3 { color: #1a1a1a; margin: 15px 0; }
-    h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 24px; }
-    h2 { background: #f5f5f5; padding: 8px 12px; margin-top: 25px; font-size: 18px; border-left: 4px solid #333; }
-    h3 { font-size: 16px; }
-    p { margin: 10px 0; }
-    .content { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; }
+    h1, h2, h3 { color: #000; margin: 20px 0 15px 0; font-weight: bold; }
+    h1 { text-align: center; border-bottom: 3px double #333; padding-bottom: 15px; font-size: 22px; margin-bottom: 25px; }
+    h2 { background: #f0f0f0; padding: 10px 15px; margin-top: 30px; font-size: 16px; border-left: 5px solid #333; }
+    h3 { font-size: 15px; margin-top: 20px; }
+    p, li { margin: 12px 0; line-height: 2.2; }
+    .content { 
+      white-space: pre-wrap; 
+      word-wrap: break-word; 
+      font-family: inherit; 
+      font-size: 14px;
+      line-height: 2.2;
+    }
+    strong { font-weight: bold; }
     @media print { 
-      body { padding: 20px; } 
-      @page { margin: 1cm; }
+      body { padding: 30px 40px; } 
+      @page { margin: 1.5cm; size: A4; }
     }
   </style>
 </head>
 <body>
-  <div class="content">${generatedTest.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+  <div class="content">${generatedTest.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n\n/g, '\n\n<br>\n')}</div>
 </body>
 </html>`;
 
@@ -583,10 +323,7 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast({ 
-      title: 'Test Paper Downloaded!', 
-      description: 'Open the HTML file and use Print → Save as PDF to create a PDF.' 
-    });
+    toast({ title: 'Downloaded!', description: 'Open the HTML file and Print → Save as PDF' });
   };
 
   const downloadAsTxt = () => {
@@ -603,7 +340,7 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast({ title: 'Test Paper Downloaded as Text!' });
+    toast({ title: 'Downloaded as Text!' });
   };
 
   const availableChapters = getChaptersForUnits();
@@ -620,25 +357,30 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
         </div>
         <p className="text-muted-foreground">Maharashtra State Board - AI Powered Question Papers</p>
         <div className="flex flex-wrap justify-center gap-2">
+          <Badge variant="outline">⚡ Fast Generation (5-10s)</Badge>
           <Badge variant="outline">shala.com Pattern</Badge>
           <Badge variant="outline">Balbharti Syllabus</Badge>
-          <Badge variant="outline">Unique Questions</Badge>
         </div>
       </div>
 
-      <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="config">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Configure Test
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="generate">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate
+          </TabsTrigger>
+          <TabsTrigger value="remake">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Remake
           </TabsTrigger>
           <TabsTrigger value="result" disabled={!generatedTest}>
             <FileText className="h-4 w-4 mr-2" />
-            Generated Paper
+            Result
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="config" className="space-y-6 mt-6">
+        {/* Generate Tab */}
+        <TabsContent value="generate" className="space-y-6 mt-6">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Subject Selection */}
             <Card>
@@ -653,7 +395,6 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
                   setSubject(val);
                   setSelectedUnits([]);
                   setSelectedChapters([]);
-                  setUseDefaultPaper(false);
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Subject" />
@@ -664,19 +405,6 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
                     ))}
                   </SelectContent>
                 </Select>
-
-                {subject && DEFAULT_PAPERS[subject] && (
-                  <div className="flex items-center gap-2 mt-4 p-3 bg-muted rounded-lg">
-                    <Checkbox 
-                      id="useDefault" 
-                      checked={useDefaultPaper}
-                      onCheckedChange={(checked) => setUseDefaultPaper(checked as boolean)}
-                    />
-                    <Label htmlFor="useDefault" className="text-sm cursor-pointer">
-                      Use Default Paper (Same every time)
-                    </Label>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -696,52 +424,38 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
                         size="sm"
                         onClick={() => setTotalMarks(m)}
                       >
-                        {m} Marks
+                        {m}
                       </Button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <Label>Difficulty Level</Label>
-                  <div className="flex gap-2 mt-2">
+                  <Label>Difficulty</Label>
+                  <div className="flex gap-2 mt-2 flex-wrap">
                     {DIFFICULTY_OPTIONS.map(d => (
                       <Button
                         key={d}
                         variant={difficulty === d ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setDifficulty(d)}
-                        className={difficulty === d ? (
-                          d === 'Easy' ? 'bg-green-600 hover:bg-green-700' :
-                          d === 'Hard' ? 'bg-red-600 hover:bg-red-700' :
-                          ''
-                        ) : ''}
                       >
                         {d}
                       </Button>
                     ))}
                   </div>
                 </div>
-                <div>
-                  <Label>Test Title (Optional)</Label>
-                  <Input
-                    value={testTitle}
-                    onChange={(e) => setTestTitle(e.target.value)}
-                    placeholder="e.g., First Unit Test"
-                    className="mt-2"
-                  />
-                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Units Selection */}
-          {subject && !useDefaultPaper && (
+          {subject && units.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Select Units</CardTitle>
-                  <Button variant="outline" size="sm" onClick={selectAllUnits}>
-                    {selectedUnits.length === units.length ? 'Deselect All' : 'Select All Units'}
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Units</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={selectAllUnits}>
+                    {selectedUnits.length === units.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
               </CardHeader>
@@ -753,7 +467,6 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
                       variant={selectedUnits.includes(unit) ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => toggleUnit(unit)}
-                      className="text-xs"
                     >
                       {unit}
                     </Button>
@@ -764,19 +477,19 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
           )}
 
           {/* Chapters Selection */}
-          {selectedUnits.length > 0 && !useDefaultPaper && (
+          {availableChapters.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Select Chapters ({selectedChapters.length}/{availableChapters.length})</CardTitle>
-                  <Button variant="outline" size="sm" onClick={selectAllChapters}>
-                    {selectedChapters.length === availableChapters.length ? 'Deselect All' : 'Select All Chapters'}
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Chapters ({selectedChapters.length}/{availableChapters.length})</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={selectAllChapters}>
+                    {selectedChapters.length === availableChapters.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[200px] pr-4">
-                  <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
+                <ScrollArea className="h-48">
+                  <div className="space-y-2">
                     {availableChapters.map(chapter => (
                       <div key={chapter} className="flex items-center gap-2">
                         <Checkbox
@@ -784,9 +497,7 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
                           checked={selectedChapters.includes(chapter)}
                           onCheckedChange={() => toggleChapter(chapter)}
                         />
-                        <Label htmlFor={chapter} className="text-sm cursor-pointer flex-1">
-                          {chapter}
-                        </Label>
+                        <Label htmlFor={chapter} className="text-sm cursor-pointer">{chapter}</Label>
                       </div>
                     ))}
                   </div>
@@ -795,46 +506,56 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
             </Card>
           )}
 
-          {/* Language-specific options */}
-          {isLanguageSubject() && !useDefaultPaper && (
+          {/* Language Options */}
+          {isLanguageSubject() && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Language Options</CardTitle>
+                <CardTitle className="text-lg">Language Sections</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="grammar"
-                      checked={includeGrammar}
-                      onCheckedChange={(checked) => setIncludeGrammar(checked as boolean)}
-                    />
-                    <Label htmlFor="grammar" className="cursor-pointer">Include Grammar Section</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="writing"
-                      checked={includeWriting}
-                      onCheckedChange={(checked) => setIncludeWriting(checked as boolean)}
-                    />
-                    <Label htmlFor="writing" className="cursor-pointer">Include Writing Skills</Label>
-                  </div>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox id="grammar" checked={includeGrammar} onCheckedChange={(c) => setIncludeGrammar(c as boolean)} />
+                  <Label htmlFor="grammar">Include Grammar Section</Label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox id="writing" checked={includeWriting} onCheckedChange={(c) => setIncludeWriting(c as boolean)} />
+                  <Label htmlFor="writing">Include Writing Skills</Label>
+                </div>
+                {subject === 'English' && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="passage" checked={includePassage} onCheckedChange={(c) => setIncludePassage(c as boolean)} />
+                    <Label htmlFor="passage">Include Unseen Passage</Label>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
+          {/* Optional Title */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Optional: Test Title</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                placeholder="e.g., Unit Test 1 - October 2024"
+                value={testTitle}
+                onChange={(e) => setTestTitle(e.target.value)}
+              />
+            </CardContent>
+          </Card>
+
           {/* Generate Button */}
-          <Button
-            onClick={generateTest}
-            disabled={loading || (!useDefaultPaper && (!subject || selectedChapters.length === 0))}
+          <Button 
+            onClick={generateTest} 
+            disabled={loading || !subject || selectedChapters.length === 0}
             className="w-full h-12 text-lg"
             size="lg"
           >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Generating Unique Paper...
+                Generating (5-10 seconds)...
               </>
             ) : (
               <>
@@ -843,42 +564,73 @@ ${includeWriting ? '- Writing Skills section (Essay/Letter/Paragraph)' : ''}` : 
               </>
             )}
           </Button>
-
-          {!useDefaultPaper && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
-              <AlertCircle className="h-4 w-4" />
-              <span>Each generation creates a completely new and unique question paper</span>
-            </div>
-          )}
         </TabsContent>
 
-        <TabsContent value="result" className="mt-6">
+        {/* Remake Tab */}
+        <TabsContent value="remake" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                Question Remake
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Paste your existing question paper and AI will create new questions with the same format
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                placeholder="Paste your question paper here...&#10;&#10;AI will keep the same format, marks, and structure but replace all questions with new ones."
+                value={remakeInput}
+                onChange={(e) => setRemakeInput(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+              />
+              <Button 
+                onClick={remakeQuestions}
+                disabled={remakeLoading || !remakeInput.trim()}
+                className="w-full"
+              >
+                {remakeLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Remaking Questions...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Remake Questions
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Result Tab */}
+        <TabsContent value="result" className="space-y-4 mt-6">
           {generatedTest && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Generated Question Paper
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    <Button onClick={downloadPDF} variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download HTML
-                    </Button>
-                    <Button onClick={downloadAsTxt} variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download TXT
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px] w-full rounded-md border p-4 bg-white dark:bg-slate-900">
-                  <pre className="whitespace-pre-wrap font-mono text-sm">{generatedTest}</pre>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            <>
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={downloadPDF} className="flex-1">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download HTML (Print as PDF)
+                </Button>
+                <Button onClick={downloadAsTxt} variant="outline" className="flex-1">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Download as Text
+                </Button>
+              </div>
+
+              <Card>
+                <CardContent className="p-6">
+                  <ScrollArea className="h-[600px]">
+                    <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
+                      {generatedTest}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </>
           )}
         </TabsContent>
       </Tabs>

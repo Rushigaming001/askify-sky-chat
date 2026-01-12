@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, Mail, Shield, Circle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Mail, Shield, Circle, Camera, ImageIcon, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfileDialogProps {
   open: boolean;
@@ -22,6 +22,8 @@ interface UserProfile {
   id: string;
   name: string;
   email: string;
+  avatar_url: string | null;
+  banner_url: string | null;
   created_at: string;
   roles: string[];
   status: 'online' | 'offline' | 'away';
@@ -29,22 +31,22 @@ interface UserProfile {
 
 const getRoleBadgeStyle = (role: string) => {
   const styles: Record<string, string> = {
-    owner: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white',
-    founder: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white',
-    co_founder: 'bg-gradient-to-r from-orange-400 to-red-500 text-white',
-    ceo: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-    admin: 'bg-gradient-to-r from-red-500 to-rose-600 text-white',
-    moderator: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white',
-    friend: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white',
-    vip: 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black',
-    premium: 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white',
-    platinum: 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800',
-    gold: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white',
-    silver: 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700',
-    elite: 'bg-gradient-to-r from-violet-600 to-purple-700 text-white',
-    pro: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white',
-    plus: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white',
-    basic: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white',
+    owner: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-0',
+    founder: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0',
+    co_founder: 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-0',
+    ceo: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0',
+    admin: 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-0',
+    moderator: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-0',
+    friend: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-0',
+    vip: 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black border-0',
+    premium: 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-0',
+    platinum: 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-0',
+    gold: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-0',
+    silver: 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-0',
+    elite: 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0',
+    pro: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0',
+    plus: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-0',
+    basic: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-0',
   };
   return styles[role] || 'bg-muted text-muted-foreground';
 };
@@ -75,6 +77,13 @@ const getRoleLabel = (role: string) => {
 export function UserProfileDialog({ open, onOpenChange, userId, userName }: UserProfileDialogProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
     if (open && userId) {
@@ -85,7 +94,6 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
   const loadUserProfile = async () => {
     setLoading(true);
     try {
-      // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -94,13 +102,11 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
 
       if (profileError) throw profileError;
 
-      // Fetch roles
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      // Fetch presence
       const { data: presenceData } = await supabase
         .from('user_presence')
         .select('status')
@@ -111,6 +117,8 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
         id: profileData.id,
         name: profileData.name,
         email: profileData.email,
+        avatar_url: profileData.avatar_url,
+        banner_url: profileData.banner_url,
         created_at: profileData.created_at,
         roles: rolesData?.map(r => r.role) || ['user'],
         status: (presenceData?.status as 'online' | 'offline' | 'away') || 'offline'
@@ -122,13 +130,57 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
     }
   };
 
+  const uploadImage = async (file: File, type: 'avatar' | 'banner') => {
+    if (!isOwnProfile || !user) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Image must be less than 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(type);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(fileName);
+
+      const updateData = type === 'avatar' 
+        ? { avatar_url: publicUrl }
+        : { banner_url: publicUrl };
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile(prev => prev ? { ...prev, ...updateData } : null);
+      toast({ title: 'Success!', description: `${type === 'avatar' ? 'Avatar' : 'Banner'} updated!` });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploading(null);
+    }
+  };
+
   const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const formatDate = (dateString: string) => {
@@ -141,9 +193,9 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'online': return 'text-green-500';
-      case 'away': return 'text-yellow-500';
-      default: return 'text-gray-400';
+      case 'online': return 'bg-green-500';
+      case 'away': return 'bg-yellow-500';
+      default: return 'bg-gray-400';
     }
   };
 
@@ -157,81 +209,134 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>User Profile</DialogTitle>
-        </DialogHeader>
-
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-card">
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading...</div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : profile ? (
-          <div className="space-y-6">
-            {/* Avatar and Name */}
-            <div className="flex flex-col items-center text-center">
+          <div className="relative">
+            {/* Hidden file inputs */}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0], 'avatar')}
+            />
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0], 'banner')}
+            />
+
+            {/* Banner */}
+            <div className="relative h-32 bg-gradient-to-br from-primary/40 via-primary/20 to-secondary/40">
+              {profile.banner_url && (
+                <img 
+                  src={profile.banner_url} 
+                  alt="Banner" 
+                  className="w-full h-full object-cover"
+                />
+              )}
+              {isOwnProfile && (
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="absolute top-2 right-2 h-8 w-8 opacity-80 hover:opacity-100"
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={uploading === 'banner'}
+                >
+                  {uploading === 'banner' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Avatar */}
+            <div className="absolute left-6 top-20">
               <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarFallback className="text-2xl bg-primary/10">
+                <Avatar className="h-24 w-24 border-4 border-card">
+                  {profile.avatar_url ? (
+                    <AvatarImage src={profile.avatar_url} alt={profile.name} />
+                  ) : null}
+                  <AvatarFallback className="text-2xl bg-primary/20">
                     {getInitials(profile.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className={`absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-background ${
-                  profile.status === 'online' ? 'bg-green-500' : 
-                  profile.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
-                }`} />
-              </div>
-              <h3 className="mt-4 text-xl font-semibold">{profile.name}</h3>
-              <div className={`flex items-center gap-1 text-sm ${getStatusColor(profile.status)}`}>
-                <Circle className="h-2 w-2 fill-current" />
-                {getStatusLabel(profile.status)}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Roles */}
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Shield className="h-4 w-4" />
-                <span>Roles</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.roles.length > 0 ? (
-                  profile.roles.map(role => (
-                    <Badge 
-                      key={role} 
-                      className={`${getRoleBadgeStyle(role)} border-0`}
-                    >
-                      {getRoleLabel(role)}
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge variant="secondary">👤 User</Badge>
+                {/* Status indicator */}
+                <div className={`absolute bottom-1 right-1 h-5 w-5 rounded-full border-4 border-card ${getStatusColor(profile.status)}`} />
+                {isOwnProfile && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="absolute bottom-0 right-0 h-7 w-7 rounded-full opacity-80 hover:opacity-100"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploading === 'avatar'}
+                  >
+                    {uploading === 'avatar' ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Camera className="h-3 w-3" />
+                    )}
+                  </Button>
                 )}
               </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <Mail className="h-4 w-4" />
-                <span>Email</span>
+            {/* Profile Content */}
+            <div className="pt-14 px-6 pb-6 space-y-5">
+              {/* Name & Status */}
+              <div>
+                <h2 className="text-xl font-bold">{profile.name}</h2>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Circle className={`h-2.5 w-2.5 fill-current ${profile.status === 'online' ? 'text-green-500' : profile.status === 'away' ? 'text-yellow-500' : 'text-gray-400'}`} />
+                  {getStatusLabel(profile.status)}
+                </div>
               </div>
-              <p className="text-sm font-medium">{profile.email}</p>
-            </div>
 
-            {/* Join Date */}
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <Calendar className="h-4 w-4" />
-                <span>Joined</span>
+              {/* Divider */}
+              <div className="h-px bg-border" />
+
+              {/* About Section */}
+              <div className="space-y-4">
+                {/* Roles */}
+                <div>
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Roles</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.roles.length > 0 ? (
+                      profile.roles.map(role => (
+                        <Badge key={role} className={`${getRoleBadgeStyle(role)} text-xs px-2 py-0.5`}>
+                          {getRoleLabel(role)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">👤 User</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Member Since */}
+                <div>
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Member Since</h3>
+                  <p className="text-sm">{formatDate(profile.created_at)}</p>
+                </div>
+
+                {/* Note (Discord style) */}
+                <div>
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Note</h3>
+                  <p className="text-sm text-muted-foreground italic">Click to add a note</p>
+                </div>
               </div>
-              <p className="text-sm font-medium">{formatDate(profile.created_at)}</p>
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-20 text-muted-foreground">
             User not found
           </div>
         )}
