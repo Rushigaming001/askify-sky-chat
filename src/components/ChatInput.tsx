@@ -139,8 +139,8 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
   };
 
   return (
-    <div className={`${centered ? '' : 'border-t border-border'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
-      <div className={`max-w-3xl mx-auto ${centered ? 'px-4' : 'p-3 sm:p-4'} space-y-3`}>
+    <div className={`${centered ? '' : 'border-t border-border flex-shrink-0'} bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in`}>
+      <div className={`max-w-3xl mx-auto ${centered ? 'px-2 sm:px-4' : 'p-2 sm:p-3'} space-y-2`}>
         
         {/* Mode toggles row - Only visible when input is at bottom (not centered) */}
         {!centered && (
@@ -209,7 +209,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
           </div>
         )}
 
-        <div className="relative flex items-center gap-1 sm:gap-2 p-2 rounded-2xl border border-border bg-card shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="relative flex items-center gap-1 p-1.5 sm:p-2 rounded-2xl border border-border bg-card shadow-lg hover:shadow-xl transition-all duration-300">
           {/* Plus button for attachments */}
           <Popover>
             <PopoverTrigger asChild>
@@ -253,7 +253,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message Askify..."
-            className="min-h-[40px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-sm sm:text-base transition-all flex-1"
+            className="min-h-[36px] max-h-[120px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-sm transition-all flex-1 py-2"
             disabled={disabled}
             rows={1}
           />

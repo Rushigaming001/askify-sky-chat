@@ -217,7 +217,7 @@ const Chat = () => {
   const showWelcome = !currentChat || currentChat.messages.length === 0;
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       {/* Desktop permanent sidebar */}
       <Sidebar 
         isOpen={true} 
@@ -230,31 +230,31 @@ const Chat = () => {
       {/* Mobile overlay sidebar */}
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className={`flex-1 flex flex-col min-w-0 animate-fade-in transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-72'}`}>
-        <header className="border-b border-border px-2 py-2 sm:px-3 sm:py-3 md:p-4 flex items-center justify-between gap-1 sm:gap-2 md:gap-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 relative z-50 animate-fade-in">
+      <div className={`flex-1 flex flex-col min-w-0 h-full animate-fade-in transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-72'}`}>
+        <header className="flex-shrink-0 border-b border-border px-2 py-1.5 sm:px-3 sm:py-2 md:p-3 flex items-center justify-between gap-1 sm:gap-2 md:gap-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 relative z-50 animate-fade-in">
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 hover:scale-110 transition-all duration-200"
+              className="lg:hidden h-7 w-7 sm:h-8 sm:w-8 hover:scale-110 transition-all duration-200"
             >
-            <span className="text-lg sm:text-xl md:text-2xl">☰</span>
+              <span className="text-lg sm:text-xl">☰</span>
             </Button>
+            <AskifyLogo size="sm" className="hidden sm:flex md:hidden" />
             <AskifyLogo size="md" className="hidden md:flex" />
-            <AskifyLogo size="sm" className="flex sm:hidden" />
             {!limitLoading && (
               <Badge 
                 variant={remaining <= 5 ? "destructive" : remaining <= 10 ? "secondary" : "default"}
-                className="ml-2 hidden sm:flex items-center gap-1"
+                className="ml-1 hidden sm:flex items-center gap-1 text-[10px] px-1.5"
               >
-                <span className="text-xs">{remaining}/{total}</span>
+                {remaining}/{total}
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Select value={selectedModel} onValueChange={handleModelChange}>
-              <SelectTrigger className="w-[80px] sm:w-[110px] md:w-[160px] h-7 sm:h-8 md:h-9 text-[9px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200">
+              <SelectTrigger className="w-[70px] sm:w-[100px] md:w-[140px] h-7 sm:h-8 text-[10px] sm:text-xs md:text-sm hover:border-primary/50 transition-all duration-200 px-2">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background/95 backdrop-blur-sm max-h-[400px]">
@@ -463,14 +463,14 @@ const Chat = () => {
           </Alert>
         )}
 
-        <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
+        <ScrollArea className="flex-1 min-h-0 chat-scroll" ref={scrollRef}>
           {showWelcome ? (
-            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 animate-fade-in">
-              <div className="flex-1 flex flex-col items-center justify-center max-w-2xl w-full">
-                <p className="text-muted-foreground text-sm sm:text-base mb-4 text-center">
+            <div className="h-full flex flex-col items-center justify-center p-3 sm:p-6 animate-fade-in">
+              <div className="flex flex-col items-center justify-center max-w-2xl w-full">
+                <p className="text-muted-foreground text-sm mb-2 text-center">
                   What can I help you with today?
                 </p>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium mb-8 text-foreground text-center animate-scale-in">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-medium mb-4 sm:mb-6 text-foreground text-center animate-scale-in">
                   Ready when you are.
                 </h1>
                 <ChatInput
@@ -513,14 +513,14 @@ const Chat = () => {
         )}
       </div>
 
-      {/* Floating Features Menu Button */}
-      <div className="fixed bottom-24 right-4 z-50">
+      {/* Floating Features Menu Button - positioned above the chat input */}
+      <div className="fixed bottom-20 sm:bottom-24 right-3 sm:right-4 z-50 lg:hidden">
         <Button
           onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}
-          className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-110"
+          className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-110"
           size="icon"
         >
-          {showFeaturesMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {showFeaturesMenu ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Menu className="h-4 w-4 sm:h-5 sm:w-5" />}
         </Button>
       </div>
 
@@ -531,7 +531,7 @@ const Chat = () => {
             className="fixed inset-0 bg-background/50 backdrop-blur-sm z-40"
             onClick={() => setShowFeaturesMenu(false)}
           />
-          <div className="fixed bottom-40 right-4 z-50 bg-background border border-border rounded-xl shadow-2xl p-3 w-60 animate-scale-in">
+          <div className="fixed bottom-32 sm:bottom-40 right-3 sm:right-4 z-50 bg-background border border-border rounded-xl shadow-2xl p-2 sm:p-3 w-52 sm:w-60 animate-scale-in max-h-[60vh] overflow-y-auto">
             {/* AI Tools Section */}
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
               AI Tools
