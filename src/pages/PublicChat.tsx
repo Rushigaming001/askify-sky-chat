@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/sheet';
 import { UsersList } from '@/components/UsersList';
 import { DirectMessageChat } from '@/components/DirectMessageChat';
+import { UserProfileDialog } from '@/components/UserProfileDialog';
 
 interface PublicMessage {
   id: string;
@@ -92,6 +93,7 @@ const PublicChat = () => {
   const [moderatingUser, setModeratingUser] = useState<{ userId: string; userName: string } | null>(null);
   const [userRestrictionData, setUserRestrictionData] = useState<any>(null);
   const [allProfiles, setAllProfiles] = useState<{ id: string; name: string }[]>([]);
+  const [viewingProfile, setViewingProfile] = useState<{ userId: string; userName: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -690,7 +692,10 @@ const PublicChat = () => {
                     key={message.id}
                     className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''}`}
                   >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
+                    <Avatar 
+                      className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      onClick={() => setViewingProfile({ userId: message.user_id, userName: message.profiles?.name || 'User' })}
+                    >
                       <AvatarFallback className="text-xs bg-muted">
                         {message.profiles ? getInitials(message.profiles.name) : '??'}
                       </AvatarFallback>
@@ -992,6 +997,16 @@ const PublicChat = () => {
             userName={moderatingUser.userName}
             currentlyBanned={userRestrictionData?.banned_from_public_chat}
             currentTimeout={userRestrictionData?.public_chat_timeout_until}
+          />
+        )}
+
+        {/* User Profile Dialog */}
+        {viewingProfile && (
+          <UserProfileDialog
+            open={!!viewingProfile}
+            onOpenChange={(open) => !open && setViewingProfile(null)}
+            userId={viewingProfile.userId}
+            userName={viewingProfile.userName}
           />
         )}
       </div>

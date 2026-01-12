@@ -120,6 +120,7 @@ const Settings = () => {
           }
         },
         { icon: Mic, label: 'Voice', onClick: () => navigate('/ai-features') },
+        { icon: Database, label: 'Memory', subtitle: 'AI personalization', onClick: () => navigate('/') }, // Memory option for mobile
         { icon: Database, label: 'Data controls', onClick: () => toast({ title: 'Data controls', description: 'Your data is securely stored' }) },
         { icon: Shield, label: 'Security', onClick: () => toast({ title: 'Security', description: 'Your account is secure with Supabase Auth' }) },
       ]
