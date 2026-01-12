@@ -58,14 +58,27 @@ export function ImageGenerator() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const downloadImage = (imageUrl: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = filename;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadImage = async (imageUrl: string, filename: string) => {
+    try {
+      // Fetch the image as a blob to force download instead of redirect
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed, opening in new tab:', error);
+      // Fallback: open in new tab if blob download fails
+      window.open(imageUrl, '_blank');
+    }
   };
 
   const handleGenerate = async () => {

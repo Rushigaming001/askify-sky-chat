@@ -13,7 +13,9 @@ import RolePermissionsManager from '@/components/RolePermissionsManager';
 import { UsageTrafficPanel } from '@/components/UsageTrafficPanel';
 import UserControlsManager from '@/components/UserControlsManager';
 import MessageLimitsManager from '@/components/MessageLimitsManager';
+import PremiumRolesManager from '@/components/PremiumRolesManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -54,9 +56,9 @@ export default function AdminPanel() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<string>('user');
+  const [newUserRoles, setNewUserRoles] = useState<string[]>(['user']);
   const [editingUserRole, setEditingUserRole] = useState<Profile | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string>('user');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(['user']);
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
@@ -209,22 +211,24 @@ export default function AdminPanel() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Assign role to the new user
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role: newUserRole as any
-          });
+        // Assign roles to the new user
+        for (const role of newUserRoles) {
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: authData.user.id,
+              role: role as any
+            });
 
-        if (roleError) throw roleError;
+          if (roleError) throw roleError;
+        }
 
-        toast.success(`User created successfully with ${newUserRole} role`);
+        toast.success(`User created successfully with ${newUserRoles.join(', ')} role(s)`);
         setShowCreateUser(false);
         setNewUserEmail('');
         setNewUserPassword('');
         setNewUserName('');
-        setNewUserRole('user');
+        setNewUserRoles(['user']);
         loadUsers();
       }
     } catch (error: any) {
@@ -234,13 +238,26 @@ export default function AdminPanel() {
   };
 
   const handleEditUserRole = (profile: Profile) => {
+    // Check if trying to edit owner role
+    const currentRoles = userRoles[profile.id] || ['user'];
+    if (currentRoles.includes('owner') && !isOwner) {
+      toast.error('You cannot modify the Owner role');
+      return;
+    }
+    
     setEditingUserRole(profile);
-    const currentRole = userRoles[profile.id]?.[0] || 'user';
-    setSelectedRole(currentRole);
+    setSelectedRoles(currentRoles);
   };
 
-  const handleSaveRole = async () => {
+  const handleSaveRoles = async () => {
     if (!editingUserRole) return;
+
+    // Protection: Never allow removing owner role
+    const currentRoles = userRoles[editingUserRole.id] || [];
+    if (currentRoles.includes('owner') && !selectedRoles.includes('owner')) {
+      toast.error('Owner role cannot be removed');
+      return;
+    }
 
     try {
       // Delete existing roles for this user
@@ -249,23 +266,40 @@ export default function AdminPanel() {
         .delete()
         .eq('user_id', editingUserRole.id);
 
-      // Insert new role
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: editingUserRole.id,
-          role: selectedRole as any
-        });
+      // Insert all selected roles
+      for (const role of selectedRoles) {
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: editingUserRole.id,
+            role: role as any
+          });
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
-      toast.success('Role updated successfully');
+      toast.success('Roles updated successfully');
       setEditingUserRole(null);
       loadUsers();
     } catch (error: any) {
-      console.error('Error updating role:', error);
-      toast.error('Failed to update role');
+      console.error('Error updating roles:', error);
+      toast.error('Failed to update roles');
     }
+  };
+  
+  const toggleRole = (role: string) => {
+    // Protection: Never allow toggling off owner role if user has it
+    const currentRoles = userRoles[editingUserRole?.id || ''] || [];
+    if (role === 'owner' && currentRoles.includes('owner')) {
+      toast.error('Owner role cannot be removed');
+      return;
+    }
+    
+    setSelectedRoles(prev => 
+      prev.includes(role) 
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
   };
 
   if (loading) {
@@ -305,6 +339,7 @@ export default function AdminPanel() {
             <TabsTrigger value="limits" className="text-xs sm:text-sm px-2 sm:px-3">Limits</TabsTrigger>
             <TabsTrigger value="roles" className="text-xs sm:text-sm px-2 sm:px-3">Roles</TabsTrigger>
             <TabsTrigger value="models" className="text-xs sm:text-sm px-2 sm:px-3">Models</TabsTrigger>
+            <TabsTrigger value="premium" className="text-xs sm:text-sm px-2 sm:px-3">Premium</TabsTrigger>
             <TabsTrigger value="usage" className="text-xs sm:text-sm px-2 sm:px-3">Usage</TabsTrigger>
           </TabsList>
 
@@ -406,6 +441,10 @@ export default function AdminPanel() {
             <ModelPermissionsManager />
           </TabsContent>
 
+          <TabsContent value="premium">
+            <PremiumRolesManager />
+          </TabsContent>
+
           <TabsContent value="usage">
             <UsageTrafficPanel />
           </TabsContent>
@@ -487,39 +526,45 @@ export default function AdminPanel() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-role">Role</Label>
-              <Select value={newUserRole} onValueChange={(value: string) => setNewUserRole(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Standard Roles</div>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="friend">Friend</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="co_founder">Co-Founder</SelectItem>
-                  <SelectItem value="founder">Founder</SelectItem>
-                  <SelectItem value="ceo">CEO</SelectItem>
-                  <SelectItem value="owner">Owner</SelectItem>
-                  {isOwner && (
-                    <>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 1)</div>
-                      <SelectItem value="plus">💎 Plus</SelectItem>
-                      <SelectItem value="pro">🚀 Pro</SelectItem>
-                      <SelectItem value="elite">👑 Elite</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 2)</div>
-                      <SelectItem value="silver">🥈 Silver</SelectItem>
-                      <SelectItem value="gold">🥇 Gold</SelectItem>
-                      <SelectItem value="platinum">💠 Platinum</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 3)</div>
-                      <SelectItem value="basic">📦 Basic</SelectItem>
-                      <SelectItem value="premium">⭐ Premium</SelectItem>
-                      <SelectItem value="vip">🌟 VIP</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
+              <Label>Roles (select multiple)</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto border rounded-lg p-3">
+                <div className="col-span-2 text-xs font-semibold text-muted-foreground uppercase mb-1">Standard Roles</div>
+                {['user', 'friend', 'moderator', 'admin', 'co_founder', 'founder', 'ceo', 'owner'].map(role => (
+                  <label key={role} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                    <Checkbox 
+                      checked={newUserRoles.includes(role)} 
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setNewUserRoles([...newUserRoles, role]);
+                        } else {
+                          setNewUserRoles(newUserRoles.filter(r => r !== role));
+                        }
+                      }}
+                    />
+                    <span className="text-sm capitalize">{role.replace('_', ' ')}</span>
+                  </label>
+                ))}
+                {isOwner && (
+                  <>
+                    <div className="col-span-2 text-xs font-semibold text-muted-foreground uppercase mt-2 border-t pt-2">Paid Roles</div>
+                    {['plus', 'pro', 'elite', 'silver', 'gold', 'platinum', 'basic', 'premium', 'vip'].map(role => (
+                      <label key={role} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                        <Checkbox 
+                          checked={newUserRoles.includes(role)} 
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setNewUserRoles([...newUserRoles, role]);
+                            } else {
+                              setNewUserRoles(newUserRoles.filter(r => r !== role));
+                            }
+                          }}
+                        />
+                        <span className="text-sm capitalize">{role}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -541,46 +586,55 @@ export default function AdminPanel() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={selectedRole} onValueChange={(value: string) => setSelectedRole(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Standard Roles</div>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="friend">Friend</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="co_founder">Co-Founder</SelectItem>
-                  <SelectItem value="founder">Founder</SelectItem>
-                  <SelectItem value="ceo">CEO</SelectItem>
-                  <SelectItem value="owner">Owner</SelectItem>
-                  {isOwner && (
-                    <>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 1)</div>
-                      <SelectItem value="plus">💎 Plus</SelectItem>
-                      <SelectItem value="pro">🚀 Pro</SelectItem>
-                      <SelectItem value="elite">👑 Elite</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 2)</div>
-                      <SelectItem value="silver">🥈 Silver</SelectItem>
-                      <SelectItem value="gold">🥇 Gold</SelectItem>
-                      <SelectItem value="platinum">💠 Platinum</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase border-t mt-1">Paid Roles (Tier 3)</div>
-                      <SelectItem value="basic">📦 Basic</SelectItem>
-                      <SelectItem value="premium">⭐ Premium</SelectItem>
-                      <SelectItem value="vip">🌟 VIP</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
+              <Label>Roles (select multiple)</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto border rounded-lg p-3">
+                <div className="col-span-2 text-xs font-semibold text-muted-foreground uppercase mb-1">Standard Roles</div>
+                {['user', 'friend', 'moderator', 'admin', 'co_founder', 'founder', 'ceo', 'owner'].map(role => {
+                  const isOwnerRole = role === 'owner';
+                  const hasOwnerRole = userRoles[editingUserRole?.id || '']?.includes('owner');
+                  const isDisabled = isOwnerRole && hasOwnerRole; // Can't uncheck owner
+                  
+                  return (
+                    <label key={role} className={`flex items-center gap-2 p-2 rounded hover:bg-muted ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      <Checkbox 
+                        checked={selectedRoles.includes(role)} 
+                        disabled={isDisabled}
+                        onCheckedChange={() => toggleRole(role)}
+                      />
+                      <span className="text-sm capitalize">{role.replace('_', ' ')}</span>
+                      {isOwnerRole && hasOwnerRole && (
+                        <Lock className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </label>
+                  );
+                })}
+                {isOwner && (
+                  <>
+                    <div className="col-span-2 text-xs font-semibold text-muted-foreground uppercase mt-2 border-t pt-2">Paid Roles</div>
+                    {['plus', 'pro', 'elite', 'silver', 'gold', 'platinum', 'basic', 'premium', 'vip'].map(role => (
+                      <label key={role} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                        <Checkbox 
+                          checked={selectedRoles.includes(role)} 
+                          onCheckedChange={() => toggleRole(role)}
+                        />
+                        <span className="text-sm capitalize">{role}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
+              {userRoles[editingUserRole?.id || '']?.includes('owner') && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Lock className="h-3 w-3" /> Owner role is protected and cannot be removed
+                </p>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditingUserRole(null)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveRole}>Save Changes</Button>
+            <Button onClick={handleSaveRoles}>Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>
