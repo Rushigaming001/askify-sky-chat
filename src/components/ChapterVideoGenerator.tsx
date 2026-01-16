@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Video, FileText, Download, Copy, BookOpen, Sparkles, Lock, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Video, FileText, Download, Copy, BookOpen, Sparkles, Lock, AlertCircle, Volume2, Play, Pause, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,10 +18,15 @@ export function ChapterVideoGenerator() {
   const [chapterText, setChapterText] = useState('');
   const [chapterTitle, setChapterTitle] = useState('');
   const [useLovableAI, setUseLovableAI] = useState(false);
+  const [language, setLanguage] = useState<'english' | 'hindi'>('english');
   const [loading, setLoading] = useState(false);
   const [generatedScript, setGeneratedScript] = useState<string | null>(null);
+  const [audioData, setAudioData] = useState<string | null>(null);
   const [usedModel, setUsedModel] = useState<string>('');
+  const [usedVoice, setUsedVoice] = useState<string>('');
   const [isOwner, setIsOwner] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -35,6 +41,16 @@ export function ChapterVideoGenerator() {
     checkOwnerRole();
   }, [user?.id]);
 
+  useEffect(() => {
+    // Cleanup audio on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   const handleGenerate = async () => {
     if (!chapterText.trim() || chapterText.trim().length < 50) {
       toast({
@@ -47,13 +63,16 @@ export function ChapterVideoGenerator() {
 
     setLoading(true);
     setGeneratedScript(null);
+    setAudioData(null);
+    setIsPlaying(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('chapter-video', {
         body: { 
           chapterText: chapterText.trim(),
           chapterTitle: chapterTitle.trim() || 'Chapter Explanation',
-          useLovableAI: isOwner && useLovableAI
+          useLovableAI: isOwner && useLovableAI,
+          language
         }
       });
 
@@ -66,22 +85,56 @@ export function ChapterVideoGenerator() {
       }
 
       setGeneratedScript(data.script);
+      setAudioData(data.audio);
       setUsedModel(data.model || 'unknown');
+      setUsedVoice(data.voice || 'unknown');
       
       toast({
-        title: '🎬 Video Script Generated!',
-        description: 'Your chapter explanation script is ready',
+        title: data.audio ? '🎬 Video Audio Generated!' : '📝 Script Generated',
+        description: data.audio 
+          ? `Your chapter explanation is ready with ${data.voice} voice in ${data.language}`
+          : 'Script generated but audio service is unavailable',
       });
     } catch (error: any) {
       console.error('Generation error:', error);
       toast({
         title: 'Generation Failed',
-        description: error.message || 'Failed to generate video script',
+        description: error.message || 'Failed to generate video content',
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePlayPause = () => {
+    if (!audioData) return;
+
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    } else {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(`data:audio/mpeg;base64,${audioData}`);
+        audioRef.current.onended = () => setIsPlaying(false);
+      }
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const handleDownloadAudio = () => {
+    if (!audioData) return;
+    
+    const link = document.createElement('a');
+    link.href = `data:audio/mpeg;base64,${audioData}`;
+    link.download = `${chapterTitle || 'chapter'}-explanation-${language}.mp3`;
+    link.click();
+    
+    toast({
+      title: 'Downloaded!',
+      description: 'Audio file downloaded successfully',
+    });
   };
 
   const handleCopy = () => {
@@ -94,13 +147,13 @@ export function ChapterVideoGenerator() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadScript = () => {
     if (generatedScript) {
       const blob = new Blob([generatedScript], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${chapterTitle || 'chapter'}-video-script.txt`;
+      a.download = `${chapterTitle || 'chapter'}-narration-${language}.txt`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -115,7 +168,7 @@ export function ChapterVideoGenerator() {
             AI Chapter Video Generator
           </CardTitle>
           <CardDescription>
-            Transform your chapter content into an engaging video script with animations, dialogues, and scene descriptions
+            Transform your chapter content into an engaging audio explanation with AI-generated voice narration
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -143,6 +196,23 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
             />
             <p className="text-xs text-muted-foreground">
               {chapterText.length} characters • Minimum 50 required
+            </p>
+          </div>
+
+          {/* Language Selection */}
+          <div className="space-y-2">
+            <Label>Voice Language</Label>
+            <Select value={language} onValueChange={(val: 'english' | 'hindi') => setLanguage(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="english">🇬🇧 English</SelectItem>
+                <SelectItem value="hindi">🇮🇳 Hindi (हिंदी)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              The AI will generate the explanation in {language === 'hindi' ? 'Hindi' : 'English'} and create voice narration
             </p>
           </div>
 
@@ -186,26 +256,78 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Video Script...
+                Generating Audio Explanation...
               </>
             ) : (
               <>
-                <Video className="mr-2 h-4 w-4" />
-                Generate Video Script
+                <Volume2 className="mr-2 h-4 w-4" />
+                Generate Video with Voice
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Generated Script */}
-      {generatedScript && (
+      {/* Generated Audio Player */}
+      {audioData && (
         <Card className="border-green-500/20 bg-gradient-to-b from-green-500/5 to-transparent">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-green-500" />
-                Generated Video Script
+                <Volume2 className="h-5 w-5 text-green-500" />
+                Audio Explanation Ready
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  Voice: {usedVoice}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {language === 'hindi' ? '🇮🇳 Hindi' : '🇬🇧 English'}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-background border">
+              <Button
+                onClick={handlePlayPause}
+                size="lg"
+                className={isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause className="h-5 w-5 mr-2" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    Play Audio
+                  </>
+                )}
+              </Button>
+              
+              <Button variant="outline" onClick={handleDownloadAudio}>
+                <Download className="h-4 w-4 mr-2" />
+                Download MP3
+              </Button>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              💡 This audio can be used as voiceover for your video. Download and add it to any video editor!
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Generated Script */}
+      {generatedScript && (
+        <Card className="border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-500" />
+                Narration Script
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs">
@@ -215,7 +337,7 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
                   <Copy className="h-4 w-4 mr-1" />
                   Copy
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownload}>
+                <Button variant="outline" size="sm" onClick={handleDownloadScript}>
                   <Download className="h-4 w-4 mr-1" />
                   Download
                 </Button>
@@ -223,7 +345,7 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
             </div>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
+            <ScrollArea className="h-[400px] rounded-md border p-4 bg-background">
               <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                 {generatedScript}
               </pre>
@@ -233,24 +355,34 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
       )}
 
       {/* Example Output Preview */}
-      {!generatedScript && (
+      {!generatedScript && !audioData && (
         <Card className="border-dashed border-2 border-muted">
           <CardContent className="p-6">
             <div className="text-center space-y-4">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50" />
               <div>
-                <h3 className="font-medium text-muted-foreground">Example Output</h3>
+                <h3 className="font-medium text-muted-foreground">How It Works</h3>
                 <p className="text-sm text-muted-foreground/70">
-                  Your generated script will include:
+                  Paste your chapter content and get:
                 </p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                <div className="p-2 rounded bg-muted/50">📝 Scene Descriptions</div>
-                <div className="p-2 rounded bg-muted/50">🎬 Visual Animations</div>
-                <div className="p-2 rounded bg-muted/50">🗣️ Narrator Dialogue</div>
-                <div className="p-2 rounded bg-muted/50">⏱️ Timing & Transitions</div>
-                <div className="p-2 rounded bg-muted/50">📊 Key Concepts</div>
-                <div className="p-2 rounded bg-muted/50">❓ Quiz Questions</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded bg-muted/50 flex flex-col items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  <span>AI Script</span>
+                </div>
+                <div className="p-3 rounded bg-muted/50 flex flex-col items-center gap-2">
+                  <Volume2 className="h-5 w-5 text-green-500" />
+                  <span>Voice Audio</span>
+                </div>
+                <div className="p-3 rounded bg-muted/50 flex flex-col items-center gap-2">
+                  <span className="text-xl">🇬🇧🇮🇳</span>
+                  <span>English/Hindi</span>
+                </div>
+                <div className="p-3 rounded bg-muted/50 flex flex-col items-center gap-2">
+                  <Download className="h-5 w-5 text-purple-500" />
+                  <span>Download MP3</span>
+                </div>
               </div>
             </div>
           </CardContent>

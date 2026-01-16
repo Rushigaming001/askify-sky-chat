@@ -58,7 +58,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Allow empty content only if image is attached
       if (typeof msg.content !== 'string') {
         return new Response(JSON.stringify({ error: "Message content must be a string" }), {
           status: 400,
@@ -94,7 +93,7 @@ serve(async (req) => {
       });
     }
 
-    // All models use Lovable AI Gateway
+    // API Keys
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const POLLINATIONS_API_KEY_1 = Deno.env.get("POLLINATIONS_API_KEY_1");
     const POLLINATIONS_API_KEY_2 = Deno.env.get("POLLINATIONS_API_KEY_2");
@@ -164,8 +163,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       systemPrompt += ' Respond clearly and concisely.';
     }
     
-    // Helper function to call Pollinations API with Key 1 first, then Key 2
-    // Note: Pollinations keys reset every 24 hours, Lovable credits reset monthly
+    // Helper function to call Pollinations API - ONLY for DeepSeek Lite fallback
     async function callPollinationsWithKey1(messages: any[], systemPrompt: string, pollinationsModel: string): Promise<string> {
       if (!POLLINATIONS_API_KEY_1) {
         throw new Error("Pollinations Key 1 not available");
@@ -230,13 +228,12 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       throw new Error(`Pollinations Key 2 expired or failed (resets in 24h)`);
     }
     
-    // Main fallback chain: Pollinations Key 1 (24h) → Key 2 (24h) → Lovable (monthly - secondary fallback)
-    async function callWithFallbackChain(messages: any[], systemPrompt: string, pollinationsModel: string = 'openai'): Promise<{ reply: string; usedLovable: boolean }> {
+    // Pollinations fallback chain - ONLY used for DeepSeek Lite model
+    async function callPollinationsFallbackOnly(messages: any[], systemPrompt: string, pollinationsModel: string = 'deepseek'): Promise<string> {
       // Try Pollinations Key 1 first
       if (POLLINATIONS_API_KEY_1) {
         try {
-          const reply = await callPollinationsWithKey1(messages, systemPrompt, pollinationsModel);
-          return { reply, usedLovable: false };
+          return await callPollinationsWithKey1(messages, systemPrompt, pollinationsModel);
         } catch (err) {
           console.log("Pollinations Key 1 failed, trying Key 2...", err);
         }
@@ -245,71 +242,51 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       // Try Pollinations Key 2 as fallback
       if (POLLINATIONS_API_KEY_2) {
         try {
-          const reply = await callPollinationsWithKey2(messages, systemPrompt, pollinationsModel);
-          return { reply, usedLovable: false };
+          return await callPollinationsWithKey2(messages, systemPrompt, pollinationsModel);
         } catch (err) {
-          console.log("Pollinations Key 2 also failed, trying Lovable AI as last resort...", err);
+          console.log("Pollinations Key 2 also failed...", err);
         }
       }
       
-      // Lovable AI as final fallback (monthly reset)
-      if (LOVABLE_API_KEY) {
-        console.log("Both Pollinations keys expired (24h reset), using Lovable AI fallback (monthly reset)...");
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...messages,
-            ],
-            max_tokens: 500,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          return { reply: data.choices?.[0]?.message?.content || "No response generated", usedLovable: true };
-        }
-        
-        const errorText = await response.text();
-        console.error("Lovable AI fallback also failed:", response.status, errorText);
-      }
-      
-      throw new Error("All API keys expired. Pollinations keys reset every 24 hours, Lovable resets monthly.");
+      throw new Error("Both Pollinations keys expired. They reset every 24 hours.");
     }
     
     // Map user's model selection to AI models
+    // PRO and CORE models use their native APIs - NO POLLINATIONS FALLBACK
+    // Only LITE (DeepSeek) uses Pollinations as fallback
     let aiModel = '';
     let useExternalApi = false;
     let externalApiUrl = '';
     let externalApiKey = '';
-    let usePollinations = false;
-    let usePollinationsModel = '';
+    let isLiteModel = false; // Only Lite models get Pollinations fallback
+    let usePollinationsDirectly = false;
+    let pollinationsModel = '';
     
-    // Model mapping with external APIs and Pollinations fallback
+    // Model mapping - Separated into tiers
     if (model === 'grok' || !model) {
-      // Groq API (Core - default)
+      // CORE - Groq API (NO fallback)
       useExternalApi = true;
       externalApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
       externalApiKey = Deno.env.get('GROQ_API_KEY') || '';
       aiModel = 'llama-3.3-70b-versatile';
     } else if (model === 'cohere') {
+      // PRO - Cohere API (NO fallback)
       useExternalApi = true;
       externalApiUrl = 'https://api.cohere.ai/v2/chat';
       externalApiKey = Deno.env.get('COHERE_API_KEY') || '';
       aiModel = 'command-r-08-2024';
     } else if (model === 'deepseek') {
+      // LITE - DeepSeek API with Pollinations fallback
       useExternalApi = true;
       externalApiUrl = 'https://api.deepseek.com/chat/completions';
       externalApiKey = Deno.env.get('DEEPSEEK_API_KEY') || '';
       aiModel = 'deepseek-chat';
+      isLiteModel = true; // This is the only model that gets Pollinations fallback
     } else if (model === 'deepseek-v3') {
-      usePollinationsModel = 'deepseek';
+      // LITE - Uses Pollinations directly
+      usePollinationsDirectly = true;
+      pollinationsModel = 'deepseek';
+      isLiteModel = true;
     } else if (model === 'gpt') {
       aiModel = 'openai/gpt-5';
     } else if (model === 'gpt-mini') {
@@ -317,9 +294,12 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     } else if (model === 'gpt-nano') {
       aiModel = 'openai/gpt-5-nano';
     } else if (model === 'gpt-5.2') {
-      usePollinationsModel = 'openai';
+      // Uses Pollinations for specific features but NOT as fallback
+      usePollinationsDirectly = true;
+      pollinationsModel = 'openai';
     } else if (model === 'gpt-4o-audio') {
-      usePollinationsModel = 'openai';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'openai';
     } else if (model === 'gemini') {
       aiModel = 'google/gemini-2.5-flash';
     } else if (model === 'gemini-lite') {
@@ -327,65 +307,78 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     } else if (model === 'gemini-3') {
       aiModel = 'google/gemini-3-pro-preview';
     } else if (model === 'gemini-3-flash') {
-      usePollinationsModel = 'gemini';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'gemini';
     } else if (model === 'nano-banana') {
       aiModel = 'google/gemini-2.5-flash-image-preview';
     } else if (model === 'askify') {
       aiModel = 'google/gemini-2.5-pro';
     } else if (model === 'qwen-coder') {
-      usePollinationsModel = 'qwen-coder';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'qwen-coder';
     } else if (model === 'mistral-small') {
-      usePollinationsModel = 'mistral';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'mistral';
     } else if (model === 'grok-4-fast') {
-      usePollinationsModel = 'openai';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'openai';
     } else if (model === 'claude-haiku') {
-      usePollinationsModel = 'claude-haiku';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'claude-haiku';
     } else if (model === 'claude-sonnet') {
-      usePollinationsModel = 'claude-sonnet';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'claude-sonnet';
     } else if (model === 'claude-opus') {
-      usePollinationsModel = 'claude-opus';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'claude-opus';
     } else if (model === 'perplexity-sonar') {
-      usePollinationsModel = 'searchgpt';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'searchgpt';
     } else if (model === 'perplexity-reasoning') {
-      usePollinationsModel = 'searchgpt';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'searchgpt';
     } else if (model === 'kimi-k2') {
-      usePollinationsModel = 'mistral';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'mistral';
     } else if (model === 'nova-micro') {
-      usePollinationsModel = 'openai';
+      usePollinationsDirectly = true;
+      pollinationsModel = 'openai';
     } else if (model === 'chicky-tutor') {
       aiModel = 'google/gemini-2.5-flash';
     } else if (model === 'midijourney') {
       aiModel = 'google/gemini-2.5-flash-image-preview';
     }
     
-    // If an image is attached, force a vision-capable model (some external providers don't support images)
+    // If an image is attached, force a vision-capable model
     if (hasImage) {
       console.log("Image provided; forcing vision-capable model");
       aiModel = 'google/gemini-2.5-flash';
       useExternalApi = false;
       externalApiUrl = '';
       externalApiKey = '';
-      usePollinationsModel = '';
+      usePollinationsDirectly = false;
+      pollinationsModel = '';
+      isLiteModel = false;
     }
 
-    // If using Pollinations model directly - uses fallback chain (Pollinations 1 → 2 → Lovable)
-    if (usePollinationsModel && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2 || LOVABLE_API_KEY)) {
+    // If using Pollinations model directly (for specific models, NOT as fallback)
+    if (usePollinationsDirectly && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
       try {
-        const result = await callWithFallbackChain(messages, systemPrompt, usePollinationsModel);
+        const reply = await callPollinationsFallbackOnly(messages, systemPrompt, pollinationsModel);
         
         // Log usage
         await supabase.from('usage_logs').insert({
           user_id: user.id,
-          model_id: result.usedLovable ? 'lovable-gemini-fallback' : `pollinations-${usePollinationsModel}`,
+          model_id: `pollinations-${pollinationsModel}`,
           mode: mode || 'normal'
         });
 
-        return new Response(JSON.stringify({ reply: result.reply }), {
+        return new Response(JSON.stringify({ reply }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (pollError) {
-        console.error("All models failed:", pollError);
-        return new Response(JSON.stringify({ error: "All API keys expired. Please try again later." }), {
+        console.error("Pollinations models failed:", pollError);
+        return new Response(JSON.stringify({ error: "This model is currently unavailable. Please try again later or use a different model." }), {
           status: 503,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -393,7 +386,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     }
 
     // Check model access permission (skip for external API and Pollinations models)
-    if (!useExternalApi && !usePollinationsModel && aiModel) {
+    if (!useExternalApi && !usePollinationsDirectly && aiModel) {
       const { data: canAccess } = await supabase.rpc('can_access_model', {
         _user_id: user.id,
         _model_id: aiModel
@@ -409,23 +402,32 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
 
     let reply = '';
 
-    // Handle external API calls
+    // Handle external API calls (Groq/Core, Cohere/Pro, DeepSeek/Lite)
     if (useExternalApi) {
       if (!externalApiKey) {
-        // If external API key not configured, fallback to Pollinations
-        console.log(`API key not configured for ${model}, using Pollinations fallback...`);
-        try {
-          const result = await callWithFallbackChain(messages, systemPrompt, 'openai');
-          await supabase.from('usage_logs').insert({
-            user_id: user.id,
-            model_id: result.usedLovable ? 'lovable-gemini-fallback' : 'pollinations-openai',
-            mode: mode || 'normal'
-          });
-          return new Response(JSON.stringify({ reply: result.reply }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch (err) {
-          return new Response(JSON.stringify({ error: "All API services unavailable. Please try again later." }), {
+        // If external API key not configured
+        if (isLiteModel) {
+          // ONLY DeepSeek Lite can fallback to Pollinations
+          console.log(`DeepSeek API key not configured, using Pollinations fallback...`);
+          try {
+            reply = await callPollinationsFallbackOnly(messages, systemPrompt, 'deepseek');
+            await supabase.from('usage_logs').insert({
+              user_id: user.id,
+              model_id: 'pollinations-deepseek-fallback',
+              mode: mode || 'normal'
+            });
+            return new Response(JSON.stringify({ reply }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          } catch (err) {
+            return new Response(JSON.stringify({ error: "DeepSeek Lite is currently unavailable. Please try again later." }), {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          // PRO and CORE models - NO FALLBACK
+          return new Response(JSON.stringify({ error: `${model === 'cohere' ? 'Pro' : 'Core'} model is currently unavailable. API key not configured.` }), {
             status: 503,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -436,7 +438,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       
       try {
         if (model === 'cohere') {
-          // Cohere v2 API format
+          // Cohere v2 API format (PRO - no fallback)
           const cohereMessages = [
             { role: 'system', content: systemPrompt },
             ...messages.map((m: { role: string; content: string }) => ({
@@ -458,13 +460,19 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
           });
 
           if (!response.ok) {
-            throw new Error(`Cohere API error: ${response.status}`);
+            const errorText = await response.text();
+            console.error(`Cohere API error: ${response.status} - ${errorText}`);
+            // PRO model - NO FALLBACK
+            return new Response(JSON.stringify({ error: "Pro model (Cohere) is currently unavailable. Please try again later." }), {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
           }
 
           const data = await response.json();
           reply = data.message?.content?.[0]?.text || "No response generated";
         } else {
-          // Groq and DeepSeek use OpenAI-compatible format
+          // Groq (CORE) and DeepSeek (LITE) use OpenAI-compatible format
           response = await fetch(externalApiUrl, {
             method: "POST",
             headers: {
@@ -482,7 +490,35 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
           });
 
           if (!response.ok) {
-            throw new Error(`${model} API error: ${response.status}`);
+            const errorText = await response.text();
+            console.error(`${model} API error: ${response.status} - ${errorText}`);
+            
+            // Only DeepSeek (LITE) can fallback to Pollinations
+            if (isLiteModel) {
+              console.log("DeepSeek API failed, trying Pollinations fallback...");
+              try {
+                reply = await callPollinationsFallbackOnly(messages, systemPrompt, 'deepseek');
+                await supabase.from('usage_logs').insert({
+                  user_id: user.id,
+                  model_id: 'pollinations-deepseek-fallback',
+                  mode: mode || 'normal'
+                });
+                return new Response(JSON.stringify({ reply }), {
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+              } catch (fallbackErr) {
+                return new Response(JSON.stringify({ error: "DeepSeek Lite is currently unavailable. Please try again later." }), {
+                  status: 503,
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+              }
+            } else {
+              // CORE (Groq) - NO FALLBACK
+              return new Response(JSON.stringify({ error: "Core model (Groq) is currently unavailable. Please try again later." }), {
+                status: 503,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
           }
 
           const data = await response.json();
@@ -490,44 +526,48 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         }
       } catch (error) {
         console.error(`External API (${model}) failed:`, error);
-        // Fallback to Pollinations when external API fails
-        console.log("Falling back to Pollinations...");
-        try {
-          const result = await callWithFallbackChain(messages, systemPrompt, 'openai');
-          await supabase.from('usage_logs').insert({
-            user_id: user.id,
-            model_id: result.usedLovable ? 'lovable-gemini-fallback' : 'pollinations-openai',
-            mode: mode || 'normal'
-          });
-          return new Response(JSON.stringify({ reply: result.reply }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch (fallbackErr) {
-          return new Response(JSON.stringify({ error: "All AI services unavailable. Please try again later." }), {
+        
+        // Only DeepSeek (LITE) can fallback to Pollinations
+        if (isLiteModel) {
+          console.log("DeepSeek API failed, trying Pollinations fallback...");
+          try {
+            reply = await callPollinationsFallbackOnly(messages, systemPrompt, 'deepseek');
+            await supabase.from('usage_logs').insert({
+              user_id: user.id,
+              model_id: 'pollinations-deepseek-fallback',
+              mode: mode || 'normal'
+            });
+            return new Response(JSON.stringify({ reply }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          } catch (fallbackErr) {
+            return new Response(JSON.stringify({ error: "DeepSeek Lite is currently unavailable. Please try again later." }), {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          // PRO and CORE - NO FALLBACK
+          const tierName = model === 'cohere' ? 'Pro' : 'Core';
+          return new Response(JSON.stringify({ error: `${tierName} model is currently unavailable. Please try again later.` }), {
             status: 503,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
       }
     } else {
-      // For non-external API models, use Pollinations first, then Lovable as fallback
-      // Exception: if image is attached, we must use Lovable (vision model)
-      
-      // Handle image attachment by using vision model (requires Lovable AI)
+      // For Lovable AI models (Gemini, GPT, etc.)
       let processedMessages = messages;
       let modelToUse = aiModel;
-      let mustUseLovable = false;
       
       if (hasImage && image) {
-        console.log("Image attached, using Lovable vision model (required)");
-        modelToUse = 'google/gemini-2.5-flash'; // Use Gemini Flash for vision
-        mustUseLovable = true;
+        console.log("Image attached, using Lovable vision model");
+        modelToUse = 'google/gemini-2.5-flash';
         
         // Add image to the last user message
         const lastUserMsgIndex = messages.length - 1;
         processedMessages = messages.map((msg: any, i: number) => {
           if (i === lastUserMsgIndex && msg.role === 'user') {
-            // Handle empty message content when only image is sent
             const textContent = msg.content.trim() || "What's in this image? Please analyze it.";
             return {
               role: 'user',
@@ -541,31 +581,6 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         });
       }
       
-      // If no image, try Pollinations first (Key 1 → Key 2), then Lovable as fallback
-      if (!mustUseLovable && (POLLINATIONS_API_KEY_1 || POLLINATIONS_API_KEY_2)) {
-        try {
-          console.log("Using Pollinations as primary (Key 1 → Key 2 → Lovable fallback)...");
-          const result = await callWithFallbackChain(messages, systemPrompt, 'openai');
-          
-          await supabase.from('usage_logs').insert({
-            user_id: user.id,
-            model_id: result.usedLovable ? 'lovable-gemini-fallback' : 'pollinations-openai',
-            mode: mode || 'normal'
-          });
-
-          return new Response(JSON.stringify({ reply: result.reply }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch (error) {
-          console.error("All APIs failed:", error);
-          return new Response(JSON.stringify({ error: "All API keys expired. Pollinations resets every 24 hours, Lovable resets monthly." }), {
-            status: 503,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-      
-      // Must use Lovable (for vision or no Pollinations keys available)
       const requestBody: any = {
         model: modelToUse,
         messages: [
@@ -574,7 +589,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
         ],
       };
 
-      // Use max_completion_tokens for OpenAI GPT-5+ models, max_tokens for others
+      // Use max_completion_tokens for OpenAI GPT-5+ models
       if (aiModel.includes('gpt-5') || aiModel.includes('gpt-4.1') || aiModel.includes('o3') || aiModel.includes('o4')) {
         requestBody.max_completion_tokens = 500;
       } else {
@@ -583,7 +598,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
 
       try {
         if (!LOVABLE_API_KEY) {
-          throw new Error("No Lovable API key, trying Pollinations fallback");
+          throw new Error("Lovable API key not configured");
         }
 
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -606,21 +621,31 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
             });
           }
           
+          if (response.status === 402) {
+            return new Response(JSON.stringify({ error: "Out of AI credits. Please go to Settings → Workspace → Usage to add credits." }), {
+              status: 402,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          
           throw new Error(`Lovable AI request failed: ${errorText}`);
         } else {
           const data = await response.json();
           reply = data.choices?.[0]?.message?.content || "No response generated";
         }
       } catch (error) {
-        console.error("Lovable AI error (used as fallback):", error);
-        throw error;
+        console.error("Lovable AI error:", error);
+        return new Response(JSON.stringify({ error: "AI service is currently unavailable. Please try again later." }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
     // Log usage
     await supabase.from('usage_logs').insert({
       user_id: user.id,
-      model_id: usePollinations ? 'pollinations-openai' : aiModel,
+      model_id: aiModel || model,
       mode: mode || 'normal'
     });
 
