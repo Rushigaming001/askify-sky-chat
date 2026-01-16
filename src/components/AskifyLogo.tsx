@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
-import askifyIcon from '@/assets/askify-icon.jpg';
-import askifyLogoFull from '@/assets/askify-logo-full.jpg';
+import askifyLogoTransparent from '@/assets/askify-logo-transparent.png';
 
 interface AskifyLogoProps {
   className?: string;
@@ -10,29 +9,17 @@ interface AskifyLogoProps {
 
 export function AskifyLogo({ className, iconOnly = false, size = 'md' }: AskifyLogoProps) {
   const sizeClasses = {
-    sm: { icon: 'h-6 w-6', text: 'h-5' },
-    md: { icon: 'h-8 w-8', text: 'h-6' },
-    lg: { icon: 'h-10 w-10', text: 'h-8' },
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8',
+    lg: 'h-10 w-10',
   };
-
-  if (iconOnly) {
-    return (
-      <div className={cn('flex items-center', className)}>
-        <img 
-          src={askifyIcon} 
-          alt="Askify" 
-          className={cn('object-contain rounded-lg', sizeClasses[size].icon)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className={cn('flex items-center', className)}>
       <img 
-        src={askifyLogoFull} 
+        src={askifyLogoTransparent} 
         alt="Askify" 
-        className={cn('object-contain', size === 'sm' ? 'h-6' : size === 'md' ? 'h-8' : 'h-10')}
+        className={cn('object-contain', sizeClasses[size])}
       />
     </div>
   );

@@ -12,8 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import askifyIcon from '@/assets/askify-icon.jpg';
-import askifyLogoFull from '@/assets/askify-logo-full.jpg';
+import askifyLogoTransparent from '@/assets/askify-logo-transparent.png';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { MathSolver } from '@/components/MathSolver';
 import { LiveVideoCall } from '@/components/LiveVideoCall';
@@ -231,9 +230,9 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
         <aside className={`hidden lg:flex fixed left-0 top-0 h-full ${collapsed ? 'w-16' : 'w-72'} bg-sidebar border-r border-sidebar-border z-40 flex-col shadow-lg transition-all duration-300`}>
           <div className="p-3 border-b border-border flex items-center justify-between">
             <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
-              <img src={askifyIcon} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200 rounded-lg" />
+              <img src={askifyLogoTransparent} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
               {!collapsed && (
-                <img src={askifyLogoFull} alt="Askify" className="h-6 object-contain" />
+                <span className="font-bold text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">ASKIFY</span>
               )}
             </div>
             {!collapsed && onCollapse && (
@@ -801,8 +800,8 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
       <aside className="fixed left-0 top-0 h-full w-64 md:w-72 bg-sidebar border-r border-sidebar-border z-50 flex flex-col shadow-2xl animate-slide-in-left lg:hidden">
         <div className="p-4 border-b border-border flex items-center justify-between backdrop-blur">
           <div className="flex items-center gap-2 animate-scale-in">
-            <img src={askifyIcon} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200 rounded-lg" />
-            <img src={askifyLogoFull} alt="Askify" className="h-6 object-contain" />
+            <img src={askifyLogoTransparent} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
+            <span className="font-bold text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">ASKIFY</span>
           </div>
           <Button 
             variant="ghost" 

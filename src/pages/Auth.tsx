@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Mail, Lock, User, Zap, Shield, Check, X, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Zap, Check, X, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import techBackground from '@/assets/tech-background.png';
+import askifyLogoTransparent from '@/assets/askify-logo-transparent.png';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -204,113 +204,61 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-2 sm:p-4 md:p-6 lg:p-8 bg-[#0a0a1a]">
-      {/* Tech Background Image */}
-      <div 
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `url(${techBackground})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-2 sm:p-4 md:p-6 lg:p-8">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-gradient-shift" style={{ backgroundSize: '400% 400%' }} />
       
-      {/* Animated tech overlay */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        {/* Hexagon grid pattern animation */}
-        <div className="absolute inset-0 opacity-20">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="hexagons" width="50" height="43.4" patternUnits="userSpaceOnUse" patternTransform="scale(2)">
-                <polygon 
-                  points="25,0 50,14.4 50,43.4 25,43.4 0,43.4 0,14.4" 
-                  fill="none" 
-                  stroke="rgba(0,255,255,0.3)" 
-                  strokeWidth="0.5"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hexagons)" />
-          </svg>
-        </div>
+      {/* Animated mesh overlay */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Floating orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
         
-        {/* Animated circuit lines */}
-        <div className="absolute top-0 left-0 w-full h-full">
-          {/* Horizontal scanning line */}
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-scan-horizontal opacity-60" />
-          
-          {/* Vertical scanning line */}
-          <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-transparent via-cyan-400 to-transparent animate-scan-vertical opacity-60" />
-          
-          {/* Glowing particles */}
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-cyan-400 rounded-full animate-glow-pulse shadow-[0_0_20px_rgba(0,255,255,0.8)]" />
-          <div className="absolute top-1/3 right-1/4 w-2 h-2 bg-cyan-400 rounded-full animate-glow-pulse shadow-[0_0_20px_rgba(0,255,255,0.8)]" style={{ animationDelay: '0.5s' }} />
-          <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-cyan-400 rounded-full animate-glow-pulse shadow-[0_0_20px_rgba(0,255,255,0.8)]" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-2/3 right-1/3 w-2 h-2 bg-cyan-400 rounded-full animate-glow-pulse shadow-[0_0_20px_rgba(0,255,255,0.8)]" style={{ animationDelay: '1.5s' }} />
-          <div className="absolute bottom-1/4 right-1/4 w-2 h-2 bg-cyan-400 rounded-full animate-glow-pulse shadow-[0_0_20px_rgba(0,255,255,0.8)]" style={{ animationDelay: '2s' }} />
-          
-          {/* Animated connection lines */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            <defs>
-              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="50%" stopColor="rgba(0,255,255,0.6)" />
-                <stop offset="100%" stopColor="transparent" />
-              </linearGradient>
-            </defs>
-            <line x1="0" y1="30%" x2="100%" y2="30%" stroke="url(#lineGradient)" strokeWidth="1" className="animate-line-flow" />
-            <line x1="0" y1="70%" x2="100%" y2="70%" stroke="url(#lineGradient)" strokeWidth="1" className="animate-line-flow" style={{ animationDelay: '2s' }} />
-          </svg>
-        </div>
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }} />
         
-        {/* Floating tech elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 border border-cyan-400/30 rotate-45 animate-float opacity-40" />
-        <div className="absolute bottom-32 right-20 w-16 h-16 border border-cyan-400/30 rotate-12 animate-float-slow opacity-40" />
-        <div className="absolute top-1/2 left-20 w-12 h-12 border border-cyan-400/30 -rotate-12 animate-float opacity-30" style={{ animationDelay: '1s' }} />
-        
-        {/* Glowing corner accents */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-cyan-400/20 to-transparent blur-xl" />
-        <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-cyan-400/20 to-transparent blur-xl" />
-        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-400/20 to-transparent blur-xl" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-400/20 to-transparent blur-xl" />
+        {/* Glowing particles */}
+        <div className="absolute top-20 left-20 w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
+        <div className="absolute top-40 right-32 w-2 h-2 bg-purple-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(192,132,252,0.8)]" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute bottom-32 left-40 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(96,165,250,0.8)]" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 right-20 w-2 h-2 bg-pink-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(244,114,182,0.8)]" style={{ animationDelay: '1.5s' }} />
       </div>
 
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/40 z-[1]" />
+      <div className="absolute inset-0 bg-black/30 z-[1]" />
 
       {/* Glass card with content */}
-      <Card className="w-full max-w-md mx-2 sm:mx-0 shadow-2xl border-cyan-400/30 backdrop-blur-xl bg-slate-900/80 relative z-10 overflow-hidden animate-scale-in">
-        {/* Tech glow overlay on card */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-transparent to-purple-400/10 pointer-events-none" />
-        <div className="absolute inset-0 border border-cyan-400/20 rounded-lg pointer-events-none" />
-        
-        {/* Animated border glow */}
-        <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-400/0 via-cyan-400/50 to-cyan-400/0 rounded-lg opacity-0 animate-border-glow pointer-events-none" />
+      <Card className="w-full max-w-md mx-2 sm:mx-0 shadow-2xl border-white/10 backdrop-blur-xl bg-slate-900/70 relative z-10 overflow-hidden animate-scale-in">
+        {/* Gradient overlay on card */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+        <div className="absolute inset-0 border border-white/10 rounded-lg pointer-events-none" />
         
         <CardHeader className="text-center space-y-6 pb-8 relative">
           <div className="flex justify-center animate-float">
             <div className="relative">
-              {/* Glowing effect behind icon */}
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 blur-2xl opacity-60 rounded-full animate-gradient-shift" style={{ backgroundSize: '200% 200%' }} />
+              {/* Glowing effect behind logo */}
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 blur-2xl opacity-40 rounded-full animate-pulse" />
               
-              {/* Icon container with gradient */}
-              <div className="relative bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-5 rounded-2xl shadow-2xl shadow-purple-500/50">
-                <Sparkles className="h-14 w-14 text-white drop-shadow-lg" />
-              </div>
-              
-              {/* Animated ring */}
-              <div className="absolute inset-0 rounded-2xl border-2 border-cyan-400/40 animate-ping" style={{ animationDuration: '2s' }} />
+              {/* Logo */}
+              <img 
+                src={askifyLogoTransparent} 
+                alt="Askify" 
+                className="relative h-24 w-24 object-contain drop-shadow-2xl"
+              />
             </div>
           </div>
           
           <div>
-            <CardTitle className="text-5xl font-bold mb-3">
+            <CardTitle className="text-4xl font-bold mb-3">
               <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-md animate-gradient-shift" style={{ backgroundSize: '200% 200%' }}>
                 ASKIFY
               </span>
             </CardTitle>
-            <CardDescription className="text-lg text-cyan-100/80 font-medium flex items-center justify-center gap-2">
+            <CardDescription className="text-lg text-white/70 font-medium flex items-center justify-center gap-2">
               <Zap className="h-4 w-4 text-yellow-400 animate-pulse" />
               Your Intelligent AI Companion
             </CardDescription>
@@ -322,26 +270,26 @@ const Auth = () => {
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-white mb-2">Reset Password</h3>
-                <p className="text-sm text-cyan-100/60">Enter your email to receive a reset link</p>
+                <p className="text-sm text-white/60">Enter your email to receive a reset link</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reset-email" className="text-sm font-semibold text-cyan-100">Email</Label>
+                <Label htmlFor="reset-email" className="text-sm font-semibold text-white/90">Email</Label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                   <Input
                     id="reset-email"
                     type="email"
                     placeholder="you@example.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="pl-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                    className="pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                   />
                 </div>
               </div>
               <div className="space-y-3">
                 <Button 
                   onClick={handleForgotPassword}
-                  className="w-full h-12 text-base font-bold bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-400 hover:via-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
+                  className="w-full h-12 text-base font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
                   size="lg" 
                   disabled={isLoading}
                 >
@@ -350,7 +298,7 @@ const Auth = () => {
                 <Button 
                   onClick={() => setShowForgotPassword(false)}
                   variant="ghost"
-                  className="w-full text-cyan-100/70 hover:text-cyan-100 hover:bg-cyan-400/10"
+                  className="w-full text-white/70 hover:text-white hover:bg-white/10"
                 >
                   Back to Login
                 </Button>
@@ -358,16 +306,16 @@ const Auth = () => {
             </div>
           ) : (
             <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(v) => setIsLogin(v === 'login')}>
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/60 p-1 backdrop-blur-sm border border-cyan-400/20">
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/5 p-1 backdrop-blur-sm border border-white/10">
                 <TabsTrigger 
                   value="login" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-cyan-100/70 font-semibold transition-all data-[state=active]:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-white/70 font-semibold transition-all"
                 >
                   Login
                 </TabsTrigger>
                 <TabsTrigger 
                   value="register" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-cyan-100/70 font-semibold transition-all data-[state=active]:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-white/70 font-semibold transition-all"
                 >
                   Register
                 </TabsTrigger>
@@ -376,10 +324,10 @@ const Auth = () => {
               <TabsContent value="login">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm font-semibold text-cyan-100">Email</Label>
+                    <Label htmlFor="login-email" className="text-sm font-semibold text-white/90">Email</Label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Mail className="h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                        <Mail className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                       </div>
                       <Input
                         id="login-email"
@@ -387,37 +335,37 @@ const Auth = () => {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                        className="pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password" className="text-sm font-semibold text-cyan-100">Password</Label>
+                      <Label htmlFor="login-password" className="text-sm font-semibold text-white/90">Password</Label>
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
-                        className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                        className="text-xs text-purple-400 hover:text-purple-300 hover:underline transition-colors"
                       >
-                        Forgot Password?
+                        Forgot password?
                       </button>
                     </div>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Lock className="h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                        <Lock className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                       </div>
                       <Input
                         id="login-password"
-                        type={showPassword ? "text" : "password"}
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 pr-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                        className="pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400/60 hover:text-cyan-400 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
@@ -425,46 +373,11 @@ const Auth = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full h-12 text-base font-bold bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-400 hover:via-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
+                    className="w-full h-12 text-base font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
                     size="lg" 
                     disabled={isLoading}
                   >
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Logging in...
-                      </div>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Login to ASKIFY
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-cyan-400/20" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-slate-900 px-2 text-cyan-100/60">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 bg-slate-800/60 border-cyan-400/30 text-white hover:bg-slate-800/80 hover:border-cyan-400/50 transition-all hover:shadow-[0_0_15px_rgba(0,255,255,0.2)]"
-                    onClick={handleGoogleSignIn}
-                    disabled={isLoading}
-                  >
-                    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Continue with Google
+                    {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               </TabsContent>
@@ -472,26 +385,26 @@ const Auth = () => {
               <TabsContent value="register">
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="register-name" className="text-sm font-semibold text-cyan-100">Full Name</Label>
+                    <Label htmlFor="register-name" className="text-sm font-semibold text-white/90">Full Name</Label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <User className="h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                        <User className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                       </div>
                       <Input
                         id="register-name"
                         type="text"
-                        placeholder="John Doe"
+                        placeholder="Your name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="pl-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                        className="pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-email" className="text-sm font-semibold text-cyan-100">Email</Label>
+                    <Label htmlFor="register-email" className="text-sm font-semibold text-white/90">Email</Label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Mail className="h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                        <Mail className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                       </div>
                       <Input
                         id="register-email"
@@ -499,212 +412,167 @@ const Auth = () => {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                        className="pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-password" className="text-sm font-semibold text-cyan-100">Password</Label>
+                    <Label htmlFor="register-password" className="text-sm font-semibold text-white/90">Password</Label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Lock className="h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                        <Lock className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                       </div>
                       <Input
                         id="register-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a strong password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 pr-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                        className="pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400/60 hover:text-cyan-400 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
                     {password && (
-                      <div className="space-y-2 mt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${passwordStrength.color} transition-all`}
-                              style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                      <div className="space-y-1">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div
+                              key={i}
+                              className={`h-1 flex-1 rounded-full transition-colors ${
+                                i <= passwordStrength.score ? passwordStrength.color : 'bg-white/20'
+                              }`}
                             />
-                          </div>
-                          <span className={`text-xs font-medium ${passwordStrength.color.replace('bg-', 'text-')}`}>
-                            {passwordStrength.label}
-                          </span>
+                          ))}
                         </div>
-                        <div className="grid grid-cols-2 gap-1 text-xs text-cyan-100/60">
-                          <div className="flex items-center gap-1">
-                            {password.length >= 8 ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-red-500" />}
-                            8+ characters
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {/[A-Z]/.test(password) && /[a-z]/.test(password) ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-red-500" />}
-                            Mixed case
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {/\d/.test(password) ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-red-500" />}
-                            Number
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {/[^a-zA-Z0-9]/.test(password) ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-red-500" />}
-                            Special char
-                          </div>
-                        </div>
+                        <p className={`text-xs ${
+                          passwordStrength.score <= 2 ? 'text-red-400' :
+                          passwordStrength.score <= 3 ? 'text-orange-400' :
+                          passwordStrength.score <= 4 ? 'text-yellow-400' : 'text-green-400'
+                        }`}>
+                          {passwordStrength.label}
+                        </p>
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password" className="text-sm font-semibold text-cyan-100">Confirm Password</Label>
+                    <Label htmlFor="register-confirm" className="text-sm font-semibold text-white/90">Confirm Password</Label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Shield className="h-5 w-5 text-cyan-400/60 group-focus-within:text-cyan-400 transition-colors" />
+                        <Lock className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
                       </div>
                       <Input
-                        id="register-confirm-password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
+                        id="register-confirm"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-12 pr-12 h-12 bg-slate-800/60 border-cyan-400/30 text-white placeholder:text-cyan-100/40 focus:border-cyan-400 focus:bg-slate-800/80 backdrop-blur-sm transition-all focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+                        className="pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400/60 hover:text-cyan-400 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
                       >
                         {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
-                    {confirmPassword && password !== confirmPassword && (
-                      <p className="text-xs text-red-400 flex items-center gap-1">
-                        <X className="h-3 w-3" /> Passwords do not match
-                      </p>
-                    )}
-                    {confirmPassword && password === confirmPassword && (
-                      <p className="text-xs text-green-400 flex items-center gap-1">
-                        <Check className="h-3 w-3" /> Passwords match
-                      </p>
+                    {confirmPassword && (
+                      <div className="flex items-center gap-1 text-xs">
+                        {password === confirmPassword ? (
+                          <>
+                            <Check className="h-3 w-3 text-green-400" />
+                            <span className="text-green-400">Passwords match</span>
+                          </>
+                        ) : (
+                          <>
+                            <X className="h-3 w-3 text-red-400" />
+                            <span className="text-red-400">Passwords don't match</span>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <Checkbox 
-                      id="terms" 
+                  <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
+                    <Checkbox
+                      id="terms"
                       checked={acceptTerms}
                       onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                      className="mt-1 border-cyan-400/50 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                      className="mt-0.5 border-white/30 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
                     />
-                    <Label htmlFor="terms" className="text-sm text-cyan-100/70 leading-relaxed">
-                      I agree to the{' '}
-                      <span className="text-cyan-400 hover:text-cyan-300 cursor-pointer underline">Terms of Service</span>
-                      {' '}and{' '}
-                      <span className="text-cyan-400 hover:text-cyan-300 cursor-pointer underline">Privacy Policy</span>
-                    </Label>
+                    <label htmlFor="terms" className="text-xs text-white/70 leading-relaxed cursor-pointer">
+                      I agree to the Terms of Service and Privacy Policy. I confirm that I am at least 13 years old.
+                    </label>
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full h-12 text-base font-bold bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-400 hover:via-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
+                    className="w-full h-12 text-base font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
                     size="lg" 
-                    disabled={isLoading || !acceptTerms}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Creating account...
-                      </div>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Create Account
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-cyan-400/20" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-slate-900 px-2 text-cyan-100/60">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 bg-slate-800/60 border-cyan-400/30 text-white hover:bg-slate-800/80 hover:border-cyan-400/50 transition-all hover:shadow-[0_0_15px_rgba(0,255,255,0.2)]"
-                    onClick={handleGoogleSignIn}
                     disabled={isLoading}
                   >
-                    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Continue with Google
+                    {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
           )}
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-slate-900/70 px-2 text-white/50">Or continue with</span>
+            </div>
+          </div>
+
+          {/* Google Sign In */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            className="w-full h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white font-semibold transition-all hover:scale-[1.02]"
+          >
+            <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continue with Google
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Custom CSS for tech animations */}
+      {/* Custom animations */}
       <style>{`
-        @keyframes scan-horizontal {
-          0% { transform: translate3d(0, -100vh, 0); }
-          100% { transform: translate3d(0, 100vh, 0); }
+        @keyframes gradient-shift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
         }
-        @keyframes scan-vertical {
-          0% { transform: translate3d(-100vw, 0, 0); }
-          100% { transform: translate3d(100vw, 0, 0); }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
         }
-        @keyframes glow-pulse {
-          0%, 100% { opacity: 0.25; transform: translate3d(0,0,0) scale(1); }
-          50% { opacity: 0.9; transform: translate3d(0,0,0) scale(1.35); }
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-30px); }
         }
-        @keyframes line-flow {
-          0% { opacity: 0; transform: translate3d(-100%, 0, 0); }
-          50% { opacity: 1; }
-          100% { opacity: 0; transform: translate3d(100%, 0, 0); }
+        @keyframes scale-in {
+          0% { opacity: 0; transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
         }
-        @keyframes border-glow {
-          0%, 100% { opacity: 0; }
-          50% { opacity: 0.5; }
-        }
-
-        .animate-scan-horizontal { animation: scan-horizontal 10s linear infinite; }
-        .animate-scan-vertical { animation: scan-vertical 12s linear infinite; }
-        .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
-        .animate-line-flow { animation: line-flow 8s ease-in-out infinite; }
-        .animate-border-glow { animation: border-glow 4s ease-in-out infinite; }
-
-        /* Performance hints */
-        .animate-scan-horizontal,
-        .animate-scan-vertical,
-        .animate-glow-pulse,
-        .animate-line-flow,
-        .animate-border-glow {
-          will-change: transform, opacity;
-          backface-visibility: hidden;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .animate-scan-horizontal,
-          .animate-scan-vertical,
-          .animate-glow-pulse,
-          .animate-line-flow,
-          .animate-border-glow {
-            animation: none !important;
-          }
-        }
+        .animate-gradient-shift { animation: gradient-shift 8s ease infinite; }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+        .animate-scale-in { animation: scale-in 0.5s ease-out; }
       `}</style>
     </div>
   );
