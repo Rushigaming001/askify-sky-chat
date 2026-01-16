@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Users, MoreVertical, Edit2, Trash2, Reply, X, Lock, Video, Phone } from 'lucide-react';
+import { ArrowLeft, Users, MoreVertical, Edit2, Trash2, Reply, X, Lock, Video, Phone, Trash } from 'lucide-react';
+import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMediaInput } from '@/components/ChatMediaInput';
@@ -306,6 +307,12 @@ const FriendsChat = () => {
               >
                 <Phone className="h-5 w-5" />
               </Button>
+              {isAdmin && (
+                <ClearAllMessagesButton 
+                  chatType="friends" 
+                  onCleared={() => setMessages([])} 
+                />
+              )}
             </div>
           </div>
         </header>

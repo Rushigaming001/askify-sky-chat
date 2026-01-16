@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock } from 'lucide-react';
+import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import RolePermissionsManager from '@/components/RolePermissionsManager';
 import RoleAbilitiesManager from '@/components/RoleAbilitiesManager';
@@ -16,6 +16,8 @@ import { ChatAnalyticsPanel } from '@/components/ChatAnalyticsPanel';
 import UserControlsManager from '@/components/UserControlsManager';
 import MessageLimitsManager from '@/components/MessageLimitsManager';
 import PremiumRolesManager from '@/components/PremiumRolesManager';
+import OwnerAccountSwitcher from '@/components/OwnerAccountSwitcher';
+import ModelLimitsManager from '@/components/ModelLimitsManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -339,6 +341,18 @@ export default function AdminPanel() {
             <TabsTrigger value="users" className="text-xs sm:text-sm px-2 sm:px-3">Users</TabsTrigger>
             <TabsTrigger value="controls" className="text-xs sm:text-sm px-2 sm:px-3">Controls</TabsTrigger>
             <TabsTrigger value="limits" className="text-xs sm:text-sm px-2 sm:px-3">Limits</TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="model-limits" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <Sparkles className="h-3 w-3" />
+                Model Limits
+              </TabsTrigger>
+            )}
+            {isOwner && (
+              <TabsTrigger value="view-activity" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <Eye className="h-3 w-3" />
+                View Activity
+              </TabsTrigger>
+            )}
             <TabsTrigger value="roles" className="text-xs sm:text-sm px-2 sm:px-3">Roles</TabsTrigger>
             <TabsTrigger value="abilities" className="text-xs sm:text-sm px-2 sm:px-3">Abilities</TabsTrigger>
             <TabsTrigger value="models" className="text-xs sm:text-sm px-2 sm:px-3">Models</TabsTrigger>
@@ -436,6 +450,18 @@ export default function AdminPanel() {
           <TabsContent value="limits">
             <MessageLimitsManager />
           </TabsContent>
+
+          {isOwner && (
+            <TabsContent value="model-limits">
+              <ModelLimitsManager />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="view-activity">
+              <OwnerAccountSwitcher />
+            </TabsContent>
+          )}
 
           <TabsContent value="roles">
             <RolePermissionsManager />
