@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Heart } from 'lucide-react';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
@@ -53,6 +53,7 @@ interface PublicMessage {
   profiles: {
     name: string;
     email: string;
+    avatar_url?: string;
   };
   user_role?: string;
 }
@@ -222,7 +223,8 @@ const PublicChat = () => {
         *,
         profiles!public_messages_user_id_fkey (
           name,
-          email
+          email,
+          avatar_url
         )
       `)
       .order('created_at', { ascending: false })
@@ -663,8 +665,16 @@ const PublicChat = () => {
               >
                 <Music className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/friends-chat')}
+                title="Boys Chat (Friends Only)"
+                className="h-7 w-7 sm:h-8 sm:w-8"
+              >
+                <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-pink-500" />
+              </Button>
             </div>
-          </div>
         </header>
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
@@ -696,6 +706,9 @@ const PublicChat = () => {
                       className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                       onClick={() => setViewingProfile({ userId: message.user_id, userName: message.profiles?.name || 'User' })}
                     >
+                      {message.profiles?.avatar_url ? (
+                        <AvatarImage src={message.profiles.avatar_url} alt={message.profiles.name} />
+                      ) : null}
                       <AvatarFallback className="text-xs bg-muted">
                         {message.profiles ? getInitials(message.profiles.name) : '??'}
                       </AvatarFallback>

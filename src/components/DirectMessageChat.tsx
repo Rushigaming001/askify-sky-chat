@@ -2,18 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, Video, Phone } from 'lucide-react';
+import { X, Video, Phone } from 'lucide-react';
 import { WebRTCCall } from './WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { ChatMediaInput } from './ChatMediaInput';
 
 interface DirectMessage {
   id: string;
   sender_id: string;
   receiver_id: string;
   content: string;
+  image_url?: string;
   created_at: string;
   edited_at?: string;
   read_at?: string;
@@ -30,7 +31,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   const { toast } = useToast();
   const { sendNotification } = usePushNotifications();
   const [messages, setMessages] = useState<DirectMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
@@ -113,19 +113,19 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
       .eq('id', messageId);
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user || isLoading) return;
+  const handleSendMessage = async (content: string, imageUrl?: string) => {
+    if ((!content.trim() && !imageUrl) || !user || isLoading) return;
 
     setIsLoading(true);
 
-    const messageContent = newMessage.trim();
+    const messageContent = content.trim();
     const { error } = await supabase
       .from('direct_messages')
       .insert({
         sender_id: user.id,
         receiver_id: recipientId,
-        content: messageContent
+        content: messageContent || '',
+        image_url: imageUrl
       });
 
     if (error) {
@@ -135,7 +135,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
         variant: 'destructive'
       });
     } else {
-      setNewMessage('');
       loadMessages();
       
       // Send push notification to recipient
@@ -200,9 +199,14 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
                         : 'bg-muted text-foreground'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
+                    {message.image_url && (
+                      <img src={message.image_url} alt="Shared" className="max-w-[200px] max-h-[200px] rounded-lg mb-2" />
+                    )}
+                    {message.content && (
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs opacity-70">
                         {formatTime(message.created_at)}
@@ -220,22 +224,12 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
       </ScrollArea>
 
       <div className="border-t border-border p-4">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button 
-            type="submit" 
-            size="icon"
-            disabled={!newMessage.trim() || isLoading}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <ChatMediaInput 
+          onSend={handleSendMessage}
+          placeholder="Type a message..."
+          disabled={isLoading}
+          userId={user?.id}
+        />
       </div>
 
       <WebRTCCall

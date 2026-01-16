@@ -91,6 +91,7 @@ export type Database = {
           edit_history: Json | null
           edited_at: string | null
           id: string
+          image_url: string | null
           read_at: string | null
           receiver_id: string
           sender_id: string
@@ -103,6 +104,7 @@ export type Database = {
           edit_history?: Json | null
           edited_at?: string | null
           id?: string
+          image_url?: string | null
           read_at?: string | null
           receiver_id: string
           sender_id: string
@@ -115,6 +117,7 @@ export type Database = {
           edit_history?: Json | null
           edited_at?: string | null
           id?: string
+          image_url?: string | null
           read_at?: string | null
           receiver_id?: string
           sender_id?: string
@@ -137,6 +140,70 @@ export type Database = {
           {
             foreignKeyName: "direct_messages_sender_id_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friends_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          edit_history: Json | null
+          edited_at: string | null
+          id: string
+          image_url: string | null
+          reply_to: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edit_history?: Json | null
+          edited_at?: string | null
+          id?: string
+          image_url?: string | null
+          reply_to?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edit_history?: Json | null
+          edited_at?: string | null
+          id?: string
+          image_url?: string | null
+          reply_to?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friends_chat_messages_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "friends_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_chat_messages_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -267,6 +334,7 @@ export type Database = {
           edited_at: string | null
           group_id: string
           id: string
+          image_url: string | null
           user_id: string
         }
         Insert: {
@@ -278,6 +346,7 @@ export type Database = {
           edited_at?: string | null
           group_id: string
           id?: string
+          image_url?: string | null
           user_id: string
         }
         Update: {
@@ -289,6 +358,7 @@ export type Database = {
           edited_at?: string | null
           group_id?: string
           id?: string
+          image_url?: string | null
           user_id?: string
         }
         Relationships: [
@@ -416,6 +486,7 @@ export type Database = {
           edit_history: Json | null
           edited_at: string | null
           id: string
+          image_url: string | null
           reply_to: string | null
           updated_at: string
           user_id: string
@@ -428,6 +499,7 @@ export type Database = {
           edit_history?: Json | null
           edited_at?: string | null
           id?: string
+          image_url?: string | null
           reply_to?: string | null
           updated_at?: string
           user_id: string
@@ -440,6 +512,7 @@ export type Database = {
           edit_history?: Json | null
           edited_at?: string | null
           id?: string
+          image_url?: string | null
           reply_to?: string | null
           updated_at?: string
           user_id?: string
