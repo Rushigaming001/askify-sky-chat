@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +35,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { chapterText, chapterTitle, useLovableAI } = body;
+    const { chapterText, chapterTitle, useLovableAI, language = 'english' } = body;
 
     if (!chapterText || chapterText.trim().length < 50) {
       return new Response(JSON.stringify({ 
@@ -59,34 +60,49 @@ serve(async (req) => {
       }
     }
 
-    console.log("Generating chapter explanation for:", chapterTitle, "User:", user.id);
+    console.log("Generating chapter video for:", chapterTitle, "Language:", language, "User:", user.id);
 
     const POLLINATIONS_API_KEY_1 = Deno.env.get('POLLINATIONS_API_KEY_1');
     const POLLINATIONS_API_KEY_2 = Deno.env.get('POLLINATIONS_API_KEY_2');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
 
-    const systemPrompt = `You are an expert educational content creator specializing in creating engaging video scripts for students. 
-Your task is to transform chapter content into a detailed video script that would work for an animated educational video.
+    // Voice IDs for different languages
+    const voiceMap: Record<string, { id: string; name: string }> = {
+      english: { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George' },  // Clear English voice
+      hindi: { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel' },    // Can speak Hindi well
+    };
 
-Create a comprehensive video script with:
-1. **Introduction** (Hook the viewer, state what they'll learn)
-2. **Key Concepts** (Break down each concept clearly with examples)
-3. **Visual Descriptions** (Describe what animations/graphics should appear)
-4. **Dialogue/Narration** (What the narrator/characters should say)
-5. **Scene Transitions** (How to move between topics smoothly)
-6. **Summary** (Recap key points)
-7. **Quiz Questions** (2-3 questions to test understanding)
+    const selectedVoice = voiceMap[language] || voiceMap.english;
 
-Make it engaging, student-friendly, and easy to understand. Use simple language and relatable examples.
-Format the script clearly with scene numbers and timestamps.`;
+    // System prompt to create a narration script (not video script - actual spoken content)
+    const systemPrompt = `You are an expert educational narrator. Your task is to convert chapter content into a clear, engaging spoken narration.
 
-    let explanation = '';
+IMPORTANT: Write the narration in ${language === 'hindi' ? 'Hindi (Devanagari script)' : 'English'} language.
+
+Create a narration that:
+1. **Introduction**: Start with a welcoming hook that captures attention
+2. **Main Explanation**: Break down each concept in simple, clear language
+3. **Examples**: Include relatable examples to illustrate points
+4. **Key Takeaways**: Summarize the most important points
+5. **Conclusion**: End with an encouraging closing statement
+
+Guidelines:
+- Write as if you're speaking directly to a student
+- Use simple, conversational language
+- Keep sentences short and clear for easy listening
+- Add natural pauses with "..." where appropriate
+- The narration should be 3-5 minutes when read aloud (about 400-800 words)
+- DO NOT include any stage directions, scene descriptions, or visual notes
+- Write ONLY the spoken text that will be converted to audio`;
+
+    let narrationScript = '';
     let usedModel = '';
 
-    // If user wants Lovable AI and is owner
+    // Generate the narration script
     if (useLovableAI && LOVABLE_API_KEY) {
       try {
-        console.log("Using Lovable AI for owner...");
+        console.log("Using Lovable AI Pro for owner...");
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -97,15 +113,15 @@ Format the script clearly with scene numbers and timestamps.`;
             model: "google/gemini-2.5-pro",
             messages: [
               { role: "system", content: systemPrompt },
-              { role: "user", content: `Create a detailed video script for this chapter:\n\nTitle: ${chapterTitle || 'Chapter Explanation'}\n\nContent:\n${chapterText.substring(0, 8000)}` }
+              { role: "user", content: `Create a spoken narration for this chapter:\n\nTitle: ${chapterTitle || 'Chapter Explanation'}\n\nContent:\n${chapterText.substring(0, 8000)}` }
             ],
-            max_tokens: 4000,
+            max_tokens: 2000,
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          explanation = data.choices?.[0]?.message?.content || '';
+          narrationScript = data.choices?.[0]?.message?.content || '';
           usedModel = 'lovable-gemini-pro';
         } else {
           throw new Error("Lovable AI failed");
@@ -130,9 +146,9 @@ Format the script clearly with scene numbers and timestamps.`;
             model: 'openai',
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: `Create a detailed video script for this chapter:\n\nTitle: ${chapterTitle || 'Chapter Explanation'}\n\nContent:\n${chapterText.substring(0, 6000)}` }
+              { role: 'user', content: `Create a spoken narration for this chapter:\n\nTitle: ${chapterTitle || 'Chapter Explanation'}\n\nContent:\n${chapterText.substring(0, 6000)}` }
             ],
-            max_tokens: 3000,
+            max_tokens: 2000,
           }),
         });
 
@@ -147,7 +163,7 @@ Format the script clearly with scene numbers and timestamps.`;
       // Try Pollinations Key 1
       if (POLLINATIONS_API_KEY_1) {
         try {
-          explanation = await callPollinations(POLLINATIONS_API_KEY_1);
+          narrationScript = await callPollinations(POLLINATIONS_API_KEY_1);
           usedModel = 'pollinations-key1';
         } catch (err) {
           console.log("Pollinations Key 1 failed, trying Key 2...", err);
@@ -155,17 +171,17 @@ Format the script clearly with scene numbers and timestamps.`;
       }
 
       // Try Pollinations Key 2 if Key 1 failed
-      if (!explanation && POLLINATIONS_API_KEY_2) {
+      if (!narrationScript && POLLINATIONS_API_KEY_2) {
         try {
-          explanation = await callPollinations(POLLINATIONS_API_KEY_2);
+          narrationScript = await callPollinations(POLLINATIONS_API_KEY_2);
           usedModel = 'pollinations-key2';
         } catch (err) {
           console.log("Pollinations Key 2 also failed", err);
         }
       }
 
-      // Fallback to Lovable AI if Pollinations fails (for any user)
-      if (!explanation && LOVABLE_API_KEY) {
+      // Fallback to Lovable AI if Pollinations fails
+      if (!narrationScript && LOVABLE_API_KEY) {
         try {
           console.log("Both Pollinations keys failed, using Lovable AI fallback...");
           const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -178,15 +194,15 @@ Format the script clearly with scene numbers and timestamps.`;
               model: "google/gemini-2.5-flash-lite",
               messages: [
                 { role: "system", content: systemPrompt },
-                { role: 'user', content: `Create a detailed video script for this chapter:\n\nTitle: ${chapterTitle || 'Chapter Explanation'}\n\nContent:\n${chapterText.substring(0, 4000)}` }
+                { role: 'user', content: `Create a spoken narration for this chapter:\n\nTitle: ${chapterTitle || 'Chapter Explanation'}\n\nContent:\n${chapterText.substring(0, 4000)}` }
               ],
-              max_tokens: 2000,
+              max_tokens: 1500,
             }),
           });
 
           if (response.ok) {
             const data = await response.json();
-            explanation = data.choices?.[0]?.message?.content || '';
+            narrationScript = data.choices?.[0]?.message?.content || '';
             usedModel = 'lovable-fallback';
           }
         } catch (error) {
@@ -195,24 +211,76 @@ Format the script clearly with scene numbers and timestamps.`;
       }
     }
 
-    if (!explanation) {
+    if (!narrationScript) {
       return new Response(JSON.stringify({ error: "All AI services unavailable. Please try again later." }), {
         status: 503,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log("Generated narration script, length:", narrationScript.length);
+
+    // Now generate audio using ElevenLabs
+    let audioBase64 = '';
+    if (ELEVENLABS_API_KEY) {
+      try {
+        console.log(`Generating audio with ElevenLabs, voice: ${selectedVoice.name}, language: ${language}`);
+        
+        // Truncate if too long (ElevenLabs has a 5000 char limit per request)
+        const truncatedScript = narrationScript.substring(0, 4500);
+        
+        const ttsResponse = await fetch(
+          `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice.id}?output_format=mp3_44100_128`,
+          {
+            method: "POST",
+            headers: {
+              "xi-api-key": ELEVENLABS_API_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              text: truncatedScript,
+              model_id: "eleven_multilingual_v2", // Supports multiple languages including Hindi
+              voice_settings: {
+                stability: 0.6,
+                similarity_boost: 0.75,
+                style: 0.3,
+                use_speaker_boost: true,
+                speed: 0.95, // Slightly slower for educational content
+              },
+            }),
+          }
+        );
+
+        if (ttsResponse.ok) {
+          const audioBuffer = await ttsResponse.arrayBuffer();
+          audioBase64 = base64Encode(audioBuffer);
+          console.log("Audio generated successfully, size:", audioBuffer.byteLength);
+        } else {
+          const errorText = await ttsResponse.text();
+          console.error("ElevenLabs TTS error:", ttsResponse.status, errorText);
+        }
+      } catch (ttsError) {
+        console.error("ElevenLabs TTS error:", ttsError);
+      }
+    } else {
+      console.log("ElevenLabs API key not configured, returning script only");
+    }
+
     // Log usage
     await supabase.from('usage_logs').insert({
       user_id: user.id,
       model_id: `chapter-video-${usedModel}`,
-      mode: 'chapter-explanation'
+      mode: 'chapter-video'
     });
 
-    console.log("Successfully generated chapter explanation using:", usedModel);
+    console.log("Successfully generated chapter video content using:", usedModel);
 
     return new Response(JSON.stringify({ 
-      script: explanation,
+      script: narrationScript,
+      audio: audioBase64 || null,
+      audioFormat: audioBase64 ? 'mp3' : null,
+      voice: selectedVoice.name,
+      language: language,
       model: usedModel,
       status: 'succeeded'
     }), {
