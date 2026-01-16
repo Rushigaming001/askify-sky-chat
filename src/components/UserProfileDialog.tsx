@@ -113,6 +113,14 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
         .eq('user_id', userId)
         .single();
 
+      // Sort roles by hierarchy (highest first)
+      const roleHierarchy = ['owner', 'ceo', 'founder', 'co_founder', 'admin', 'sr_admin', 'moderator', 'sr_moderator', 'vip', 'premium', 'platinum', 'gold', 'silver', 'elite', 'pro', 'plus', 'basic', 'friend', 'user'];
+      const sortedRoles = (rolesData?.map(r => r.role) || ['user']).sort((a, b) => {
+        const indexA = roleHierarchy.indexOf(a);
+        const indexB = roleHierarchy.indexOf(b);
+        return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+      });
+
       setProfile({
         id: profileData.id,
         name: profileData.name,
@@ -120,7 +128,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
         avatar_url: profileData.avatar_url,
         banner_url: profileData.banner_url,
         created_at: profileData.created_at,
-        roles: rolesData?.map(r => r.role) || ['user'],
+        roles: sortedRoles,
         status: (presenceData?.status as 'online' | 'offline' | 'away') || 'offline'
       });
     } catch (error) {

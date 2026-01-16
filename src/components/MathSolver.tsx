@@ -178,56 +178,56 @@ export function MathSolver() {
 
     setLoading(true);
     try {
-      const chapterContext = chapter ? `This is from Maharashtra Board Class 9th, ${subject ? subject.charAt(0).toUpperCase() + subject.slice(1) : ''}, Chapter: ${chapter}.` : '';
+      const chapterContext = (subject && subject !== 'auto') || (chapter && chapter !== 'auto') 
+        ? `This is from Maharashtra Board Class 9th${subject && subject !== 'auto' ? `, ${subject.charAt(0).toUpperCase() + subject.slice(1)}` : ''}${chapter && chapter !== 'auto' ? `, Chapter: ${chapter}` : ''}.` 
+        : '';
       
       const { data, error } = await supabase.functions.invoke('image-ai', {
         body: { 
           action: 'analyze', 
           imageUrl: selectedImage,
-          prompt: `You are an expert Math teacher following Maharashtra State Board (MSBSHSE) Class 9th curriculum and Shala.com answer format.
+          prompt: `You are an expert Math teacher. Analyze this math problem image and provide a clear, step-by-step solution.
 
 ${chapterContext}
 
-Analyze this math problem image and provide a detailed solution in the EXACT format used by Shala.com for Maharashtra Board answers:
+Provide the solution in this format:
 
-**📝 प्रश्न (Question):**
-[Write the question in both Marathi and English if possible]
+**📝 Question:**
+[Identify and write the question from the image]
 
-**📋 दिलेली माहिती (Given):**
+**📋 Given:**
 • [List all given information clearly]
 
-**🎯 शोधायचे (To Find):**
+**🎯 To Find:**
 • [What needs to be found/proved]
 
-**📐 वापरलेले सूत्र/प्रमेय (Formula/Theorem Used):**
+**📐 Formula/Theorem Used:**
 • [State the relevant formulas, theorems, or properties]
 
-**✍️ सोडवणूक (Solution):**
+**✍️ Solution:**
 
-**पायरी 1 (Step 1):**
+**Step 1:**
 [First step with clear explanation]
 
-**पायरी 2 (Step 2):**
+**Step 2:**
 [Second step with clear explanation]
 
 [Continue with all necessary steps...]
 
-**✅ उत्तर (Answer):**
-[Final answer with proper units and box it]
+**✅ Answer:**
+[Final answer with proper units - highlight/box it]
 
-**📌 टीप (Note):**
+**📌 Note:**
 [Any important points or alternative methods]
 
 Important guidelines:
-1. Follow Maharashtra Board textbook patterns exactly
-2. Use standard mathematical notation
-3. Show all working steps clearly like Shala.com
-4. Include diagrams description if needed for geometry problems
-5. Mention theorem/property names as given in Maharashtra Board textbook
-6. Use both English and Marathi terms where applicable
-7. For geometry: mention construction steps separately
-8. For algebra: show step-by-step simplification
-9. Format should be exam-ready like textbook solutions`
+1. Use standard mathematical notation
+2. Show all working steps clearly
+3. Include diagrams description if needed for geometry problems
+4. Mention theorem/property names when used
+5. For geometry: mention construction steps separately
+6. For algebra: show step-by-step simplification
+7. Format should be exam-ready`
         }
       });
 
@@ -267,20 +267,22 @@ Important guidelines:
                 <SelectValue placeholder="Select Subject" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="algebra">Algebra (बीजगणित)</SelectItem>
-                <SelectItem value="geometry">Geometry (भूमिती)</SelectItem>
-                <SelectItem value="statistics">Statistics (सांख्यिकी)</SelectItem>
+                <SelectItem value="auto">Auto Detect (Any Subject)</SelectItem>
+                <SelectItem value="algebra">Algebra</SelectItem>
+                <SelectItem value="geometry">Geometry</SelectItem>
+                <SelectItem value="statistics">Statistics</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Chapter</Label>
-            <Select value={chapter} onValueChange={setChapter} disabled={!subject}>
+            <Select value={chapter} onValueChange={setChapter} disabled={subject !== 'auto' && !subject}>
               <SelectTrigger className="h-11 touch-target">
                 <SelectValue placeholder="Select Chapter" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="auto">Auto Detect (Any Chapter)</SelectItem>
                 {getChapters().map((ch) => (
                   <SelectItem key={ch} value={ch}>{ch}</SelectItem>
                 ))}
