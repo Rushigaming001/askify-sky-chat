@@ -124,11 +124,11 @@ const PublicChat = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .in('role', ['owner', 'admin'])
-        .single();
+        .in('role', ['owner', 'admin']);
       
-      setIsAdmin(!!data);
-      setIsOwner(data?.role === 'owner');
+      const roles = data?.map(r => r.role) || [];
+      setIsOwner(roles.includes('owner'));
+      setIsAdmin(roles.includes('owner') || roles.includes('admin'));
     };
 
     // Load all profiles for @mention lookup

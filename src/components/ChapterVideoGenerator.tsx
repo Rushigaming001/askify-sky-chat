@@ -222,7 +222,7 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <Label htmlFor="lovable-ai" className="font-medium">Use Lovable AI Pro</Label>
+                  <Label htmlFor="lovable-ai" className="font-medium">Use Gemini Pro</Label>
                   <Badge variant="secondary" className="text-xs">Owner Only</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -238,11 +238,11 @@ When I go into a bank I get rattled. The clerks rattle me; the wickets rattle me
           )}
 
           {!isOwner && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="flex items-center gap-2">
-                <Lock className="h-3 w-3" />
-                Lovable AI Pro is only available for the owner. Using free AI model.
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center gap-2">
+              <Lock className="h-3 w-3" />
+              Gemini Pro is only available for the owner. Using free AI model.
               </AlertDescription>
             </Alert>
           )}

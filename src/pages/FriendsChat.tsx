@@ -74,10 +74,11 @@ const FriendsChat = () => {
 
       const userRoles = roles?.map(r => r.role) || [];
       const isFriend = userRoles.includes('friend');
+      const hasOwnerRole = userRoles.includes('owner');
       const isAdminOrOwner = userRoles.some(r => ['owner', 'admin', 'ceo', 'founder', 'co_founder'].includes(r));
 
       setHasFriendRole(isFriend || isAdminOrOwner);
-      setIsAdmin(isAdminOrOwner);
+      setIsAdmin(isAdminOrOwner || hasOwnerRole);
 
       if (!isFriend && !isAdminOrOwner) {
         toast({
