@@ -498,6 +498,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_abilities: {
+        Row: {
+          ability_name: string
+          created_at: string | null
+          id: string
+          is_allowed: boolean
+          max_target_role: Database["public"]["Enums"]["app_role"] | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          ability_name: string
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean
+          max_target_role?: Database["public"]["Enums"]["app_role"] | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          ability_name?: string
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean
+          max_target_role?: Database["public"]["Enums"]["app_role"] | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string | null
@@ -985,6 +1015,11 @@ export type Database = {
         | "basic"
         | "premium"
         | "vip"
+        | "education_admin"
+        | "learning_department"
+        | "learning_manager"
+        | "sr_moderator"
+        | "sr_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1130,6 +1165,11 @@ export const Constants = {
         "basic",
         "premium",
         "vip",
+        "education_admin",
+        "learning_department",
+        "learning_manager",
+        "sr_moderator",
+        "sr_admin",
       ],
     },
   },

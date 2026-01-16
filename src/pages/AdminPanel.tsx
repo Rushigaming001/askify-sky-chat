@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import RolePermissionsManager from '@/components/RolePermissionsManager';
+import RoleAbilitiesManager from '@/components/RoleAbilitiesManager';
 import { UsageTrafficPanel } from '@/components/UsageTrafficPanel';
 import UserControlsManager from '@/components/UserControlsManager';
 import MessageLimitsManager from '@/components/MessageLimitsManager';
@@ -338,6 +339,7 @@ export default function AdminPanel() {
             <TabsTrigger value="controls" className="text-xs sm:text-sm px-2 sm:px-3">Controls</TabsTrigger>
             <TabsTrigger value="limits" className="text-xs sm:text-sm px-2 sm:px-3">Limits</TabsTrigger>
             <TabsTrigger value="roles" className="text-xs sm:text-sm px-2 sm:px-3">Roles</TabsTrigger>
+            <TabsTrigger value="abilities" className="text-xs sm:text-sm px-2 sm:px-3">Abilities</TabsTrigger>
             <TabsTrigger value="models" className="text-xs sm:text-sm px-2 sm:px-3">Models</TabsTrigger>
             <TabsTrigger value="premium" className="text-xs sm:text-sm px-2 sm:px-3">Premium</TabsTrigger>
             <TabsTrigger value="usage" className="text-xs sm:text-sm px-2 sm:px-3">Usage</TabsTrigger>
@@ -437,6 +439,10 @@ export default function AdminPanel() {
             <RolePermissionsManager />
           </TabsContent>
 
+          <TabsContent value="abilities">
+            <RoleAbilitiesManager />
+          </TabsContent>
+
           <TabsContent value="models">
             <ModelPermissionsManager />
           </TabsContent>
@@ -529,7 +535,7 @@ export default function AdminPanel() {
               <Label>Roles (select multiple)</Label>
               <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto border rounded-lg p-3">
                 <div className="col-span-2 text-xs font-semibold text-muted-foreground uppercase mb-1">Standard Roles</div>
-                {['user', 'friend', 'moderator', 'admin', 'co_founder', 'founder', 'ceo', 'owner'].map(role => (
+                {['user', 'friend', 'moderator', 'sr_moderator', 'admin', 'sr_admin', 'education_admin', 'learning_department', 'learning_manager', 'co_founder', 'founder', 'ceo', 'owner'].map(role => (
                   <label key={role} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
                     <Checkbox 
                       checked={newUserRoles.includes(role)} 
@@ -541,7 +547,7 @@ export default function AdminPanel() {
                         }
                       }}
                     />
-                    <span className="text-sm capitalize">{role.replace('_', ' ')}</span>
+                    <span className="text-sm capitalize">{role.replace(/_/g, ' ')}</span>
                   </label>
                 ))}
                 {isOwner && (
@@ -589,7 +595,7 @@ export default function AdminPanel() {
               <Label>Roles (select multiple)</Label>
               <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto border rounded-lg p-3">
                 <div className="col-span-2 text-xs font-semibold text-muted-foreground uppercase mb-1">Standard Roles</div>
-                {['user', 'friend', 'moderator', 'admin', 'co_founder', 'founder', 'ceo', 'owner'].map(role => {
+                {['user', 'friend', 'moderator', 'sr_moderator', 'admin', 'sr_admin', 'education_admin', 'learning_department', 'learning_manager', 'co_founder', 'founder', 'ceo', 'owner'].map(role => {
                   const isOwnerRole = role === 'owner';
                   const hasOwnerRole = userRoles[editingUserRole?.id || '']?.includes('owner');
                   const isDisabled = isOwnerRole && hasOwnerRole; // Can't uncheck owner
@@ -601,7 +607,7 @@ export default function AdminPanel() {
                         disabled={isDisabled}
                         onCheckedChange={() => toggleRole(role)}
                       />
-                      <span className="text-sm capitalize">{role.replace('_', ' ')}</span>
+                      <span className="text-sm capitalize">{role.replace(/_/g, ' ')}</span>
                       {isOwnerRole && hasOwnerRole && (
                         <Lock className="h-3 w-3 text-muted-foreground" />
                       )}
