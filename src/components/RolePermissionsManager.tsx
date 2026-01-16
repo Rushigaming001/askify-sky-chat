@@ -18,8 +18,13 @@ const roleDisplayNames: Record<string, string> = {
   'ceo': 'CEO',
   'founder': 'Founder',
   'co_founder': 'Co-Founder',
+  'sr_admin': 'Senior Admin',
   'admin': 'Admin',
+  'sr_moderator': 'Senior Moderator',
   'moderator': 'Moderator',
+  'education_admin': 'Education Admin',
+  'learning_department': 'Learning Department',
+  'learning_manager': 'Learning Manager',
   'friend': 'Friend',
   'user': 'User'
 };
@@ -29,8 +34,13 @@ const roleIcons: Record<string, React.ReactNode> = {
   'ceo': <Star className="h-4 w-4 text-purple-500" />,
   'founder': <Star className="h-4 w-4 text-blue-500" />,
   'co_founder': <Star className="h-4 w-4 text-cyan-500" />,
+  'sr_admin': <Shield className="h-4 w-4 text-red-600" />,
   'admin': <Shield className="h-4 w-4 text-red-500" />,
+  'sr_moderator': <Shield className="h-4 w-4 text-orange-600" />,
   'moderator': <Shield className="h-4 w-4 text-orange-500" />,
+  'education_admin': <Users className="h-4 w-4 text-indigo-500" />,
+  'learning_department': <Users className="h-4 w-4 text-teal-500" />,
+  'learning_manager': <Users className="h-4 w-4 text-emerald-500" />,
   'friend': <Heart className="h-4 w-4 text-pink-500" />,
   'user': <Users className="h-4 w-4 text-gray-500" />
 };
@@ -98,7 +108,7 @@ export default function RolePermissionsManager() {
 
   const uniqueRoles = Array.from(new Set(permissions.map(p => p.role)));
   // Sort roles by hierarchy
-  const roleOrder = ['owner', 'ceo', 'founder', 'co_founder', 'admin', 'moderator', 'friend', 'user'];
+  const roleOrder = ['owner', 'ceo', 'founder', 'co_founder', 'sr_admin', 'admin', 'sr_moderator', 'moderator', 'education_admin', 'learning_department', 'learning_manager', 'friend', 'user'];
   const sortedRoles = uniqueRoles.sort((a, b) => roleOrder.indexOf(a) - roleOrder.indexOf(b));
 
   if (loading) {
