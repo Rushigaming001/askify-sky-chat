@@ -58,17 +58,24 @@ const Chat = () => {
       'grok': 'groq/llama-3.3-70b',
       'cohere': 'cohere/command-r-plus',
       'deepseek': 'deepseek/deepseek-chat',
+      // Gemini Models (user's API key)
       'gemini': 'google/gemini-2.5-flash',
       'gemini-lite': 'google/gemini-2.5-flash-lite',
+      'gemini-3': 'google/gemini-3-pro-preview',
+      'gemini-3-flash': 'google/gemini-3-flash',
+      'askify': 'google/gemini-2.5-pro',
+      'nano-banana': 'google/gemini-2.5-flash-image-preview',
+      // Gemma Models (user's API key)
+      'gemma-3-1b': 'google/gemma-3-1b',
+      'gemma-3-4b': 'google/gemma-3-4b',
+      'gemma-3-12b': 'google/gemma-3-12b',
+      'gemma-3-27b': 'google/gemma-3-27b',
+      // Other models
       'gpt': 'openai/gpt-5',
       'gpt-mini': 'openai/gpt-5-mini',
       'gpt-nano': 'openai/gpt-5-nano',
       'gpt-5.2': 'openai/gpt-5.2',
       'gpt-4o-audio': 'openai/gpt-4o-mini-audio',
-      'gemini-3': 'google/gemini-3-pro-preview',
-      'gemini-3-flash': 'google/gemini-3-flash',
-      'askify': 'google/gemini-2.5-pro',
-      'nano-banana': 'google/gemini-2.5-flash-image-preview',
       'claude-haiku': 'anthropic/claude-haiku-4.5',
       'claude-sonnet': 'anthropic/claude-sonnet-4.5',
       'claude-opus': 'anthropic/claude-opus-4.5',
@@ -84,15 +91,24 @@ const Chat = () => {
       'midijourney': 'midijourney'
     };
     
-    // External API models and Pollinations models are always accessible
-    const alwaysAccessible = ['grok', 'cohere', 'deepseek', 'deepseek-v3', 'gpt-5.2', 'gpt-4o-audio', 'gemini-3-flash', 
-      'claude-haiku', 'claude-sonnet', 'claude-opus', 'qwen-coder', 'mistral-small', 'grok-4-fast',
-      'perplexity-sonar', 'perplexity-reasoning', 'kimi-k2', 'nova-micro', 'chicky-tutor', 'midijourney'];
+    // All Gemini/Gemma models use user's API key - always accessible
+    // External API models also always accessible
+    const alwaysAccessible = [
+      'grok', 'cohere', 'deepseek', 'deepseek-v3',
+      // All Gemini models (user's API key)
+      'gemini', 'gemini-lite', 'gemini-3', 'gemini-3-flash', 'askify', 'nano-banana',
+      // All Gemma models (user's API key)
+      'gemma-3-1b', 'gemma-3-4b', 'gemma-3-12b', 'gemma-3-27b',
+      // Other models
+      'gpt-5.2', 'gpt-4o-audio', 'claude-haiku', 'claude-sonnet', 'claude-opus', 
+      'qwen-coder', 'mistral-small', 'grok-4-fast', 'perplexity-sonar', 
+      'perplexity-reasoning', 'kimi-k2', 'nova-micro', 'chicky-tutor', 'midijourney'
+    ];
 
     const access: Record<string, boolean> = {};
     for (const [key, modelId] of Object.entries(modelMap)) {
       if (alwaysAccessible.includes(key)) {
-        access[key] = true; // Always accessible (uses Pollinations or external API)
+        access[key] = true; // Always accessible (uses user's API key)
       } else {
         access[key] = await canAccessModel(modelId, userId);
       }
@@ -293,38 +309,47 @@ const Chat = () => {
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Gemini</div>
                 <SelectItem value="gemini" disabled={!modelAccess.gemini}>
                   <div className="flex items-center gap-2">
-                    {!modelAccess.gemini && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Gemini Flash</span>
+                    <span>⚡ Gemini 2.5 Flash</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="gemini-lite" disabled={!modelAccess['gemini-lite']}>
                   <div className="flex items-center gap-2">
-                    {!modelAccess['gemini-lite'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Gemini Lite</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="gemini-3" disabled={!modelAccess['gemini-3']}>
-                  <div className="flex items-center gap-2">
-                    {!modelAccess['gemini-3'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Gemini 3 Pro</span>
+                    <span>💨 Gemini 2.5 Flash Lite</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="gemini-3-flash" disabled={!modelAccess['gemini-3-flash']}>
                   <div className="flex items-center gap-2">
-                    {!modelAccess['gemini-3-flash'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Gemini 3 Flash</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="nano-banana" disabled={!modelAccess['nano-banana']}>
-                  <div className="flex items-center gap-2">
-                    {!modelAccess['nano-banana'] && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span>Gemini-Nano</span>
+                    <span>🚀 Gemini 3 Flash</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="askify" disabled={!modelAccess.askify}>
                   <div className="flex items-center gap-2">
-                    {!modelAccess.askify && <Lock className="h-3 w-3 text-muted-foreground" />}
-                    <span className="font-semibold tracking-wide">ASKIFY PRO</span>
+                    <span className="font-semibold tracking-wide">✨ ASKIFY PRO</span>
+                  </div>
+                </SelectItem>
+
+                {/* Gemma Models */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Gemma</div>
+                <SelectItem value="gemma-3-1b" disabled={!modelAccess['gemma-3-1b']}>
+                  <div className="flex items-center gap-2">
+                    <span>Gemma 3 1B</span>
+                    <span className="text-xs text-muted-foreground">(Fastest)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gemma-3-4b" disabled={!modelAccess['gemma-3-4b']}>
+                  <div className="flex items-center gap-2">
+                    <span>Gemma 3 4B</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gemma-3-12b" disabled={!modelAccess['gemma-3-12b']}>
+                  <div className="flex items-center gap-2">
+                    <span>Gemma 3 12B</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="gemma-3-27b" disabled={!modelAccess['gemma-3-27b']}>
+                  <div className="flex items-center gap-2">
+                    <span>Gemma 3 27B</span>
+                    <span className="text-xs text-muted-foreground">(Best)</span>
                   </div>
                 </SelectItem>
                 
