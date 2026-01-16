@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Send, Paperclip, Smile, Image, X, Loader2, Search } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Send, Paperclip, Smile, Image, X, Loader2, Search, File, Video, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
@@ -14,21 +14,42 @@ interface ChatMediaInputProps {
   placeholder?: string;
   disabled?: boolean;
   userId?: string;
+  chatType?: 'public' | 'friends' | 'dm' | 'group';
+  chatId?: string;
+  maxFileSize?: number; // in MB
 }
 
 // Popular GIF categories
-const GIF_CATEGORIES = ['trending', 'happy', 'sad', 'love', 'laugh', 'excited', 'angry', 'thumbs up'];
+const GIF_CATEGORIES = [
+  'trending', 'reactions', 'happy', 'sad', 'love', 'laugh', 
+  'excited', 'angry', 'dance', 'celebrate', 'thank you', 'hello',
+  'yes', 'no', 'omg', 'wow', 'cool', 'funny', 'memes', 'anime'
+];
 
-export function ChatMediaInput({ onSend, placeholder = "Type a message...", disabled, userId }: ChatMediaInputProps) {
+// Tenor API key
+const TENOR_API_KEY = 'AIzaSyDDAk-l5fBM4FhWnhLmLqF7mLwdMI2NnC8';
+
+export function ChatMediaInput({ 
+  onSend, 
+  placeholder = "Type a message...", 
+  disabled, 
+  userId,
+  chatType = 'public',
+  chatId,
+  maxFileSize = 200
+}: ChatMediaInputProps) {
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState('');
   const [gifs, setGifs] = useState<string[]>([]);
   const [loadingGifs, setLoadingGifs] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileType, setSelectedFileType] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -36,48 +57,64 @@ export function ChatMediaInput({ onSend, placeholder = "Type a message...", disa
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+    // Check file size (200MB max)
+    if (file.size > maxFileSize * 1024 * 1024) {
+      toast({ title: 'Error', description: `File must be less than ${maxFileSize}MB`, variant: 'destructive' });
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'Error', description: 'Image must be less than 10MB', variant: 'destructive' });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
+    // For images, show preview
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+        setImageFile(file);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // For other files, just store the file
       setImageFile(file);
-    };
-    reader.readAsDataURL(file);
+      setSelectedFileName(file.name);
+      setSelectedFileType(file.type);
+    }
   };
 
   const removeImage = () => {
     setImagePreview(null);
     setImageFile(null);
+    setSelectedFileName(null);
+    setSelectedFileType(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const uploadImage = async (): Promise<string | null> => {
+  const uploadFile = async (): Promise<string | null> => {
     if (!imageFile || !userId) return null;
     
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       const fileExt = imageFile.name.split('.').pop();
-      const fileName = `chat/${userId}/${Date.now()}.${fileExt}`;
+      const bucket = imageFile.type.startsWith('image/') ? 'profiles' : 'chat-files';
+      const fileName = `${bucket === 'profiles' ? 'chat/' : ''}${userId}/${chatType}/${Date.now()}.${fileExt}`;
       
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
       const { error: uploadError } = await supabase.storage
-        .from('profiles')
+        .from(bucket)
         .upload(fileName, imageFile, { upsert: true });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('profiles')
+        .from(bucket)
         .getPublicUrl(fileName);
 
       return publicUrl;
@@ -87,25 +124,25 @@ export function ChatMediaInput({ onSend, placeholder = "Type a message...", disa
       return null;
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
   const handleSend = async () => {
-    if ((!message.trim() && !imagePreview) || disabled || isUploading) return;
+    if ((!message.trim() && !imagePreview && !selectedFileName) || disabled || isUploading) return;
 
-    let imageUrl: string | undefined;
+    let fileUrl: string | undefined;
     
     if (imageFile) {
-      const uploadedUrl = await uploadImage();
+      const uploadedUrl = await uploadFile();
       if (uploadedUrl) {
-        imageUrl = uploadedUrl;
+        fileUrl = uploadedUrl;
       }
     } else if (imagePreview && imagePreview.startsWith('http')) {
-      // It's a GIF URL
-      imageUrl = imagePreview;
+      fileUrl = imagePreview;
     }
 
-    onSend(message.trim(), imageUrl);
+    onSend(message.trim(), fileUrl);
     setMessage('');
     removeImage();
   };
@@ -118,17 +155,15 @@ export function ChatMediaInput({ onSend, placeholder = "Type a message...", disa
   const searchGifs = async (query: string) => {
     setLoadingGifs(true);
     try {
-      // Using Tenor API (free tier)
       const searchTerm = query || 'trending';
       const response = await fetch(
-        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(searchTerm)}&key=AIzaSyDDAk-l5fBM4FhWnhLmLqF7mLwdMI2NnC8&limit=20&media_filter=gif`
+        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(searchTerm)}&key=${TENOR_API_KEY}&limit=30&media_filter=gif,tinygif`
       );
       const data = await response.json();
       const gifUrls = data.results?.map((r: any) => r.media_formats?.gif?.url || r.media_formats?.tinygif?.url).filter(Boolean) || [];
       setGifs(gifUrls);
     } catch (error) {
       console.error('GIF search error:', error);
-      // Fallback to simple placeholder GIFs
       setGifs([]);
     } finally {
       setLoadingGifs(false);
