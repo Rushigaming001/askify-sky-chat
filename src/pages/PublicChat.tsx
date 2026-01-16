@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash } from 'lucide-react';
+import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
 import { ChatMediaInput } from '@/components/ChatMediaInput';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
@@ -786,6 +787,12 @@ const PublicChat = () => {
               >
                 <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
+              {isOwner && (
+                <ClearAllMessagesButton 
+                  chatType="public" 
+                  onCleared={() => setMessages([])} 
+                />
+              )}
             </div>
           </div>
         </header>

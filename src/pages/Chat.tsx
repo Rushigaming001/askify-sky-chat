@@ -23,6 +23,7 @@ import { LiveVideoCall } from '@/components/LiveVideoCall';
 import { VideoGenerator } from '@/components/VideoGenerator';
 import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
 import CapCutPro from '@/components/CapCutPro';
+import { ExpensiveModelWarning, isExpensiveModel, getModelDisplayName } from '@/components/ExpensiveModelWarning';
 
 const Chat = () => {
   const { user, session, isLoading: authLoading } = useAuth();
@@ -223,7 +224,12 @@ const Chat = () => {
   const showWelcome = !currentChat || currentChat.messages.length === 0;
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden relative">
+      {/* Expensive Model Warning Banner */}
+      {isExpensiveModel(selectedModel) && (
+        <ExpensiveModelWarning modelName={getModelDisplayName(selectedModel)} />
+      )}
+      
       {/* Desktop permanent sidebar */}
       <Sidebar 
         isOpen={true} 
@@ -236,7 +242,7 @@ const Chat = () => {
       {/* Mobile overlay sidebar */}
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className={`flex-1 flex flex-col min-w-0 h-full animate-fade-in transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-72'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 h-full animate-fade-in transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-72'} ${isExpensiveModel(selectedModel) ? 'pt-8' : ''}`}>
         <header className="flex-shrink-0 border-b border-border px-2 py-1.5 sm:px-3 sm:py-2 md:p-3 flex items-center justify-between gap-1 sm:gap-2 md:gap-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 relative z-50 animate-fade-in">
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">
             <Button 
