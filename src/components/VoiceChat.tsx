@@ -2,12 +2,22 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, MicOff, Phone, PhoneOff, Music, User } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, Music, User, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MusicPlayer } from '@/components/MusicPlayer';
 
 type VoiceType = 'male' | 'female';
+
+// Voice chat AI models
+const VOICE_MODELS = [
+  { id: 'gemini-2.5-flash', name: 'Gemini Flash', description: 'Fast & balanced' },
+  { id: 'gemini-2.5-flash-lite', name: 'Gemini Lite', description: 'Fastest response' },
+  { id: 'gemma-3-4b', name: 'Gemma 3 4B', description: 'Lightweight & quick' },
+  { id: 'gemma-3-12b', name: 'Gemma 3 12B', description: 'Better quality' },
+  { id: 'gemma-3-27b', name: 'Gemma 3 27B', description: 'Best quality' },
+  { id: 'grok', name: 'Core (Groq)', description: 'Ultra fast' },
+];
 
 export function VoiceChat() {
   const [isConnected, setIsConnected] = useState(false);
@@ -17,6 +27,7 @@ export function VoiceChat() {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [musicStream, setMusicStream] = useState<MediaStream | null>(null);
   const [voiceType, setVoiceType] = useState<VoiceType>('female');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const recognitionRef = useRef<any>(null);
@@ -174,7 +185,7 @@ export function VoiceChat() {
         },
         body: JSON.stringify({ 
           messages: [{ role: 'user', content: transcript }],
-          model: 'grok',
+          model: selectedModel,
           mode: 'normal'
         })
       });
@@ -213,7 +224,7 @@ export function VoiceChat() {
         try { recognitionRef.current.start(); } catch {}
       }
     }
-  }, [speakResponse, toast]);
+  }, [speakResponse, toast, selectedModel]);
 
   const startVoiceChat = async () => {
     try {
@@ -243,7 +254,7 @@ export function VoiceChat() {
         setIsListening(true);
         toast({
           title: 'Voice Chat Started',
-          description: 'Start speaking to the AI!'
+          description: `Using ${VOICE_MODELS.find(m => m.id === selectedModel)?.name || selectedModel}`
         });
       };
 
@@ -356,6 +367,27 @@ export function VoiceChat() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* AI Model Selection */}
+        <div className="flex items-center gap-3">
+          <Bot className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">AI Model:</span>
+          <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isConnected}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VOICE_MODELS.map((model) => (
+                <SelectItem key={model.id} value={model.id}>
+                  <div className="flex flex-col">
+                    <span>{model.name}</span>
+                    <span className="text-xs text-muted-foreground">{model.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Voice Selection */}
         <div className="flex items-center gap-3">
           <User className="h-4 w-4 text-muted-foreground" />
@@ -422,7 +454,12 @@ export function VoiceChat() {
             </p>
             {selectedVoice && (
               <p className="text-xs text-muted-foreground">
-                Using: {selectedVoice.name}
+                Voice: {selectedVoice.name}
+              </p>
+            )}
+            {isConnected && (
+              <p className="text-xs text-primary">
+                Model: {VOICE_MODELS.find(m => m.id === selectedModel)?.name}
               </p>
             )}
           </div>
@@ -453,6 +490,7 @@ export function VoiceChat() {
           <p className="font-medium mb-2">Features:</p>
           <ul className="space-y-1 text-muted-foreground">
             <li>• Real-time voice conversation</li>
+            <li>• Choose AI model for responses</li>
             <li>• Choose male or female voice</li>
             <li>• Natural language understanding</li>
             <li>• Instant AI responses</li>
