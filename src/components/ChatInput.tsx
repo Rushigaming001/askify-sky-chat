@@ -29,6 +29,13 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
 
   const MAX_IMAGES = 100;
 
+  // Auto-focus when centered (on first load)
+  useEffect(() => {
+    if (centered && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [centered]);
+
   // Handle Ctrl+V paste for images
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -249,6 +256,7 @@ export function ChatInput({ onSendMessage, onModeChange, mode, disabled, centere
           />
 
           <Textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}

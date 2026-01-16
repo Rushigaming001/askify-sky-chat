@@ -140,17 +140,23 @@ const Chat = () => {
 
     // For multiple images, only pass the first one (current API limitation)
     const firstImage = images?.[0];
-    addMessage({ role: 'user', content, image: firstImage });
+    
+    // Capture current messages BEFORE adding new one (to build proper history)
+    const existingMessages = currentChat.messages.map(m => ({ role: m.role, content: m.content }));
+    
+    // Add user message to UI
+    await addMessage({ role: 'user', content, image: firstImage });
     setIsLoading(true);
 
     try {
+      // Build messages array with existing history + new user message
       const messages = [
-        ...currentChat.messages.map(m => ({ role: m.role, content: m.content })),
+        ...existingMessages,
         { role: 'user', content }
       ];
 
       const response = await callAI(messages, selectedModel, currentChat.mode, firstImage);
-      addMessage({ role: 'assistant', content: response });
+      await addMessage({ role: 'assistant', content: response });
       
       // Refresh limit after successful message
       setTimeout(() => refreshLimit(), 500);
@@ -241,8 +247,6 @@ const Chat = () => {
             >
               <span className="text-lg sm:text-xl">☰</span>
             </Button>
-            <AskifyLogo size="sm" className="hidden sm:flex md:hidden" />
-            <AskifyLogo size="md" className="hidden md:flex" />
             {!limitLoading && (
               <Badge 
                 variant={remaining <= 5 ? "destructive" : remaining <= 10 ? "secondary" : "default"}
@@ -502,14 +506,16 @@ const Chat = () => {
           )}
         </ScrollArea>
 
-        {/* Only show bottom ChatInput when there are messages */}
+        {/* Only show bottom ChatInput when there are messages - with smooth animation */}
         {!showWelcome && (
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            onModeChange={handleModeChange}
-            mode={currentChat?.mode || 'normal'}
-            disabled={isLoading}
-          />
+          <div className="chat-input-appear">
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              onModeChange={handleModeChange}
+              mode={currentChat?.mode || 'normal'}
+              disabled={isLoading}
+            />
+          </div>
         )}
       </div>
 
