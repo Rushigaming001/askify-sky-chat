@@ -12,6 +12,7 @@ import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import RolePermissionsManager from '@/components/RolePermissionsManager';
 import RoleAbilitiesManager from '@/components/RoleAbilitiesManager';
 import { UsageTrafficPanel } from '@/components/UsageTrafficPanel';
+import { ChatAnalyticsPanel } from '@/components/ChatAnalyticsPanel';
 import UserControlsManager from '@/components/UserControlsManager';
 import MessageLimitsManager from '@/components/MessageLimitsManager';
 import PremiumRolesManager from '@/components/PremiumRolesManager';
@@ -342,7 +343,8 @@ export default function AdminPanel() {
             <TabsTrigger value="abilities" className="text-xs sm:text-sm px-2 sm:px-3">Abilities</TabsTrigger>
             <TabsTrigger value="models" className="text-xs sm:text-sm px-2 sm:px-3">Models</TabsTrigger>
             <TabsTrigger value="premium" className="text-xs sm:text-sm px-2 sm:px-3">Premium</TabsTrigger>
-            <TabsTrigger value="usage" className="text-xs sm:text-sm px-2 sm:px-3">Usage</TabsTrigger>
+            <TabsTrigger value="usage" className="text-xs sm:text-sm px-2 sm:px-3">AI Usage</TabsTrigger>
+            <TabsTrigger value="chat-analytics" className="text-xs sm:text-sm px-2 sm:px-3">Chat Stats</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -453,6 +455,10 @@ export default function AdminPanel() {
 
           <TabsContent value="usage">
             <UsageTrafficPanel />
+          </TabsContent>
+
+          <TabsContent value="chat-analytics">
+            <ChatAnalyticsPanel />
           </TabsContent>
         </Tabs>
       </div>
