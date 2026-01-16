@@ -2,21 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { X, Send, Users, Settings, Video, Phone } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { X, Users, Video, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { GroupMembersDialog } from './GroupMembersDialog';
+import { ChatMediaInput } from './ChatMediaInput';
 
 interface GroupMessage {
   id: string;
   user_id: string;
   content: string;
+  image_url?: string;
   created_at: string;
   profiles: {
     name: string;
     email: string;
+    avatar_url?: string;
   };
 }
 
@@ -32,7 +34,6 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<GroupMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
@@ -103,7 +104,8 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
         *,
         profiles!group_messages_user_id_fkey (
           name,
-          email
+          email,
+          avatar_url
         )
       `)
       .eq('group_id', groupId)
@@ -118,9 +120,8 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
     setMessages(data as GroupMessage[]);
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user || isLoading) return;
+  const handleSendMessage = async (content: string, imageUrl?: string) => {
+    if ((!content.trim() && !imageUrl) || !user || isLoading) return;
 
     setIsLoading(true);
 
@@ -129,7 +130,8 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
       .insert({
         group_id: groupId,
         user_id: user.id,
-        content: newMessage.trim()
+        content: content || '',
+        image_url: imageUrl
       });
 
     if (error) {
@@ -138,8 +140,6 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
         description: 'Failed to send message',
         variant: 'destructive'
       });
-    } else {
-      setNewMessage('');
     }
 
     setIsLoading(false);
@@ -204,6 +204,9 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
                   className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <Avatar className="h-8 w-8 flex-shrink-0">
+                    {message.profiles?.avatar_url ? (
+                      <AvatarImage src={message.profiles.avatar_url} />
+                    ) : null}
                     <AvatarFallback className="text-xs bg-muted">
                       {message.profiles ? getInitials(message.profiles.name) : '??'}
                     </AvatarFallback>
@@ -224,9 +227,14 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
                           : 'bg-muted text-foreground'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {message.content}
-                      </p>
+                      {message.image_url && (
+                        <img src={message.image_url} alt="Shared" className="max-w-[200px] max-h-[200px] rounded-lg mb-2" />
+                      )}
+                      {message.content && (
+                        <p className="text-sm whitespace-pre-wrap break-words">
+                          {message.content}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -237,22 +245,12 @@ export function GroupChat({ groupId, groupName, onClose, onVideoCall, onVoiceCal
       </ScrollArea>
 
       <div className="border-t border-border p-4 bg-background">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button 
-            type="submit" 
-            size="icon"
-            disabled={!newMessage.trim() || isLoading}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <ChatMediaInput 
+          onSend={handleSendMessage}
+          placeholder="Type a message..."
+          disabled={isLoading}
+          userId={user?.id}
+        />
       </div>
 
       <GroupMembersDialog

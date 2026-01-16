@@ -18,6 +18,7 @@ import DataAnalyzerPage from "./pages/DataAnalyzer";
 import YouTube from "./pages/YouTube";
 import LanguageLearning from "./pages/LanguageLearning";
 import Pricing from "./pages/Pricing";
+import FriendsChat from "./pages/FriendsChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient(); // v2
@@ -52,6 +53,7 @@ const App = () => {
                   <Route path="/ai-features" element={<AIFeatures />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/public-chat" element={<PublicChat />} />
+                  <Route path="/friends-chat" element={<FriendsChat />} />
                   <Route path="/admin" element={<AdminPanel />} />
                   <Route path="/game" element={<Game />} />
                   <Route path="/skribbl" element={<Skribbl />} />
