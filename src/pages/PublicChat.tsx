@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Heart } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock } from 'lucide-react';
+import { ChatMediaInput } from '@/components/ChatMediaInput';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
@@ -44,6 +45,7 @@ interface PublicMessage {
   id: string;
   user_id: string;
   content: string;
+  image_url?: string;
   created_at: string;
   edited_at?: string;
   deleted_at?: string;
@@ -426,6 +428,116 @@ const PublicChat = () => {
     setIsLoading(false);
   };
 
+  // Handle media messages from ChatMediaInput
+  const handleSendMediaMessage = async (content: string, imageUrl?: string) => {
+    if ((!content.trim() && !imageUrl) || !user || isLoading) return;
+
+    setIsLoading(true);
+    const trimmedContent = content.trim();
+
+    // Check for /play command
+    if (trimmedContent.startsWith('/play ')) {
+      const songQuery = trimmedContent.substring(6);
+      await supabase.from('public_messages').insert({
+        user_id: user.id,
+        content: `🎵 Requested: ${songQuery}`,
+        reply_to: null
+      });
+
+      const track = await searchAndPlayMusic(songQuery);
+      if (track) {
+        if (!currentTrack) {
+          setCurrentTrack(track);
+        } else {
+          setMusicQueue(prev => [...prev, track]);
+        }
+        setShowMusicPlayer(true);
+        toast({ title: 'Added to queue', description: track.title });
+      }
+      setReplyingTo(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Check for /askify command
+    if (trimmedContent.startsWith('/askify ')) {
+      const question = trimmedContent.substring(8);
+      const { data: userMsg, error: userMsgError } = await supabase
+        .from('public_messages')
+        .insert({
+          user_id: user.id,
+          content: trimmedContent,
+          image_url: imageUrl,
+          reply_to: replyingTo?.id || null
+        })
+        .select()
+        .single();
+
+      if (userMsgError) {
+        toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+      }
+
+      await supabase.functions.invoke('askify-chat', {
+        body: { question, originalMessageId: userMsg.id, userId: user.id }
+      });
+
+      setReplyingTo(null);
+      setIsLoading(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('public_messages')
+      .insert({
+        user_id: user.id,
+        content: trimmedContent || '',
+        image_url: imageUrl,
+        reply_to: replyingTo?.id || null
+      });
+
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
+    } else {
+      setReplyingTo(null);
+
+      // Send push notifications to mentioned users
+      if (trimmedContent) {
+        const mentionMatches = trimmedContent.match(/@(\w+)/g);
+        if (mentionMatches) {
+          for (const mention of mentionMatches) {
+            const mentionedName = mention.substring(1).toLowerCase();
+            const mentionedUser = allProfiles.find(
+              p => p.name.toLowerCase().replace(/\s+/g, '') === mentionedName ||
+                   p.name.toLowerCase().split(' ')[0] === mentionedName
+            );
+            if (mentionedUser && mentionedUser.id !== user.id) {
+              sendNotification(
+                mentionedUser.id,
+                `${user.name || 'Someone'} mentioned you`,
+                trimmedContent.length > 100 ? trimmedContent.substring(0, 100) + '...' : trimmedContent,
+                { type: 'public_message', senderId: user.id, senderName: user.name }
+              );
+            }
+          }
+        }
+      }
+
+      // Also notify if replying to someone
+      if (replyingTo && replyingTo.user_id !== user.id) {
+        sendNotification(
+          replyingTo.user_id,
+          `${user.name || 'Someone'} replied to your message`,
+          trimmedContent.length > 100 ? trimmedContent.substring(0, 100) + '...' : trimmedContent,
+          { type: 'public_message', senderId: user.id, senderName: user.name }
+        );
+      }
+    }
+
+    setIsLoading(false);
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -672,7 +784,7 @@ const PublicChat = () => {
                 title="Boys Chat (Friends Only)"
                 className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-pink-500" />
+                <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
@@ -752,17 +864,26 @@ const PublicChat = () => {
                               : 'bg-muted text-foreground'
                           }`}
                         >
-                          <p className="text-sm whitespace-pre-wrap break-words">
-                            {isDeleted && isAdmin ? (
-                              <>
-                                <span className="text-destructive font-medium">[Deleted by {message.deleted_by === message.user_id ? 'user' : 'admin'}]</span>
-                                <br />
-                                <span className="line-through">{message.content}</span>
-                              </>
-                            ) : (
-                              renderMessageContent(message.content)
-                            )}
-                          </p>
+                          {(message as any).image_url && !isDeleted && (
+                            <img 
+                              src={(message as any).image_url} 
+                              alt="Shared" 
+                              className="max-w-[200px] max-h-[200px] rounded-lg mb-2"
+                            />
+                          )}
+                          {(message.content || isDeleted) && (
+                            <p className="text-sm whitespace-pre-wrap break-words">
+                              {isDeleted && isAdmin ? (
+                                <>
+                                  <span className="text-destructive font-medium">[Deleted by {message.deleted_by === message.user_id ? 'user' : 'admin'}]</span>
+                                  <br />
+                                  <span className="line-through">{message.content}</span>
+                                </>
+                              ) : (
+                                renderMessageContent(message.content)
+                              )}
+                            </p>
+                          )}
                         </div>
                         {/* Dismiss button for deleted messages (owner only) */}
                         {isDeleted && isAdmin && (
@@ -867,24 +988,12 @@ const PublicChat = () => {
           <div className="mb-2 text-xs text-muted-foreground">
             Tip: /play [song] to play music • /askify [question] for AI help • Type @ to mention users
           </div>
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <MentionInput
-              value={newMessage}
-              onChange={setNewMessage}
-              onSubmit={handleSendMessage}
-              placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message..."}
-              disabled={isLoading}
-              profiles={allProfiles}
-              className="flex-1"
-            />
-            <Button 
-              type="submit" 
-              size="icon"
-              disabled={!newMessage.trim() || isLoading}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+          <ChatMediaInput
+            onSend={handleSendMediaMessage}
+            placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message..."}
+            disabled={isLoading}
+            userId={user?.id}
+          />
         </div>
 
         <Dialog open={!!editingMessage} onOpenChange={() => setEditingMessage(null)}>

@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Users, MoreVertical, Edit2, Trash2, Reply, X, Heart, Lock } from 'lucide-react';
+import { ArrowLeft, Users, MoreVertical, Edit2, Trash2, Reply, X, Lock, Video, Phone } from 'lucide-react';
+import { WebRTCCall } from '@/components/WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMediaInput } from '@/components/ChatMediaInput';
 import { UserProfileDialog } from '@/components/UserProfileDialog';
@@ -52,6 +53,8 @@ const FriendsChat = () => {
   const [editContent, setEditContent] = useState('');
   const [replyingTo, setReplyingTo] = useState<FriendsMessage | null>(null);
   const [viewingProfile, setViewingProfile] = useState<{ userId: string; userName: string } | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -266,24 +269,42 @@ const FriendsChat = () => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <div className="flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border">
-        <header className="border-b border-border p-4 bg-gradient-to-r from-pink-500/10 to-rose-500/10 backdrop-blur sticky top-0 z-50">
+        <header className="border-b border-border p-4 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur sticky top-0 z-50">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/public-chat')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-3 flex-1">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
-                <Heart className="h-5 w-5 text-white" />
+              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
               </div>
               <div>
                 <h1 className="text-lg font-semibold flex items-center gap-2">
                   Boys Chat 
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-500">
-                    💖 Friends Only
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-500">
+                    🔒 Friends Only
                   </span>
                 </h1>
                 <p className="text-sm text-muted-foreground">Exclusive chat for friends</p>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowVideoCall(true)}
+                title="Start video call"
+              >
+                <Video className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowVoiceCall(true)}
+                title="Start voice call"
+              >
+                <Phone className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </header>
@@ -292,9 +313,9 @@ const FriendsChat = () => {
           <div className="p-4 space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                <Heart className="h-16 w-16 text-pink-500/50 mb-4" />
+                <Users className="h-16 w-16 text-blue-500/50 mb-4" />
                 <h3 className="text-lg font-medium mb-2">Welcome to Boys Chat!</h3>
-                <p className="text-muted-foreground">Start chatting with your friends 💖</p>
+                <p className="text-muted-foreground">Start chatting with your friends 🔒</p>
               </div>
             ) : (
               messages.map((message) => {
@@ -307,13 +328,13 @@ const FriendsChat = () => {
                     className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
                   >
                     <Avatar 
-                      className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-pink-500 transition-all"
+                      className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
                       onClick={() => setViewingProfile({ userId: message.user_id, userName: message.profiles?.name || 'User' })}
                     >
                       {message.profiles?.avatar_url ? (
                         <AvatarImage src={message.profiles.avatar_url} />
                       ) : null}
-                      <AvatarFallback className="text-xs bg-pink-500/20">
+                      <AvatarFallback className="text-xs bg-blue-500/20">
                         {message.profiles ? getInitials(message.profiles.name) : '??'}
                       </AvatarFallback>
                     </Avatar>
@@ -330,7 +351,7 @@ const FriendsChat = () => {
                         )}
                       </div>
                       {replyMessage && (
-                        <div className={`text-xs text-muted-foreground mb-1 px-2 py-1 rounded bg-muted/50 border-l-2 border-pink-500`}>
+                        <div className={`text-xs text-muted-foreground mb-1 px-2 py-1 rounded bg-muted/50 border-l-2 border-blue-500`}>
                           <span className="font-medium">↩ {replyMessage.profiles?.name}: </span>
                           <span className="truncate">{replyMessage.content.substring(0, 50)}</span>
                         </div>
@@ -339,7 +360,7 @@ const FriendsChat = () => {
                         <div
                           className={`rounded-2xl px-4 py-2 ${
                             isOwnMessage
-                              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white'
+                              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
                               : 'bg-muted text-foreground'
                           }`}
                         >
@@ -398,7 +419,7 @@ const FriendsChat = () => {
 
         <div className="border-t border-border p-4 bg-background">
           {replyingTo && (
-            <div className="mb-2 flex items-center gap-2 text-xs bg-pink-500/10 p-2 rounded border-l-2 border-pink-500">
+            <div className="mb-2 flex items-center gap-2 text-xs bg-blue-500/10 p-2 rounded border-l-2 border-blue-500">
               <Reply className="h-3 w-3" />
               <span className="text-muted-foreground">Replying to</span>
               <span className="font-medium">{replyingTo.profiles?.name}</span>
@@ -443,6 +464,25 @@ const FriendsChat = () => {
             userName={viewingProfile.userName}
           />
         )}
+
+        {/* Video/Voice Calls */}
+        <WebRTCCall
+          isOpen={showVideoCall}
+          onClose={() => setShowVideoCall(false)}
+          callType="video"
+          recipientName="Boys Chat"
+          recipientId="friends-chat"
+          isInitiator={true}
+        />
+
+        <WebRTCCall
+          isOpen={showVoiceCall}
+          onClose={() => setShowVoiceCall(false)}
+          callType="voice"
+          recipientName="Boys Chat"
+          recipientId="friends-chat"
+          isInitiator={true}
+        />
       </div>
     </div>
   );
