@@ -675,6 +675,7 @@ const PublicChat = () => {
                 <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-pink-500" />
               </Button>
             </div>
+          </div>
         </header>
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
