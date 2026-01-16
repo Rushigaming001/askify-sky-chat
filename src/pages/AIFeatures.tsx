@@ -8,6 +8,7 @@ import { ImageGenerator } from '@/components/ImageGenerator';
 import { ImageAnalyzer } from '@/components/ImageAnalyzer';
 import { VoiceChat } from '@/components/VoiceChat';
 import { TestGenerator } from '@/components/TestGenerator';
+import { ChapterVideoGenerator } from '@/components/ChapterVideoGenerator';
 
 const AIFeatures = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -50,6 +51,7 @@ const AIFeatures = () => {
           <div className="overflow-x-auto mb-6 -mx-4 px-4">
             <TabsList className="inline-flex w-auto min-w-max gap-1">
               <TabsTrigger value="test" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-4">Test Generator</TabsTrigger>
+              <TabsTrigger value="chapter-video" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-4">Chapter Video</TabsTrigger>
               <TabsTrigger value="generate" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-4">Generate Images</TabsTrigger>
               <TabsTrigger value="analyze" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-4">Analyze Images</TabsTrigger>
               <TabsTrigger value="voice" className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-4">Voice Chat</TabsTrigger>
@@ -58,6 +60,10 @@ const AIFeatures = () => {
 
           <TabsContent value="test" className="space-y-4">
             <TestGenerator />
+          </TabsContent>
+
+          <TabsContent value="chapter-video" className="space-y-4">
+            <ChapterVideoGenerator />
           </TabsContent>
 
           <TabsContent value="generate" className="space-y-4">
