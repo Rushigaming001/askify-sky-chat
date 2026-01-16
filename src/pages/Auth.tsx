@@ -205,61 +205,64 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-2 sm:p-4 md:p-6 lg:p-8">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-gradient-shift" style={{ backgroundSize: '400% 400%' }} />
+      {/* Premium light gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 animate-gradient-shift" style={{ backgroundSize: '400% 400%' }} />
+      
+      {/* Subtle light overlay for freshness */}
+      <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/5 to-white/10" />
       
       {/* Animated mesh overlay */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Floating orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        {/* Floating orbs - softer, more elegant */}
+        <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-400/15 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-indigo-300/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-10 right-1/3 w-48 h-48 bg-cyan-400/10 rounded-full blur-2xl animate-float-slow" style={{ animationDelay: '3s' }} />
         
-        {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }} />
-        
-        {/* Glowing particles */}
-        <div className="absolute top-20 left-20 w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
-        <div className="absolute top-40 right-32 w-2 h-2 bg-purple-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(192,132,252,0.8)]" style={{ animationDelay: '0.5s' }} />
-        <div className="absolute bottom-32 left-40 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(96,165,250,0.8)]" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-20 right-20 w-2 h-2 bg-pink-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(244,114,182,0.8)]" style={{ animationDelay: '1.5s' }} />
+        {/* Glowing particles - subtle motion dots */}
+        <div className="absolute top-20 left-20 w-1.5 h-1.5 bg-white/60 rounded-full animate-pulse" />
+        <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/4 right-1/3 w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute top-1/2 left-1/4 w-1 h-1 bg-cyan-200/60 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-purple-200/50 rounded-full animate-pulse" style={{ animationDelay: '2.5s' }} />
       </div>
 
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/30 z-[1]" />
+      {/* Subtle overlay for card readability */}
+      <div className="absolute inset-0 bg-black/10 z-[1]" />
 
-      {/* Glass card with content */}
-      <Card className="w-full max-w-md mx-2 sm:mx-0 shadow-2xl border-white/10 backdrop-blur-xl bg-slate-900/70 relative z-10 overflow-hidden animate-scale-in">
-        {/* Gradient overlay on card */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
-        <div className="absolute inset-0 border border-white/10 rounded-lg pointer-events-none" />
+      {/* Glass card with content - enhanced glassmorphism */}
+      <Card className="w-full max-w-md mx-2 sm:mx-0 shadow-2xl shadow-black/20 border border-white/20 backdrop-blur-2xl bg-white/10 relative z-10 overflow-hidden animate-scale-in rounded-2xl">
+        {/* Inner glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-purple-500/5 pointer-events-none rounded-2xl" />
+        <div className="absolute inset-[1px] border border-white/10 rounded-2xl pointer-events-none" />
         
-        <CardHeader className="text-center space-y-6 pb-8 relative">
+        <CardHeader className="text-center space-y-8 pb-10 pt-10 relative">
           <div className="flex justify-center animate-float">
             <div className="relative">
-              {/* Glowing effect behind logo */}
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 blur-2xl opacity-40 rounded-full animate-pulse" />
+              {/* Multi-layer glow effect behind logo */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 blur-3xl opacity-30 rounded-full animate-pulse" />
+              <div className="absolute -inset-2 bg-white/20 blur-xl rounded-full" />
               
-              {/* Logo */}
-              <img 
-                src={askifyLogoTransparent} 
-                alt="Askify" 
-                className="relative h-24 w-24 object-contain drop-shadow-2xl"
-              />
+              {/* Logo with halo effect */}
+              <div className="relative p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl">
+                <img 
+                  src={askifyLogoTransparent} 
+                  alt="Askify" 
+                  className="relative h-20 w-20 object-contain drop-shadow-2xl"
+                />
+              </div>
             </div>
           </div>
           
-          <div>
-            <CardTitle className="text-4xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-md animate-gradient-shift" style={{ backgroundSize: '200% 200%' }}>
+          <div className="space-y-3">
+            <CardTitle className="text-4xl sm:text-5xl font-black tracking-tight mb-3">
+              <span className="bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent drop-shadow-lg">
                 ASKIFY
               </span>
             </CardTitle>
-            <CardDescription className="text-lg text-white/70 font-medium flex items-center justify-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-400 animate-pulse" />
+            <CardDescription className="text-base sm:text-lg text-white/80 font-medium flex items-center justify-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-300 animate-pulse" />
               Your Intelligent AI Companion
             </CardDescription>
           </div>
@@ -306,16 +309,16 @@ const Auth = () => {
             </div>
           ) : (
             <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(v) => setIsLogin(v === 'login')}>
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/5 p-1 backdrop-blur-sm border border-white/10">
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/10 p-1.5 backdrop-blur-md border border-white/20 rounded-full">
                 <TabsTrigger 
                   value="login" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-white/70 font-semibold transition-all"
+                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/30 text-white/70 font-semibold transition-all duration-300"
                 >
                   Login
                 </TabsTrigger>
                 <TabsTrigger 
                   value="register" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-white/70 font-semibold transition-all"
+                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/30 text-white/70 font-semibold transition-all duration-300"
                 >
                   Register
                 </TabsTrigger>
@@ -327,7 +330,7 @@ const Auth = () => {
                     <Label htmlFor="login-email" className="text-sm font-semibold text-white/90">Email</Label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Mail className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
+                        <Mail className="h-5 w-5 text-white/40 group-focus-within:text-blue-300 transition-colors duration-200" />
                       </div>
                       <Input
                         id="login-email"
@@ -335,7 +338,7 @@ const Auth = () => {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
+                        className="pl-12 h-13 bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-xl focus:border-blue-400/60 focus:bg-white/15 focus:ring-2 focus:ring-blue-400/20 backdrop-blur-md transition-all duration-200 shadow-inner shadow-white/5"
                       />
                     </div>
                   </div>
@@ -352,7 +355,7 @@ const Auth = () => {
                     </div>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <Lock className="h-5 w-5 text-white/40 group-focus-within:text-cyan-400 transition-colors" />
+                        <Lock className="h-5 w-5 text-white/40 group-focus-within:text-blue-300 transition-colors duration-200" />
                       </div>
                       <Input
                         id="login-password"
@@ -360,7 +363,7 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-400 focus:bg-white/10 backdrop-blur-sm transition-all"
+                        className="pl-12 pr-12 h-13 bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-xl focus:border-blue-400/60 focus:bg-white/15 focus:ring-2 focus:ring-blue-400/20 backdrop-blur-md transition-all duration-200 shadow-inner shadow-white/5"
                       />
                       <button
                         type="button"
@@ -373,7 +376,7 @@ const Auth = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full h-12 text-base font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-[1.02]" 
+                    className="w-full h-13 text-base font-bold bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 hover:from-purple-400 hover:via-pink-400 hover:to-rose-400 text-white shadow-xl shadow-purple-500/40 hover:shadow-purple-500/60 transition-all duration-300 hover:scale-[1.02] rounded-xl" 
                     size="lg" 
                     disabled={isLoading}
                   >
@@ -523,12 +526,12 @@ const Auth = () => {
           )}
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/10" />
+              <span className="w-full border-t border-white/20" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-slate-900/70 px-2 text-white/50">Or continue with</span>
+              <span className="px-4 text-white/60 bg-transparent backdrop-blur-sm">Or continue with</span>
             </div>
           </div>
 
@@ -538,13 +541,13 @@ const Auth = () => {
             variant="outline"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white font-semibold transition-all hover:scale-[1.02]"
+            className="w-full h-13 bg-white/90 hover:bg-white border-0 text-slate-700 font-semibold transition-all duration-300 hover:scale-[1.02] rounded-xl shadow-lg"
           >
             <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             Continue with Google
           </Button>

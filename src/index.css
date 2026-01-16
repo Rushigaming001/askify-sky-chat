@@ -352,3 +352,46 @@ All colors MUST be HSL.
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Chat input center-to-bottom animation */
+@keyframes slide-to-bottom {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-from-center {
+  from {
+    transform: translateY(-50vh);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.chat-input-appear {
+  animation: slide-from-center 0.4s ease-out forwards;
+}
+
+/* Smooth fade transitions */
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fade-slide-up 0.3s ease-out forwards;
+}
