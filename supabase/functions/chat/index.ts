@@ -412,70 +412,102 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     // Handle external API calls
     if (useExternalApi) {
       if (!externalApiKey) {
-        return new Response(JSON.stringify({ error: `API key not configured for ${model}` }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // If external API key not configured, fallback to Pollinations
+        console.log(`API key not configured for ${model}, using Pollinations fallback...`);
+        try {
+          const result = await callWithFallbackChain(messages, systemPrompt, 'openai');
+          await supabase.from('usage_logs').insert({
+            user_id: user.id,
+            model_id: result.usedLovable ? 'lovable-gemini-fallback' : 'pollinations-openai',
+            mode: mode || 'normal'
+          });
+          return new Response(JSON.stringify({ reply: result.reply }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch (err) {
+          return new Response(JSON.stringify({ error: "All API services unavailable. Please try again later." }), {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       let response;
       
-      if (model === 'cohere') {
-        // Cohere v2 API format
-        const cohereMessages = [
-          { role: 'system', content: systemPrompt },
-          ...messages.map((m: { role: string; content: string }) => ({
-            role: m.role === 'assistant' ? 'assistant' : 'user',
-            content: m.content
-          }))
-        ];
-        
-        response = await fetch(externalApiUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${externalApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: aiModel,
-            messages: cohereMessages
-          }),
-        });
+      try {
+        if (model === 'cohere') {
+          // Cohere v2 API format
+          const cohereMessages = [
+            { role: 'system', content: systemPrompt },
+            ...messages.map((m: { role: string; content: string }) => ({
+              role: m.role === 'assistant' ? 'assistant' : 'user',
+              content: m.content
+            }))
+          ];
+          
+          response = await fetch(externalApiUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${externalApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: cohereMessages
+            }),
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Cohere API error:", response.status, errorText);
-          throw new Error(`Cohere API request failed: ${errorText}`);
+          if (!response.ok) {
+            throw new Error(`Cohere API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          reply = data.message?.content?.[0]?.text || "No response generated";
+        } else {
+          // Groq and DeepSeek use OpenAI-compatible format
+          response = await fetch(externalApiUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${externalApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...messages,
+              ],
+              max_tokens: 1000,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`${model} API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          reply = data.choices?.[0]?.message?.content || "No response generated";
         }
-
-        const data = await response.json();
-        reply = data.message?.content?.[0]?.text || "No response generated";
-      } else {
-        // Groq and DeepSeek use OpenAI-compatible format
-        response = await fetch(externalApiUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${externalApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: aiModel,
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...messages,
-            ],
-            max_tokens: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`${model} API error:`, response.status, errorText);
-          throw new Error(`${model} API request failed: ${errorText}`);
+      } catch (error) {
+        console.error(`External API (${model}) failed:`, error);
+        // Fallback to Pollinations when external API fails
+        console.log("Falling back to Pollinations...");
+        try {
+          const result = await callWithFallbackChain(messages, systemPrompt, 'openai');
+          await supabase.from('usage_logs').insert({
+            user_id: user.id,
+            model_id: result.usedLovable ? 'lovable-gemini-fallback' : 'pollinations-openai',
+            mode: mode || 'normal'
+          });
+          return new Response(JSON.stringify({ reply: result.reply }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch (fallbackErr) {
+          return new Response(JSON.stringify({ error: "All AI services unavailable. Please try again later." }), {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
-
-        const data = await response.json();
-        reply = data.choices?.[0]?.message?.content || "No response generated";
       }
     } else {
       // For non-external API models, use Pollinations first, then Lovable as fallback
