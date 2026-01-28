@@ -7,12 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash } from 'lucide-react';
 import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
-import { ChatMediaInput } from '@/components/ChatMediaInput';
+import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay, MusicBotPanel } from '@/components/chat';
 import { WebRTCCall } from '@/components/WebRTCCall';
 import { GroupsList } from '@/components/GroupsList';
 import { GroupChat } from '@/components/GroupChat';
 import { useToast } from '@/hooks/use-toast';
-import { PublicChatMusicPlayer } from '@/components/PublicChatMusicPlayer';
 import { UserModerationDialog } from '@/components/UserModerationDialog';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useUserRestrictions } from '@/hooks/useUserRestrictions';
@@ -61,13 +60,9 @@ interface PublicMessage {
   user_role?: string;
 }
 
-interface MusicTrack {
+interface MentionedUser {
   id: string;
-  title: string;
-  thumbnail: string;
-  duration: string;
-  channelTitle: string;
-  videoId: string;
+  name: string;
 }
 
 const PublicChat = () => {
@@ -91,14 +86,14 @@ const PublicChat = () => {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [replyingTo, setReplyingTo] = useState<PublicMessage | null>(null);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
-  const [musicQueue, setMusicQueue] = useState<MusicTrack[]>([]);
-  const [isSearchingMusic, setIsSearchingMusic] = useState(false);
   const [moderatingUser, setModeratingUser] = useState<{ userId: string; userName: string } | null>(null);
   const [userRestrictionData, setUserRestrictionData] = useState<any>(null);
   const [allProfiles, setAllProfiles] = useState<{ id: string; name: string }[]>([]);
   const [viewingProfile, setViewingProfile] = useState<{ userId: string; userName: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Typing indicator
+  const { sendTyping } = useTypingIndicator('public-chat', user?.id, user?.name);
 
   useEffect(() => {
     if (authLoading) return;
@@ -262,46 +257,6 @@ const PublicChat = () => {
     }
   };
 
-  const searchAndPlayMusic = async (query: string) => {
-    setIsSearchingMusic(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('youtube-api', {
-        body: { action: 'search', query: `${query} music audio`, maxResults: 1 }
-      });
-
-      if (error || !data?.success || !data?.data?.length) {
-        toast({
-          title: 'Not Found',
-          description: `Could not find "${query}"`,
-          variant: 'destructive'
-        });
-        return null;
-      }
-
-      const video = data.data[0];
-      const track: MusicTrack = {
-        id: video.id,
-        title: video.title,
-        thumbnail: video.thumbnail,
-        duration: video.duration || '0:00',
-        channelTitle: video.channelTitle,
-        videoId: video.id
-      };
-
-      return track;
-    } catch (err) {
-      console.error('Music search error:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to search for music',
-        variant: 'destructive'
-      });
-      return null;
-    } finally {
-      setIsSearchingMusic(false);
-    }
-  };
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || isLoading) return;
@@ -309,33 +264,13 @@ const PublicChat = () => {
     setIsLoading(true);
     const content = newMessage.trim();
 
-    // Check for /play command
+    // Check for /play command - open music panel
     if (content.startsWith('/play ')) {
-      const songQuery = content.substring(6);
-      
-      // Post the command message
-      await supabase
-        .from('public_messages')
-        .insert({
-          user_id: user.id,
-          content: `🎵 Requested: ${songQuery}`,
-          reply_to: null
-        });
-
-      const track = await searchAndPlayMusic(songQuery);
-      if (track) {
-        if (!currentTrack) {
-          setCurrentTrack(track);
-        } else {
-          setMusicQueue(prev => [...prev, track]);
-        }
-        setShowMusicPlayer(true);
-        toast({
-          title: 'Added to queue',
-          description: track.title
-        });
-      }
-      
+      setShowMusicPlayer(true);
+      toast({
+        title: 'Music Panel',
+        description: 'Use the music panel to search and play music'
+      });
       setNewMessage('');
       setIsLoading(false);
       return;
@@ -436,25 +371,13 @@ const PublicChat = () => {
     setIsLoading(true);
     const trimmedContent = content.trim();
 
-    // Check for /play command
+    // Check for /play command - open music panel
     if (trimmedContent.startsWith('/play ')) {
-      const songQuery = trimmedContent.substring(6);
-      await supabase.from('public_messages').insert({
-        user_id: user.id,
-        content: `🎵 Requested: ${songQuery}`,
-        reply_to: null
+      setShowMusicPlayer(true);
+      toast({
+        title: 'Music Panel',
+        description: 'Use the music panel to search and play music'
       });
-
-      const track = await searchAndPlayMusic(songQuery);
-      if (track) {
-        if (!currentTrack) {
-          setCurrentTrack(track);
-        } else {
-          setMusicQueue(prev => [...prev, track]);
-        }
-        setShowMusicPlayer(true);
-        toast({ title: 'Added to queue', description: track.title });
-      }
       setReplyingTo(null);
       setIsLoading(false);
       return;
@@ -992,14 +915,18 @@ const PublicChat = () => {
               </Button>
             </div>
           )}
+          <TypingIndicator channelId="public-chat" currentUserId={user?.id} />
           <div className="mb-2 text-xs text-muted-foreground">
             Tip: /play [song] to play music • /askify [question] for AI help • Type @ to mention users
           </div>
-          <ChatMediaInput
-            onSend={handleSendMediaMessage}
+          <EnhancedChatInput
+            onSend={(content, fileUrl) => handleSendMediaMessage(content, fileUrl)}
+            onTyping={sendTyping}
             placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message..."}
             disabled={isLoading}
             userId={user?.id}
+            chatType="public"
+            maxFileSize={200}
           />
         </div>
 
@@ -1095,24 +1022,10 @@ const PublicChat = () => {
           recipientId="public"
           isInitiator={true}
         />
-        <PublicChatMusicPlayer
+        <MusicBotPanel
           isVisible={showMusicPlayer}
           onClose={() => setShowMusicPlayer(false)}
-          currentTrack={currentTrack}
-          queue={musicQueue}
-          onQueueUpdate={(newQueue) => {
-            if (newQueue.length < musicQueue.length && currentTrack && newQueue.length === musicQueue.length - 1) {
-              // Track was removed, play the next one
-              const removedIndex = musicQueue.findIndex((t, i) => !newQueue[i] || newQueue[i].id !== t.id);
-              if (removedIndex === -1) {
-                // First track played
-                const [next, ...rest] = musicQueue;
-                setCurrentTrack(next || null);
-                setMusicQueue(rest);
-              }
-            }
-            setMusicQueue(newQueue);
-          }}
+          channelId="public-chat"
         />
 
         {/* User Moderation Dialog */}
