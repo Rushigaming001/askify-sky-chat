@@ -32,7 +32,7 @@ const Auth = () => {
   useEffect(() => {
     if (authLoading) return;
     if (session?.user) {
-      navigate('/destination', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [authLoading, session?.user?.id, navigate]);
 
@@ -100,7 +100,7 @@ const Auth = () => {
           title: 'Success',
           description: 'Logged in successfully!'
         });
-        navigate('/destination', { replace: true });
+        navigate('/', { replace: true });
       } else {
         const result = await register(email, password, name);
         if (!result.success) {

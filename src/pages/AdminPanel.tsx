@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles } from 'lucide-react';
+import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles, Construction, Blocks } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import RolePermissionsManager from '@/components/RolePermissionsManager';
 import RoleAbilitiesManager from '@/components/RoleAbilitiesManager';
@@ -18,6 +18,8 @@ import MessageLimitsManager from '@/components/MessageLimitsManager';
 import PremiumRolesManager from '@/components/PremiumRolesManager';
 import OwnerAccountSwitcher from '@/components/OwnerAccountSwitcher';
 import ModelLimitsManager from '@/components/ModelLimitsManager';
+import MaintenanceManager from '@/components/admin/MaintenanceManager';
+import FeatureManager from '@/components/admin/FeatureManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -359,6 +361,18 @@ export default function AdminPanel() {
             <TabsTrigger value="premium" className="text-xs sm:text-sm px-2 sm:px-3">Premium</TabsTrigger>
             <TabsTrigger value="usage" className="text-xs sm:text-sm px-2 sm:px-3">AI Usage</TabsTrigger>
             <TabsTrigger value="chat-analytics" className="text-xs sm:text-sm px-2 sm:px-3">Chat Stats</TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="maintenance" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <Construction className="h-3 w-3" />
+                Maintenance
+              </TabsTrigger>
+            )}
+            {isOwner && (
+              <TabsTrigger value="features" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <Blocks className="h-3 w-3" />
+                Features
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="users">
@@ -486,6 +500,18 @@ export default function AdminPanel() {
           <TabsContent value="chat-analytics">
             <ChatAnalyticsPanel />
           </TabsContent>
+
+          {isOwner && (
+            <TabsContent value="maintenance">
+              <MaintenanceManager />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="features">
+              <FeatureManager />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 

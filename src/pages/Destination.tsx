@@ -32,6 +32,14 @@ const destinations = [
     shadowColor: 'shadow-green-500/30'
   },
   {
+    title: 'Friends Chat',
+    description: 'Chat with your friends',
+    icon: MessageSquare,
+    path: '/friends-chat',
+    gradient: 'from-pink-500 to-rose-500',
+    shadowColor: 'shadow-pink-500/30'
+  },
+  {
     title: 'Learn Languages',
     description: 'AI-powered language learning',
     icon: BookOpen,
@@ -48,12 +56,20 @@ const destinations = [
     shadowColor: 'shadow-cyan-500/30'
   },
   {
+    title: 'YouTube',
+    description: 'Browse and watch videos',
+    icon: Video,
+    path: '/youtube',
+    gradient: 'from-red-500 to-rose-500',
+    shadowColor: 'shadow-red-500/30'
+  },
+  {
     title: 'Games',
     description: 'Skribbl, FPS Shooter & more',
     icon: Gamepad2,
     path: '/skribbl',
-    gradient: 'from-red-500 to-rose-500',
-    shadowColor: 'shadow-red-500/30'
+    gradient: 'from-violet-500 to-purple-500',
+    shadowColor: 'shadow-violet-500/30'
   }
 ];
 

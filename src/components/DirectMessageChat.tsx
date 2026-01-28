@@ -3,11 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Video, Phone } from 'lucide-react';
+import { X, Video, Phone, PhoneIncoming, PhoneMissed, PhoneOff } from 'lucide-react';
 import { WebRTCCall } from './WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { ChatMediaInput } from './ChatMediaInput';
+import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay } from './chat';
 
 interface DirectMessage {
   id: string;
@@ -18,6 +18,17 @@ interface DirectMessage {
   created_at: string;
   edited_at?: string;
   read_at?: string;
+}
+
+interface CallEvent {
+  id: string;
+  caller_id: string;
+  receiver_id: string;
+  call_type: 'voice' | 'video';
+  status: 'initiated' | 'answered' | 'missed' | 'declined' | 'ended';
+  started_at: string;
+  ended_at?: string;
+  duration_seconds?: number;
 }
 
 interface DirectMessageChatProps {
@@ -31,15 +42,20 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   const { toast } = useToast();
   const { sendNotification } = usePushNotifications();
   const [messages, setMessages] = useState<DirectMessage[]>([]);
+  const [callEvents, setCallEvents] = useState<CallEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Typing indicator
+  const { sendTyping } = useTypingIndicator(`dm-${recipientId}`, user?.id, user?.name);
+
   useEffect(() => {
     if (!user) return;
 
     loadMessages();
+    loadCallEvents();
 
     // Subscribe to new messages
     const channel = supabase
@@ -55,6 +71,25 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
         (payload) => {
           setMessages(prev => [...prev, payload.new as DirectMessage]);
           markAsRead(payload.new.id);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'call_events'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const event = payload.new as CallEvent;
+            if ((event.caller_id === user.id && event.receiver_id === recipientId) ||
+                (event.receiver_id === user.id && event.caller_id === recipientId)) {
+              setCallEvents(prev => [...prev, event]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setCallEvents(prev => prev.map(e => e.id === payload.new.id ? payload.new as CallEvent : e));
+          }
         }
       )
       .subscribe();
@@ -73,7 +108,7 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     if (scrollContainer) {
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, callEvents]);
 
   const loadMessages = async () => {
     if (!user) return;
@@ -92,6 +127,20 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
       });
     } else {
       setMessages(data || []);
+    }
+  };
+
+  const loadCallEvents = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('call_events')
+      .select('*')
+      .or(`and(caller_id.eq.${user.id},receiver_id.eq.${recipientId}),and(caller_id.eq.${recipientId},receiver_id.eq.${user.id})`)
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      setCallEvents(data as CallEvent[]);
     }
   };
 
@@ -149,6 +198,24 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     setIsLoading(false);
   };
 
+  const handleStartCall = async (callType: 'voice' | 'video') => {
+    if (!user) return;
+
+    // Record call event
+    await supabase.from('call_events').insert({
+      caller_id: user.id,
+      receiver_id: recipientId,
+      call_type: callType,
+      status: 'initiated'
+    });
+
+    if (callType === 'video') {
+      setShowVideoCall(true);
+    } else {
+      setShowVoiceCall(true);
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -161,15 +228,61 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     }
   };
 
+  const renderCallEvent = (event: CallEvent) => {
+    const isIncoming = event.receiver_id === user?.id;
+    const isMissed = event.status === 'missed';
+    const isEnded = event.status === 'ended';
+
+    let icon = <Phone className="h-4 w-4" />;
+    let text = '';
+    let colorClass = 'text-muted-foreground';
+
+    if (event.call_type === 'video') {
+      icon = <Video className="h-4 w-4" />;
+    }
+
+    if (isMissed) {
+      icon = <PhoneMissed className="h-4 w-4" />;
+      text = isIncoming ? 'Missed call' : 'No answer';
+      colorClass = 'text-destructive';
+    } else if (isEnded) {
+      icon = <PhoneOff className="h-4 w-4" />;
+      const duration = event.duration_seconds ? `${Math.floor(event.duration_seconds / 60)}:${String(event.duration_seconds % 60).padStart(2, '0')}` : '';
+      text = `Call ended${duration ? ` (${duration})` : ''}`;
+    } else if (event.status === 'answered') {
+      text = 'Call in progress';
+      colorClass = 'text-green-500';
+    } else {
+      icon = isIncoming ? <PhoneIncoming className="h-4 w-4" /> : <Phone className="h-4 w-4" />;
+      text = isIncoming ? 'Incoming call' : 'Outgoing call';
+    }
+
+    return (
+      <div key={event.id} className="flex justify-center my-2">
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-sm ${colorClass}`}>
+          {icon}
+          <span>{event.call_type === 'video' ? 'Video' : 'Voice'} · {text}</span>
+          <span className="text-xs opacity-70">{formatTime(event.started_at)}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Merge messages and call events by timestamp
+  const allItems = [
+    ...messages.map(m => ({ type: 'message' as const, data: m, timestamp: m.created_at })),
+    ...callEvents.map(e => ({ type: 'call' as const, data: e, timestamp: e.started_at }))
+  ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
   return (
     <div className="flex flex-col h-full bg-background border-l border-border">
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="font-semibold">DM with {recipientName}</h3>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={() => setShowVideoCall(true)}>
+          <Button size="sm" variant="ghost" onClick={() => handleStartCall('video')}>
             <Video className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowVoiceCall(true)}>
+          <Button size="sm" variant="ghost" onClick={() => handleStartCall('voice')}>
             <Phone className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -179,56 +292,73 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
       </div>
 
       <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="p-4 space-y-4">
-          {messages.length === 0 ? (
+        <div className="p-4 space-y-2">
+          {allItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No messages yet. Start the conversation!
             </div>
           ) : (
-            messages.map((message) => {
+            allItems.map((item, index) => {
+              const showDateSeparator = index === 0 || isDifferentDay(allItems[index - 1].timestamp, item.timestamp);
+              
+              if (item.type === 'call') {
+                return (
+                  <div key={`call-${item.data.id}`}>
+                    {showDateSeparator && <DateSeparator date={item.timestamp} />}
+                    {renderCallEvent(item.data as CallEvent)}
+                  </div>
+                );
+              }
+
+              const message = item.data as DirectMessage;
               const isOwnMessage = message.sender_id === user?.id;
+              
               return (
-                <div
-                  key={message.id}
-                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                      isOwnMessage
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground'
-                    }`}
-                  >
-                    {message.image_url && (
-                      <img src={message.image_url} alt="Shared" className="max-w-[200px] max-h-[200px] rounded-lg mb-2" />
-                    )}
-                    {message.content && (
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {message.content}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs opacity-70">
-                        {formatTime(message.created_at)}
-                      </span>
-                      {isOwnMessage && message.read_at && (
-                        <span className="text-xs opacity-70">✓✓</span>
+                <div key={message.id}>
+                  {showDateSeparator && <DateSeparator date={message.created_at} />}
+                  <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                        isOwnMessage
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-foreground'
+                      }`}
+                    >
+                      {message.image_url && (
+                        <img src={message.image_url} alt="Shared" className="max-w-[200px] max-h-[200px] rounded-lg mb-2" />
                       )}
+                      {message.content && (
+                        <p className="text-sm whitespace-pre-wrap break-words">
+                          {message.content}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs opacity-70">
+                          {formatTime(message.created_at)}
+                        </span>
+                        {isOwnMessage && message.read_at && (
+                          <span className="text-xs opacity-70">✓✓</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })
           )}
+          <TypingIndicator channelId={`dm-${recipientId}`} currentUserId={user?.id} />
         </div>
       </ScrollArea>
 
       <div className="border-t border-border p-4">
-        <ChatMediaInput 
+        <EnhancedChatInput 
           onSend={handleSendMessage}
           placeholder="Type a message..."
           disabled={isLoading}
           userId={user?.id}
+          onTyping={sendTyping}
+          maxFileSize={200}
+          chatType="dm"
         />
       </div>
 
