@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Lock, User, Zap, Check, X, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import askifyLogoTransparent from '@/assets/askify-logo-transparent.png';
+import askifyLogoNew from '@/assets/askify-logo-new.png';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -32,7 +32,7 @@ const Auth = () => {
   useEffect(() => {
     if (authLoading) return;
     if (session?.user) {
-      navigate('/', { replace: true });
+      navigate('/destination', { replace: true });
     }
   }, [authLoading, session?.user?.id, navigate]);
 
@@ -100,7 +100,7 @@ const Auth = () => {
           title: 'Success',
           description: 'Logged in successfully!'
         });
-        navigate('/', { replace: true });
+        navigate('/destination', { replace: true });
       } else {
         const result = await register(email, password, name);
         if (!result.success) {
@@ -247,8 +247,8 @@ const Auth = () => {
               {/* Logo with halo effect */}
               <div className="relative p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl">
                 <img 
-                  src={askifyLogoTransparent} 
-                  alt="Askify" 
+                  src={askifyLogoNew} 
+                  alt="Askify"
                   className="relative h-20 w-20 object-contain drop-shadow-2xl"
                 />
               </div>

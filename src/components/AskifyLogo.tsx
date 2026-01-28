@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import askifyLogoTransparent from '@/assets/askify-logo-transparent.png';
+import askifyLogoNew from '@/assets/askify-logo-new.png';
 
 interface AskifyLogoProps {
   className?: string;
@@ -17,7 +17,7 @@ export function AskifyLogo({ className, iconOnly = false, size = 'md' }: AskifyL
   return (
     <div className={cn('flex items-center', className)}>
       <img 
-        src={askifyLogoTransparent} 
+        src={askifyLogoNew} 
         alt="Askify" 
         className={cn('object-contain', sizeClasses[size])}
       />

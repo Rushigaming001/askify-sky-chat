@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import askifyLogoTransparent from '@/assets/askify-logo-transparent.png';
+import askifyLogoNew from '@/assets/askify-logo-new.png';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { MathSolver } from '@/components/MathSolver';
 import { LiveVideoCall } from '@/components/LiveVideoCall';
@@ -230,7 +230,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
         <aside className={`hidden lg:flex fixed left-0 top-0 h-full ${collapsed ? 'w-16' : 'w-72'} bg-sidebar border-r border-sidebar-border z-40 flex-col shadow-lg transition-all duration-300`}>
           <div className="p-3 border-b border-border flex items-center justify-between">
             <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
-              <img src={askifyLogoTransparent} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
+              <img src={askifyLogoNew} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
               {!collapsed && (
                 <span className="font-bold text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">ASKIFY</span>
               )}
@@ -308,9 +308,9 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                     <>
                       {chat.pinned && <Pin className="h-3 w-3 text-primary flex-shrink-0" />}
                       <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="flex-1 truncate text-sm">{chat.title}</span>
+                      <span className="flex-1 truncate text-sm max-w-[140px]" title={chat.title}>{chat.title}</span>
                       
-                      <DropdownMenu>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110">
                             <MoreVertical className="h-4 w-4" />
@@ -800,7 +800,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
       <aside className="fixed left-0 top-0 h-full w-64 md:w-72 bg-sidebar border-r border-sidebar-border z-50 flex flex-col shadow-2xl animate-slide-in-left lg:hidden">
         <div className="p-4 border-b border-border flex items-center justify-between backdrop-blur">
           <div className="flex items-center gap-2 animate-scale-in">
-            <img src={askifyLogoTransparent} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
+            <img src={askifyLogoNew} alt="Askify" className="h-8 w-8 transition-transform hover:scale-110 duration-200" />
             <span className="font-bold text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">ASKIFY</span>
           </div>
           <Button 
