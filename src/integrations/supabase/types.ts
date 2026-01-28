@@ -82,6 +82,66 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      call_events: {
+        Row: {
+          call_type: string
+          caller_id: string
+          created_at: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          receiver_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          call_type: string
+          caller_id: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          receiver_id: string
+          started_at?: string | null
+          status: string
+        }
+        Update: {
+          call_type?: string
+          caller_id?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          receiver_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       chat_files: {
         Row: {
           chat_id: string | null
@@ -615,6 +675,33 @@ export type Database = {
           p256dh?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          action_count: number
+          action_type: string
+          created_at: string | null
+          id: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          action_count?: number
+          action_type: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          action_count?: number
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          window_start?: string
         }
         Relationships: []
       }
@@ -1217,6 +1304,16 @@ export type Database = {
         Returns: boolean
       }
       can_claim_owner: { Args: { _user_id: string }; Returns: boolean }
+      check_rate_limit: {
+        Args: {
+          _action_type: string
+          _max_count: number
+          _user_id: string
+          _window_seconds: number
+        }
+        Returns: boolean
+      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1239,6 +1336,10 @@ export type Database = {
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_owner_or_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_timed_out: { Args: { _user_id: string }; Returns: boolean }
+      record_rate_limit: {
+        Args: { _action_type: string; _user_id: string }
+        Returns: undefined
+      }
       user_has_restriction: {
         Args: { _restriction_type: string; _user_id: string }
         Returns: boolean
