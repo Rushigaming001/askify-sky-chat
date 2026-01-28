@@ -124,14 +124,17 @@ const Chat = () => {
     }
   }, [currentChat?.messages, isLoading]);
 
-  useEffect(() => {
-    if (!currentChat) {
-      createNewChat();
-    }
-  }, []);
+  // Removed auto-create chat on page load - now only creates chat when first message is sent
 
   const handleSendMessage = async (content: string, images?: string[]) => {
-    if (!currentChat) return;
+    // Create a new chat if none exists (lazy creation)
+    let chatToUse = currentChat;
+    if (!chatToUse) {
+      await createNewChat();
+      // Wait a bit for the state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return handleSendMessage(content, images); // Retry with new chat
+    }
 
     // Check if user is banned from AI chat
     if (restrictions.ai_chat_disabled) {

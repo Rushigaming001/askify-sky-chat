@@ -20,6 +20,7 @@ import LanguageLearning from "./pages/LanguageLearning";
 import Pricing from "./pages/Pricing";
 import FriendsChat from "./pages/FriendsChat";
 import NotFound from "./pages/NotFound";
+import Destination from "./pages/Destination";
 
 const queryClient = new QueryClient(); // v2
 
@@ -48,7 +49,8 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <Routes>
-                  <Route path="/" element={<Chat />} />
+                  <Route path="/" element={<Destination />} />
+                  <Route path="/chat" element={<Chat />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/ai-features" element={<AIFeatures />} />
                   <Route path="/settings" element={<Settings />} />
