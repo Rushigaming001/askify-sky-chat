@@ -84,9 +84,16 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    let aiResponse = data.choices[0].message.content;
 
-    console.log('AI response received:', aiResponse.substring(0, 100));
+    // Sanitize AI output - strip HTML tags to prevent XSS
+    aiResponse = aiResponse.replace(/<[^>]*>/g, '');
+    // Limit response length
+    if (aiResponse.length > 2000) {
+      aiResponse = aiResponse.substring(0, 2000) + '...';
+    }
+
+    console.log('AI response received, length:', aiResponse.length);
 
     // Insert AI response as a reply to the original message
     const { error: insertError } = await supabase
@@ -115,9 +122,8 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in askify-chat function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred processing your request. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
