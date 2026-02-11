@@ -82,13 +82,24 @@ export function WebRTCCall({
 
     // Handle incoming tracks
     pc.ontrack = (event) => {
-      console.log('Received remote track from', targetUserId);
+      console.log('Received remote track from', targetUserId, 'kind:', event.track.kind);
+      const stream = event.streams[0];
       setRemoteStreams(prev => {
         const newMap = new Map(prev);
-        newMap.set(targetUserId, event.streams[0]);
+        newMap.set(targetUserId, stream);
         return newMap;
       });
       setIsConnecting(false);
+      
+      // Force audio playback on mobile - create a hidden audio element
+      if (event.track.kind === 'audio') {
+        const audioEl = document.createElement('audio');
+        audioEl.srcObject = stream;
+        audioEl.autoplay = true;
+        (audioEl as any).playsInline = true;
+        audioEl.setAttribute('playsinline', 'true');
+        audioEl.play().catch(e => console.warn('Audio autoplay blocked:', e));
+      }
     };
 
     // Handle ICE candidates
