@@ -290,7 +290,7 @@ Return ONLY valid JSON with mainClass, pluginYml, and packageName fields. No mar
     console.error('Error in minecraft-plugin function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+        error: 'An error occurred generating the plugin. Please try again.' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
