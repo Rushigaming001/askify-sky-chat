@@ -21,6 +21,9 @@ import Pricing from "./pages/Pricing";
 import FriendsChat from "./pages/FriendsChat";
 import NotFound from "./pages/NotFound";
 import Destination from "./pages/Destination";
+import Chess from "./pages/Chess";
+import Ludo from "./pages/Ludo";
+import Games from "./pages/Games";
 
 const queryClient = new QueryClient(); // v2
 
@@ -58,6 +61,9 @@ const App = () => {
                   <Route path="/friends-chat" element={<FriendsChat />} />
                   <Route path="/admin" element={<AdminPanel />} />
                   <Route path="/game" element={<Game />} />
+                  <Route path="/games" element={<Games />} />
+                  <Route path="/chess" element={<Chess />} />
+                  <Route path="/ludo" element={<Ludo />} />
                   <Route path="/skribbl" element={<Skribbl />} />
                   <Route path="/aqi" element={<AQI />} />
                   <Route path="/data-analyzer" element={<DataAnalyzerPage />} />
