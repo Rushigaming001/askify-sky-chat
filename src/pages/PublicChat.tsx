@@ -37,7 +37,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { UsersList } from '@/components/UsersList';
+import { FriendRequestsPanel } from '@/components/FriendRequestsPanel';
 import { DirectMessageChat } from '@/components/DirectMessageChat';
 import { UserProfileDialog } from '@/components/UserProfileDialog';
 
@@ -162,14 +162,20 @@ const PublicChat = () => {
             const { data: roleData } = await supabase
               .from('user_roles')
               .select('role')
-              .eq('user_id', payload.new.user_id)
-              .single();
+              .eq('user_id', payload.new.user_id);
+            
+            // Pick highest priority role
+            const ROLE_PRI: Record<string, number> = {
+              owner: 0, ceo: 1, founder: 2, co_founder: 3, admin: 5, moderator: 7, friend: 20, user: 21
+            };
+            const bestRole = (roleData || [])
+              .sort((a, b) => (ROLE_PRI[a.role] ?? 99) - (ROLE_PRI[b.role] ?? 99))[0];
 
             if (profile) {
               setMessages(prev => [...prev, {
                 ...payload.new as any,
                 profiles: profile,
-                user_role: roleData?.role || 'user'
+                user_role: bestRole?.role || 'user'
               }]);
             }
           } else if (payload.eventType === 'UPDATE') {
@@ -244,8 +250,20 @@ const PublicChat = () => {
         .select('user_id, role')
         .in('user_id', userIds);
       
-      // Create a map for quick lookup
-      const roleMap = new Map((rolesData || []).map(r => [r.user_id, r.role]));
+      // Create a map with HIGHEST priority role per user
+      const ROLE_PRIORITY: Record<string, number> = {
+        owner: 0, ceo: 1, founder: 2, co_founder: 3, sr_admin: 4, admin: 5,
+        sr_moderator: 6, moderator: 7, education_admin: 8, learning_department: 9,
+        learning_manager: 10, vip: 11, elite: 12, platinum: 13, gold: 14,
+        silver: 15, premium: 16, pro: 17, plus: 18, basic: 19, friend: 20, user: 21,
+      };
+      const roleMap = new Map<string, string>();
+      (rolesData || []).forEach(r => {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || (ROLE_PRIORITY[r.role] ?? 99) < (ROLE_PRIORITY[existing] ?? 99)) {
+          roleMap.set(r.user_id, r.role);
+        }
+      });
       
       // Map roles to messages
       const messagesWithRoles = (data || []).map((msg: any) => ({
@@ -957,10 +975,9 @@ const PublicChat = () => {
             <SheetHeader className="sr-only">
               <SheetTitle>Users</SheetTitle>
             </SheetHeader>
-            <UsersList
+            <FriendRequestsPanel
               onOpenDM={(userId, userName) => {
                 setShowUsersList(false);
-                // Small delay to prevent sheet close from interfering
                 setTimeout(() => {
                   setActiveDM({ userId, userName });
                 }, 100);
