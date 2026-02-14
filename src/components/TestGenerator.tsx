@@ -77,6 +77,7 @@ export function TestGenerator() {
   const [activeTab, setActiveTab] = useState('generate');
   const [remakeInput, setRemakeInput] = useState('');
   const [remakeLoading, setRemakeLoading] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState('');
   const { toast } = useToast();
 
   const subjects = Object.keys(CLASS_9_CURRICULUM);
@@ -159,6 +160,8 @@ export function TestGenerator() {
 **IMPORTANT: Include an UNSEEN PASSAGE section (not from textbook) with 5 comprehension questions worth 10 marks.**
 The passage should be around 150-200 words on a general topic (nature, technology, environment, etc.).` : '';
 
+      const customInstructions = customPrompt.trim() ? `\n\n**ADDITIONAL INSTRUCTIONS FROM USER:**\n${customPrompt.trim()}\n` : '';
+
       const prompt = `Create a ${totalMarks} marks ${subject} question paper for Class 9 Maharashtra State Board.
 
 **FORMAT REQUIREMENTS:**
@@ -173,7 +176,7 @@ ${isLanguageSubject() ? `**LANGUAGE SECTIONS:**
 ${includeGrammar ? '- Grammar section with appropriate marks' : ''}
 ${includeWriting ? '- Writing Skills (Essay/Letter/Paragraph)' : ''}` : ''}
 ${passageSection}
-
+${customInstructions}
 **SPACING & FORMATTING:**
 - Use clear section headers: **SECTION A**, **SECTION B**, etc.
 - Add blank lines between questions
@@ -530,6 +533,27 @@ Generate the modified question paper now:`;
               </CardContent>
             </Card>
           )}
+
+          {/* Custom Prompt (Optional) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Custom Instructions (Optional)
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Give AI specific instructions for your paper — e.g. "Focus more on MCQs", "Include diagram-based questions", "Add case studies"
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="e.g., Include more application-based questions, add 2 diagram questions, focus on Chapter 3..."
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                className="min-h-[80px] resize-y"
+              />
+            </CardContent>
+          </Card>
 
           {/* Optional Title */}
           <Card>

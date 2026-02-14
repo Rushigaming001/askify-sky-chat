@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy } from 'lucide-react';
 import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
 import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay, MusicBotPanel } from '@/components/chat';
 import { WebRTCCall } from '@/components/WebRTCCall';
@@ -761,7 +761,7 @@ const PublicChat = () => {
                 return (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''}`}
+                    className={`flex gap-3 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''}`}
                   >
                     <Avatar 
                       className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
@@ -845,15 +845,24 @@ const PublicChat = () => {
                             <X className="h-4 w-4" />
                           </Button>
                         )}
-                        {/* Show dropdown for own messages OR admin/owner */}
-                        {!isDeleted && (isOwnMessage || isAdmin) && (
+                        {/* Message actions dropdown for ALL users */}
+                        {!isDeleted && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  navigator.clipboard.writeText(message.content);
+                                  toast({ title: 'Copied', description: 'Message copied to clipboard' });
+                                }}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => setReplyingTo(message)}
                               >
@@ -861,21 +870,22 @@ const PublicChat = () => {
                                 Reply
                               </DropdownMenuItem>
                               {(isOwnMessage || isAdmin) && (
-                                <DropdownMenuItem
-                                  onClick={() => handleOwnerEditMessage(message)}
-                                >
-                                  <Edit2 className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                              )}
-                              {(isOwnMessage || isAdmin) && (
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteMessage(message.id, isAdmin && !isOwnMessage)}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleOwnerEditMessage(message)}
+                                  >
+                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteMessage(message.id, isAdmin && !isOwnMessage)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               {isAdmin && !isOwnMessage && (
                                 <>
@@ -893,17 +903,6 @@ const PublicChat = () => {
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        )}
-                        {/* Reply button for non-deleted messages for all users */}
-                        {!isDeleted && !isOwnMessage && !isAdmin && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6"
-                            onClick={() => setReplyingTo(message)}
-                          >
-                            <Reply className="h-4 w-4" />
-                          </Button>
                         )}
                       </div>
                     </div>
