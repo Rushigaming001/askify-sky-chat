@@ -24,6 +24,7 @@ import Destination from "./pages/Destination";
 import Chess from "./pages/Chess";
 import Ludo from "./pages/Ludo";
 import Games from "./pages/Games";
+import Status from "./pages/Status";
 
 const queryClient = new QueryClient(); // v2
 
@@ -70,6 +71,7 @@ const App = () => {
                   <Route path="/youtube" element={<YouTube />} />
                   <Route path="/learn" element={<LanguageLearning />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/status" element={<Status />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ChatProvider>

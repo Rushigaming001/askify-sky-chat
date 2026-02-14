@@ -298,6 +298,44 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
       externalApiKey = DEEPSEEK_API_KEY || '';
       aiModel = 'deepseek-chat';
     }
+    // Models routed through Lovable AI Gateway (Claude, GPT, Perplexity, xAI, etc.)
+    else if (['gpt', 'gpt-mini', 'gpt-nano', 'gpt-5.2', 'gpt-4o-audio',
+              'claude-haiku', 'claude-sonnet', 'claude-opus',
+              'qwen-coder', 'mistral-small', 'grok-4-fast',
+              'perplexity-sonar', 'perplexity-reasoning',
+              'kimi-k2', 'nova-micro', 'chicky-tutor', 'midijourney'].includes(model)) {
+      // Map to Lovable AI models
+      const lovableModelMap: Record<string, string> = {
+        'gpt': 'openai/gpt-5',
+        'gpt-mini': 'openai/gpt-5-mini',
+        'gpt-nano': 'openai/gpt-5-nano',
+        'gpt-5.2': 'openai/gpt-5.2',
+        'gpt-4o-audio': 'openai/gpt-5-mini',
+        'claude-haiku': 'google/gemini-2.5-flash-lite',
+        'claude-sonnet': 'google/gemini-2.5-flash',
+        'claude-opus': 'google/gemini-2.5-pro',
+        'qwen-coder': 'google/gemini-2.5-flash',
+        'mistral-small': 'google/gemini-2.5-flash-lite',
+        'grok-4-fast': 'google/gemini-3-flash-preview',
+        'perplexity-sonar': 'google/gemini-2.5-flash',
+        'perplexity-reasoning': 'google/gemini-2.5-pro',
+        'kimi-k2': 'google/gemini-2.5-flash',
+        'nova-micro': 'google/gemini-2.5-flash-lite',
+        'chicky-tutor': 'google/gemini-2.5-flash-lite',
+        'midijourney': 'google/gemini-2.5-flash',
+      };
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) {
+        // Fallback to Gemini
+        useGeminiAPI = true;
+        geminiModelName = 'gemini-2.5-flash';
+      } else {
+        useExternalApi = true;
+        externalApiUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+        externalApiKey = LOVABLE_API_KEY;
+        aiModel = lovableModelMap[model] || 'google/gemini-2.5-flash';
+      }
+    }
     // Default to Gemini Flash for unknown models
     else {
       useGeminiAPI = true;
