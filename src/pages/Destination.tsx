@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageSquare, Sparkles, Globe, BookOpen, Video, BarChart3, Gamepad2, Settings, Crown, Download, Users, Home, Activity } from 'lucide-react';
+import { MessageSquare, Sparkles, Globe, BookOpen, Video, BarChart3, Gamepad2, Settings, Crown, Download, Users, Home, Activity, Wind } from 'lucide-react';
 import askifyLogoNew from '@/assets/askify-logo-new.png';
 
 const destinations = [
@@ -15,10 +15,8 @@ const destinations = [
   { title: 'Data Analyzer', description: 'Analyze your data with AI', icon: BarChart3, path: '/data-analyzer', color: 'bg-blue-600' },
   { title: 'YouTube', description: 'Browse and watch videos', icon: Video, path: '/youtube', color: 'bg-red-500' },
   { title: 'Games', description: 'Skribbl, FPS, Chess, Ludo & more', icon: Gamepad2, path: '/games', color: 'bg-violet-500' },
-  { title: 'Chess', description: '2-player online chess', icon: Crown, path: '/chess', color: 'bg-amber-600' },
-  { title: 'Ludo', description: '4-player online Ludo', icon: Gamepad2, path: '/ludo', color: 'bg-emerald-500' },
+  { title: 'AQI Checker', description: 'Check air quality index', icon: Wind, path: '/aqi', color: 'bg-emerald-500' },
   { title: 'Service Status', description: 'Check system uptime', icon: Activity, path: '/status', color: 'bg-green-500' },
-  { title: 'Minecraft', description: 'Download Minecraft APK', icon: Download, path: 'minecraft-download', color: 'bg-lime-600' },
 ];
 
 const Destination = () => {
@@ -40,11 +38,7 @@ const Destination = () => {
   }
 
   const handleClick = (dest: typeof destinations[0]) => {
-    if (dest.path === 'minecraft-download') {
-      window.open('https://files.minecrapk.com/minecraft-mod-menu-1.26.10.21.apk', '_blank');
-    } else {
-      navigate(dest.path);
-    }
+    navigate(dest.path);
   };
 
   return (
