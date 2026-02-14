@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Lock, User, Zap, Check, X, Eye, EyeOff, Shield } from 'lucide-react';
+import { Mail, Lock, User, Zap, Check, X, Eye, EyeOff, Shield, KeyRound, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import askifyLogoNew from '@/assets/askify-logo-new.png';
 import {
@@ -17,6 +17,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '@/components/ui/input-otp';
+
+type AuthStep = 'credentials' | 'otp';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,7 +31,6 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [age, setAge] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -32,6 +38,16 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showRules, setShowRules] = useState(false);
+
+  // OTP state
+  const [authStep, setAuthStep] = useState<AuthStep>('credentials');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Store credentials temporarily for post-OTP login
+  const [pendingCredentials, setPendingCredentials] = useState<{ email: string; password: string; name?: string } | null>(null);
+
   const { login, register, session, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,6 +58,13 @@ const Auth = () => {
       navigate('/', { replace: true });
     }
   }, [authLoading, session?.user?.id, navigate]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const passwordStrength = useMemo(() => {
     if (!password) return { score: 0, label: '', color: '' };
@@ -56,6 +79,26 @@ const Auth = () => {
     if (score <= 4) return { score, label: 'Good', color: 'bg-yellow-500' };
     return { score, label: 'Strong', color: 'bg-green-500' };
   }, [password]);
+
+  const sendOTP = async (emailAddr: string, purpose: string) => {
+    const { data, error } = await supabase.functions.invoke('send-otp', {
+      body: { email: emailAddr, purpose },
+    });
+
+    if (error) throw new Error('Failed to send verification code');
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const verifyOTP = async (emailAddr: string, code: string, purpose: string) => {
+    const { data, error } = await supabase.functions.invoke('verify-otp', {
+      body: { email: emailAddr, code, purpose },
+    });
+
+    if (error) throw new Error('Verification failed');
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,30 +115,83 @@ const Auth = () => {
       toast({ title: 'Error', description: 'Please accept the terms and conditions', variant: 'destructive' });
       return;
     }
+
     setIsLoading(true);
     try {
-      if (isLogin) {
-        const result = await login(email, password);
-        if (!result.success) {
-          toast({ title: 'Login Failed', description: result.error || 'Invalid email or password', variant: 'destructive' });
-          return;
-        }
-        toast({ title: 'Success', description: 'Logged in successfully!' });
-        navigate('/', { replace: true });
-      } else {
-        const result = await register(email, password, name);
-        if (!result.success) {
-          toast({ title: 'Registration Failed', description: result.error || 'Could not create account', variant: 'destructive' });
-          return;
-        }
-        toast({ title: 'Success', description: 'Account created! You can now log in.' });
-        setIsLogin(true);
-        setPassword('');
-      }
-    } catch (error) {
-      toast({ title: 'Error', description: 'Something went wrong. Please try again.', variant: 'destructive' });
+      // Send OTP before proceeding
+      const purpose = isLogin ? 'login' : 'register';
+      await sendOTP(email, purpose);
+      
+      setPendingCredentials({ email, password, name: isLogin ? undefined : name });
+      setAuthStep('otp');
+      setResendCooldown(60);
+      toast({ title: 'Code Sent', description: 'A 6-digit verification code has been sent to your email.' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to send verification code', variant: 'destructive' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otpCode.length !== 6 || !pendingCredentials) return;
+    
+    setOtpLoading(true);
+    try {
+      const purpose = isLogin ? 'login' : 'register';
+      await verifyOTP(pendingCredentials.email, otpCode, purpose);
+
+      // OTP verified, now complete auth
+      if (isLogin) {
+        const result = await login(pendingCredentials.email, pendingCredentials.password);
+        if (!result.success) {
+          toast({ title: 'Login Failed', description: result.error || 'Invalid email or password', variant: 'destructive' });
+          setAuthStep('credentials');
+          setPendingCredentials(null);
+          setOtpCode('');
+          return;
+        }
+        toast({ title: 'Welcome back!', description: 'Logged in successfully!' });
+        navigate('/', { replace: true });
+      } else {
+        const result = await register(pendingCredentials.email, pendingCredentials.password, pendingCredentials.name!);
+        if (!result.success) {
+          toast({ title: 'Registration Failed', description: result.error || 'Could not create account', variant: 'destructive' });
+          setAuthStep('credentials');
+          setPendingCredentials(null);
+          setOtpCode('');
+          return;
+        }
+        toast({ title: 'Welcome!', description: 'Account created successfully!' });
+        // For registration, switch to login
+        setIsLogin(true);
+        setPassword('');
+        setAuthStep('credentials');
+        setPendingCredentials(null);
+        setOtpCode('');
+      }
+    } catch (error: any) {
+      toast({ title: 'Verification Failed', description: error.message || 'Invalid or expired code', variant: 'destructive' });
+      setOtpCode('');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0 || !pendingCredentials) return;
+    
+    setOtpLoading(true);
+    try {
+      const purpose = isLogin ? 'login' : 'register';
+      await sendOTP(pendingCredentials.email, purpose);
+      setResendCooldown(60);
+      setOtpCode('');
+      toast({ title: 'Code Resent', description: 'A new verification code has been sent.' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to resend code', variant: 'destructive' });
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -104,7 +200,7 @@ const Auth = () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'https://minequest.fun/auth' }
+        options: { redirectTo: `${window.location.origin}/auth` }
       });
       if (error) {
         toast({ title: 'Google Sign-in Failed', description: error.message || 'Google sign-in failed', variant: 'destructive' });
@@ -143,31 +239,112 @@ const Auth = () => {
   const inputClass = "pl-12 h-12 bg-white border-blue-100 text-slate-800 placeholder:text-slate-400 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm";
   const iconClass = "h-5 w-5 text-blue-400 group-focus-within:text-blue-600 transition-colors";
 
+  // OTP Verification Screen
+  if (authStep === 'otp') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-2 sm:p-4 md:p-6 lg:p-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-100 animate-gradient-shift" style={{ backgroundSize: '400% 400%' }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-blue-100/30" />
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/6 w-80 h-80 bg-blue-300/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-cyan-300/20 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <Card className="relative z-10 w-full max-w-md shadow-2xl shadow-blue-200/40 border border-blue-100/50 bg-white/90 backdrop-blur-xl rounded-3xl overflow-hidden">
+          <CardHeader className="text-center space-y-4 pb-4 pt-8">
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute -inset-3 bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-400 blur-2xl opacity-20 rounded-full" />
+                <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-lg">
+                  <KeyRound className="h-10 w-10 text-blue-500" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold text-slate-800">Email Verification</CardTitle>
+              <CardDescription className="text-sm text-slate-500 mt-2">
+                Enter the 6-digit code sent to<br />
+                <span className="font-semibold text-blue-600">{pendingCredentials?.email}</span>
+              </CardDescription>
+            </div>
+          </CardHeader>
+
+          <CardContent className="pb-8 px-6 space-y-6">
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} className="h-14 w-12 text-xl font-bold border-blue-200" />
+                  <InputOTPSlot index={1} className="h-14 w-12 text-xl font-bold border-blue-200" />
+                  <InputOTPSlot index={2} className="h-14 w-12 text-xl font-bold border-blue-200" />
+                  <InputOTPSlot index={3} className="h-14 w-12 text-xl font-bold border-blue-200" />
+                  <InputOTPSlot index={4} className="h-14 w-12 text-xl font-bold border-blue-200" />
+                  <InputOTPSlot index={5} className="h-14 w-12 text-xl font-bold border-blue-200" />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <Button 
+              onClick={handleVerifyOTP} 
+              className="w-full h-12 text-base font-bold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-400/30 rounded-xl"
+              disabled={otpCode.length !== 6 || otpLoading}
+            >
+              {otpLoading ? 'Verifying...' : 'Verify & Continue'}
+            </Button>
+
+            <div className="text-center space-y-2">
+              <p className="text-sm text-slate-500">
+                Didn't receive the code?{' '}
+                {resendCooldown > 0 ? (
+                  <span className="text-blue-400">Resend in {resendCooldown}s</span>
+                ) : (
+                  <button onClick={handleResendOTP} className="text-blue-600 hover:underline font-semibold" disabled={otpLoading}>
+                    Resend Code
+                  </button>
+                )}
+              </p>
+              <button 
+                onClick={() => {
+                  setAuthStep('credentials');
+                  setPendingCredentials(null);
+                  setOtpCode('');
+                }}
+                className="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1 mx-auto"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Back to {isLogin ? 'Sign In' : 'Sign Up'}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <style>{`
+          @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+          @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+          @keyframes float-slow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-25px); } }
+          .animate-gradient-shift { animation: gradient-shift 10s ease infinite; }
+          .animate-float { animation: float 6s ease-in-out infinite; }
+          .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden p-2 sm:p-4 md:p-6 lg:p-8">
       {/* Blue-white gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-100 animate-gradient-shift" style={{ backgroundSize: '400% 400%' }} />
-      
-      {/* Soft overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-blue-100/30" />
-      
-      {/* Floating orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/6 w-80 h-80 bg-blue-300/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-cyan-300/20 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
         <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-sky-200/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
         <div className="absolute bottom-1/3 left-1/4 w-48 h-48 bg-blue-200/20 rounded-full blur-2xl animate-float-slow" style={{ animationDelay: '3s' }} />
-        
-        {/* Subtle particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400/40 rounded-full animate-pulse" />
         <div className="absolute top-1/3 right-1/4 w-2 h-2 bg-cyan-400/40 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
         <div className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-blue-300/30 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      {/* Two-panel layout on large screens */}
       <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col lg:flex-row items-center gap-8 lg:gap-12 animate-scale-in">
         
-        {/* Left - Auth card */}
         <Card className="w-full max-w-md shadow-2xl shadow-blue-200/40 border border-blue-100/50 bg-white/90 backdrop-blur-xl rounded-3xl overflow-hidden">
           <CardHeader className="text-center space-y-4 pb-6 pt-8">
             <div className="flex justify-center">
@@ -248,7 +425,7 @@ const Auth = () => {
                       </div>
                     </div>
                     <Button type="submit" className="w-full h-12 text-base font-bold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-400/30 hover:shadow-blue-500/40 transition-all hover:scale-[1.02] rounded-xl" size="lg" disabled={isLoading}>
-                      {isLoading ? 'Signing in...' : 'Sign In'}
+                      {isLoading ? 'Sending code...' : 'Sign In'}
                     </Button>
                   </form>
                 </TabsContent>
@@ -321,7 +498,7 @@ const Auth = () => {
                       </label>
                     </div>
                     <Button type="submit" className="w-full h-12 text-base font-bold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-400/30 hover:shadow-blue-500/40 transition-all hover:scale-[1.02] rounded-xl" size="lg" disabled={isLoading}>
-                      {isLoading ? 'Creating account...' : 'Sign Up'}
+                      {isLoading ? 'Sending code...' : 'Sign Up'}
                     </Button>
                   </form>
                 </TabsContent>
@@ -351,7 +528,7 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        {/* Right - Welcome panel (hidden on mobile) */}
+        {/* Right - Welcome panel */}
         <div className="hidden lg:flex flex-col items-center justify-center flex-1 text-center px-8">
           <div className="relative mb-8">
             <div className="absolute -inset-8 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-sky-400/20 blur-3xl rounded-full" />
