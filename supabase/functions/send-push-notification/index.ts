@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface PushPayload {
@@ -183,16 +183,8 @@ serve(async (req) => {
       );
     }
 
-    // Authorization: only self or admin/owner
-    if (userId !== user.id) {
-      const { data: isAdminOrOwner } = await supabase.rpc('is_owner_or_admin', { _user_id: user.id });
-      if (!isAdminOrOwner) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+    // Allow sending notifications to any user (the sender is authenticated)
+    // This is needed for DM notifications where user A sends to user B
 
     const { data: subscriptions, error: fetchError } = await supabase
       .from('push_subscriptions')

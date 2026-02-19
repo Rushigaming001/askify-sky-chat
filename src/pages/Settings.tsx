@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   ArrowLeft, User, Briefcase, Zap, Mail, Sun, Moon, Monitor, Palette, 
-  Settings as SettingsIcon, Mic, Database, Shield, Info, LogOut, Bell, BellOff 
+  Settings as SettingsIcon, Mic, Database, Shield, Info, LogOut, Bell, BellOff, RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -119,10 +119,33 @@ const Settings = () => {
             }
           }
         },
+        { 
+          icon: RefreshCw, 
+          label: 'Force Refresh', 
+          subtitle: 'Clear cache & reload app',
+          onClick: async () => {
+            toast({ title: 'Refreshing...', description: 'Clearing cache and reloading' });
+            try {
+              if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+              }
+              const registrations = await navigator.serviceWorker?.getRegistrations();
+              if (registrations) {
+                for (const reg of registrations) {
+                  await reg.update();
+                }
+              }
+            } catch (e) {
+              console.error('Cache clear error:', e);
+            }
+            window.location.reload();
+          }
+        },
         { icon: Mic, label: 'Voice', onClick: () => navigate('/ai-features') },
-        { icon: Database, label: 'Memory', subtitle: 'AI personalization', onClick: () => navigate('/') }, // Memory option for mobile
+        { icon: Database, label: 'Memory', subtitle: 'AI personalization', onClick: () => navigate('/') },
         { icon: Database, label: 'Data controls', onClick: () => toast({ title: 'Data controls', description: 'Your data is securely stored' }) },
-        { icon: Shield, label: 'Security', onClick: () => toast({ title: 'Security', description: 'Your account is secure with Supabase Auth' }) },
+        { icon: Shield, label: 'Security', onClick: () => toast({ title: 'Security', description: 'Your account is secure' }) },
       ]
     },
     {

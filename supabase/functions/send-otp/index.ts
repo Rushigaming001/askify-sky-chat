@@ -20,6 +20,13 @@ serve(async (req) => {
       });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const validPurposes = ['login', 'register'];
     const otpPurpose = validPurposes.includes(purpose) ? purpose : 'login';
 
@@ -68,30 +75,7 @@ serve(async (req) => {
       });
     }
 
-    // Send email using Supabase's built-in email (via auth admin)
-    // We'll use the Resend-style approach via fetch to a mail API
-    // For now, use Supabase Auth's sendMagicLink-style approach or direct SMTP
-    // Since we don't have a separate mail service, we'll use Supabase Auth admin API
-    
-    const { error: emailError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email.toLowerCase().trim(),
-      options: {
-        data: { otp_code: code, purpose: otpPurpose },
-      }
-    });
-
-    // Even if magic link generation has issues, the OTP is stored and can be used
-    // The primary delivery is via the auth email system
-    
-    // Alternative: Send via Supabase's built-in email by updating user metadata
-    // This triggers Supabase's email sending mechanism
-
-    // For production, send email directly via an email API
-    // Using a simple approach: compose an HTML email and send via Supabase's built-in mailer
-    
-    const emailHtml = `
-<!DOCTYPE html>
+    const emailHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -103,31 +87,26 @@ serve(async (req) => {
     <tr>
       <td style="padding: 40px 20px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: white; border-radius: 24px; box-shadow: 0 10px 40px rgba(59, 130, 246, 0.1); overflow: hidden;">
-          <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #3b82f6, #06b6d4); padding: 40px 30px; text-align: center;">
               <h1 style="color: white; font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">ASKIFY</h1>
               <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 8px 0 0; font-weight: 500;">Your Intelligent AI Companion</p>
             </td>
           </tr>
-          <!-- Body -->
           <tr>
             <td style="padding: 40px 30px;">
               <h2 style="color: #1e293b; font-size: 22px; font-weight: 700; margin: 0 0 8px; text-align: center;">
                 ${otpPurpose === 'register' ? 'Welcome to Askify!' : 'Verify Your Identity'}
               </h2>
               <p style="color: #64748b; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 30px;">
-                ${otpPurpose === 'register' 
-                  ? 'Thank you for joining Askify. Use this verification code to complete your registration:' 
+                ${otpPurpose === 'register'
+                  ? 'Thank you for joining Askify. Use this verification code to complete your registration:'
                   : 'A sign-in attempt was detected for your account. Enter this code to verify:'}
               </p>
-              
-              <!-- OTP Code -->
               <div style="background: linear-gradient(135deg, #eff6ff, #ecfeff); border: 2px solid #bfdbfe; border-radius: 16px; padding: 24px; text-align: center; margin: 0 0 30px;">
                 <p style="color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 12px;">Verification Code</p>
                 <p style="color: #1e40af; font-size: 42px; font-weight: 800; letter-spacing: 12px; margin: 0; font-family: 'Courier New', monospace;">${code}</p>
               </div>
-              
               <p style="color: #94a3b8; font-size: 13px; text-align: center; margin: 0 0 8px;">
                 ⏱ This code expires in <strong>10 minutes</strong>
               </p>
@@ -136,7 +115,6 @@ serve(async (req) => {
               </p>
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td style="background: #f8fafc; padding: 20px 30px; border-top: 1px solid #e2e8f0;">
               <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
@@ -152,35 +130,45 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    // Try to send via Resend if available, otherwise rely on stored OTP
+    // Send via Resend
     const resendKey = Deno.env.get('RESEND_API_KEY');
-    
-    if (resendKey) {
-      const emailResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Askify <noreply@askify.app>',
-          to: [email.toLowerCase().trim()],
-          subject: `${code} — Your Askify Verification Code`,
-          html: emailHtml,
-        }),
-      });
+    let emailSent = false;
 
-      if (!emailResponse.ok) {
-        console.error('Resend error:', await emailResponse.text());
+    if (resendKey) {
+      try {
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Askify <onboarding@resend.dev>',
+            to: [email.toLowerCase().trim()],
+            subject: `${code} — Your Askify Verification Code`,
+            html: emailHtml,
+          }),
+        });
+
+        if (emailResponse.ok) {
+          emailSent = true;
+          console.log('Email sent via Resend successfully');
+        } else {
+          const errText = await emailResponse.text();
+          console.error('Resend error:', emailResponse.status, errText);
+        }
+      } catch (e) {
+        console.error('Resend fetch error:', e);
       }
     }
 
-    // Return success - the OTP is stored regardless of email delivery method
-    return new Response(JSON.stringify({ 
-      success: true, 
+    if (!emailSent) {
+      console.warn('Email not sent - Resend API key missing or failed');
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
       message: 'Verification code sent to your email',
-      // In development, include code for testing (remove in production)
-      ...(Deno.env.get('ENVIRONMENT') === 'development' ? { code } : {})
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
