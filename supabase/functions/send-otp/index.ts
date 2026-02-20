@@ -143,7 +143,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Askify <onboarding@resend.dev>',
+            from: 'Askify <noreply@minequest.fun>',
             to: [email.toLowerCase().trim()],
             subject: `${code} — Your Askify Verification Code`,
             html: emailHtml,
