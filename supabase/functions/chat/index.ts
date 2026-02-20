@@ -485,7 +485,13 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
           const data = await response.json();
           reply = data.message?.content?.[0]?.text || "No response generated";
         } else {
-          // Groq and DeepSeek use OpenAI-compatible format
+          // Groq, DeepSeek, and Lovable AI Gateway use OpenAI-compatible format
+          // GPT-5.x models require max_completion_tokens instead of max_tokens
+          const isGptModel = aiModel?.startsWith('openai/gpt-5') || aiModel?.startsWith('openai/o');
+          const tokenParam = isGptModel
+            ? { max_completion_tokens: 2048 }
+            : { max_tokens: 2048 };
+
           response = await fetch(externalApiUrl, {
             method: "POST",
             headers: {
@@ -498,7 +504,7 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
                 { role: "system", content: systemPrompt },
                 ...messages,
               ],
-              max_tokens: 2048,
+              ...tokenParam,
             }),
           });
 
