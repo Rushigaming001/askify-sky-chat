@@ -167,7 +167,8 @@ The passage should be around 150-200 words on a general topic (nature, technolog
 **FORMAT REQUIREMENTS:**
 - Time: ${timeAllotted}
 - Difficulty: ${difficulty} - ${difficultyNote}
-- Pattern: Follow shala.com and balbharti.com exam pattern exactly
+- Pattern: Follow shala.com, balbharti.com, and maharastrastudy.com exam pattern exactly
+- Include AI-type questions: creative thinking, image-based reasoning, real-life application, or innovation questions (at least 1-2 per paper)
 
 **CHAPTERS TO COVER (distribute questions proportionally):**
 ${selectedChapters.join(', ')}
@@ -354,7 +355,7 @@ Generate the modified question paper now:`;
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2">
           <GraduationCap className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Class 9 Test Generator
           </h1>
         </div>
@@ -363,6 +364,7 @@ Generate the modified question paper now:`;
           <Badge variant="outline">⚡ Fast Generation (5-10s)</Badge>
           <Badge variant="outline">shala.com Pattern</Badge>
           <Badge variant="outline">Balbharti Syllabus</Badge>
+          <Badge variant="outline">maharastrastudy.com</Badge>
         </div>
       </div>
 
@@ -648,8 +650,18 @@ Generate the modified question paper now:`;
               <Card>
                 <CardContent className="p-6">
                   <ScrollArea className="h-[600px]">
-                    <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
-                      {generatedTest}
+                    <div className="font-serif text-sm leading-relaxed whitespace-pre-wrap">
+                      {generatedTest.split('\n').map((line, i) => {
+                        // Convert **text** to bold and remove stars
+                        const parts = line.split(/\*\*(.*?)\*\*/g);
+                        return (
+                          <div key={i} className={line === '' ? 'h-3' : ''}>
+                            {parts.map((part, j) =>
+                              j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </ScrollArea>
                 </CardContent>
