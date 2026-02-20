@@ -25,7 +25,7 @@ interface ChatContextType {
   currentChat: Chat | null;
   isLoading: boolean;
   createNewChat: () => Promise<void>;
-  selectChat: (chatId: string) => void;
+  selectChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
   renameChat: (chatId: string, newTitle: string) => Promise<void>;
   togglePinChat: (chatId: string) => Promise<void>;
@@ -41,7 +41,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [currentChat, setCurrentChat] = useState<Chat | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load chats from database
+  // Load messages for a single chat
+  const loadMessagesForChat = useCallback(async (chatId: string): Promise<Message[]> => {
+    const { data, error } = await supabase
+      .from('ai_chat_messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+    if (error) return [];
+    return (data || []).map(msg => ({
+      id: msg.id,
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+      timestamp: new Date(msg.created_at).getTime(),
+      image: msg.image || undefined
+    }));
+  }, []);
+
+  // Load chats from database (no messages - loaded on demand)
   const loadChats = useCallback(async () => {
     if (!user) {
       setChats([]);
@@ -52,54 +69,36 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     try {
-      // Load all chats for this user
       const { data: chatData, error: chatError } = await supabase
         .from('ai_chats')
         .select('*')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(200);
 
       if (chatError) throw chatError;
 
-      // Load messages for all chats
-      const chatIds = chatData?.map(c => c.id) || [];
-      let messagesData: any[] = [];
-      
-      if (chatIds.length > 0) {
-        const { data: msgData, error: msgError } = await supabase
-          .from('ai_chat_messages')
-          .select('*')
-          .in('chat_id', chatIds)
-          .order('created_at', { ascending: true });
-        
-        if (msgError) throw msgError;
-        messagesData = msgData || [];
+      // Load messages only for the most recent chat to avoid huge URL
+      const recentChats = chatData || [];
+      let firstChatMessages: Message[] = [];
+      if (recentChats.length > 0) {
+        firstChatMessages = await loadMessagesForChat(recentChats[0].id);
       }
 
-      // Map to Chat interface
-      const loadedChats: Chat[] = (chatData || []).map(chat => ({
+      const loadedChats: Chat[] = recentChats.map((chat, idx) => ({
         id: chat.id,
         title: chat.title,
         createdAt: new Date(chat.created_at).getTime(),
         model: chat.model,
         mode: chat.mode as 'normal' | 'deepthink' | 'search' | 'reasoning',
         pinned: chat.pinned || false,
-        messages: messagesData
-          .filter(msg => msg.chat_id === chat.id)
-          .map(msg => ({
-            id: msg.id,
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-            timestamp: new Date(msg.created_at).getTime(),
-            image: msg.image || undefined
-          }))
+        messages: idx === 0 ? firstChatMessages : []
       }));
 
       setChats(loadedChats);
       if (loadedChats.length > 0 && !currentChat) {
         setCurrentChat(loadedChats[0]);
       } else if (currentChat) {
-        // Update current chat if it exists
         const updated = loadedChats.find(c => c.id === currentChat.id);
         if (updated) setCurrentChat(updated);
       }
@@ -108,7 +107,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, loadMessagesForChat]);
 
   useEffect(() => {
     loadChats();
@@ -148,9 +147,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const selectChat = (chatId: string) => {
+  const selectChat = async (chatId: string) => {
     const chat = chats.find(c => c.id === chatId);
-    if (chat) {
+    if (!chat) return;
+
+    // Load messages if not yet loaded for this chat
+    if (chat.messages.length === 0) {
+      const messages = await loadMessagesForChat(chatId);
+      const updatedChat = { ...chat, messages };
+      setChats(prev => prev.map(c => c.id === chatId ? updatedChat : c));
+      setCurrentChat(updatedChat);
+    } else {
       setCurrentChat(chat);
     }
   };
