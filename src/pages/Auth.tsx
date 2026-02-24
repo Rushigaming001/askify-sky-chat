@@ -85,7 +85,7 @@ const Auth = () => {
       body: { email: emailAddr, purpose },
     });
 
-    if (error) throw new Error('Failed to send verification code');
+    if (error) throw new Error(error.message || 'Failed to send verification code');
     if (data?.error) throw new Error(data.error);
     return data;
   };

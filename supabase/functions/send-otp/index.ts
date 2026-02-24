@@ -20,8 +20,9 @@ serve(async (req) => {
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'Invalid email format' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -39,7 +40,7 @@ serve(async (req) => {
     const { count } = await supabase
       .from('otp_codes')
       .select('*', { count: 'exact', head: true })
-      .eq('email', email.toLowerCase().trim())
+      .eq('email', normalizedEmail)
       .gte('created_at', tenMinutesAgo);
 
     if ((count || 0) >= 5) {
@@ -55,14 +56,14 @@ serve(async (req) => {
     await supabase
       .from('otp_codes')
       .delete()
-      .eq('email', email.toLowerCase().trim())
+      .eq('email', normalizedEmail)
       .eq('purpose', otpPurpose);
 
     // Insert new code
     const { error: insertError } = await supabase
       .from('otp_codes')
       .insert({
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         code,
         purpose: otpPurpose,
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
@@ -132,38 +133,48 @@ serve(async (req) => {
 
     // Send via Resend
     const resendKey = Deno.env.get('RESEND_API_KEY');
-    let emailSent = false;
-
-    if (resendKey) {
-      try {
-        const emailResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Askify <noreply@minequest.fun>',
-            to: [email.toLowerCase().trim()],
-            subject: `${code} — Your Askify Verification Code`,
-            html: emailHtml,
-          }),
-        });
-
-        if (emailResponse.ok) {
-          emailSent = true;
-          console.log('Email sent via Resend successfully');
-        } else {
-          const errText = await emailResponse.text();
-          console.error('Resend error:', emailResponse.status, errText);
-        }
-      } catch (e) {
-        console.error('Resend fetch error:', e);
-      }
+    if (!resendKey) {
+      return new Response(JSON.stringify({
+        error: 'Email service is not configured. Please contact support.'
+      }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    if (!emailSent) {
-      console.warn('Email not sent - Resend API key missing or failed');
+    try {
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Askify <noreply@minequest.fun>',
+          to: [normalizedEmail],
+          subject: `${code} — Your Askify Verification Code`,
+          html: emailHtml,
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+
+      if (!emailResponse.ok) {
+        const errText = await emailResponse.text();
+        console.error('Resend error:', emailResponse.status, errText);
+        return new Response(JSON.stringify({
+          error: 'Could not send verification code email. Please try again in a moment.'
+        }), {
+          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log('Email sent via Resend successfully');
+    } catch (e) {
+      console.error('Resend fetch error:', e);
+      return new Response(JSON.stringify({
+        error: 'Email delivery timed out. Please try again.'
+      }), {
+        status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     return new Response(JSON.stringify({
