@@ -50,7 +50,7 @@ serve(async (req) => {
     const POLLINATIONS_API_KEY_1 = Deno.env.get("POLLINATIONS_API_KEY_1");
     const POLLINATIONS_API_KEY_2 = Deno.env.get("POLLINATIONS_API_KEY_2");
 
-    const systemPrompt = `You are an expert Maharashtra State Board question paper creator. Generate complete, well-formatted question papers with proper spacing and clear section divisions. Follow the exact pattern of shala.com and balbharti.com papers.`;
+    const systemPrompt = `You are an expert Maharashtra State Board question paper creator. Always produce exam-grade, class-appropriate papers with clean sectioning and exact marks distribution. Strictly scale question count with total marks, follow the user's unit-term mapping, and improve conceptual quality across Easy, Medium, Hard, and Very Difficult modes.`;
 
     let result = '';
 

@@ -10,8 +10,6 @@ interface PushPayload {
   userId: string;
   title: string;
   body: string;
-  icon?: string;
-  data?: Record<string, unknown>;
 }
 
 // Base64url encode
@@ -114,10 +112,10 @@ async function createVapidJwt(endpoint: string, privateKey: CryptoKey): Promise<
   return `${unsigned}.${sigB64}`;
 }
 
-async function sendWebPush(subscription: { endpoint: string; p256dh: string; auth: string }, payload: string) {
+async function sendWebPush(subscription: { endpoint: string; p256dh: string; auth: string }) {
   const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
   const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
-  
+
   if (!vapidPublicKey || !vapidPrivateKey) {
     throw new Error('VAPID keys not configured');
   }
@@ -125,15 +123,17 @@ async function sendWebPush(subscription: { endpoint: string; p256dh: string; aut
   const privateKey = await importVapidPrivateKey(vapidPrivateKey);
   const jwt = await createVapidJwt(subscription.endpoint, privateKey);
 
+  const headers: Record<string, string> = {
+    'TTL': '86400',
+    'Urgency': 'high',
+    'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
+  };
+
+  // Reliability first: if encrypted payload isn't supported, send payload-less push so
+  // notification still wakes service worker when browser/app is closed.
   const response = await fetch(subscription.endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'TTL': '86400',
-      'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
-      'Content-Length': new TextEncoder().encode(payload).length.toString(),
-    },
-    body: payload,
+    headers,
   });
 
   if (!response.ok) {
@@ -174,7 +174,7 @@ serve(async (req) => {
       );
     }
 
-    const { userId, title, body, icon, data }: PushPayload = await req.json();
+    const { userId, title, body }: PushPayload = await req.json();
 
     if (!userId || !title || !body) {
       return new Response(
@@ -205,23 +205,15 @@ serve(async (req) => {
       );
     }
 
-    const payload = JSON.stringify({
-      title,
-      body,
-      icon: icon || '/favicon.ico',
-      data: data || {},
-      timestamp: Date.now(),
-    });
+    // Payload-less push is intentionally used for maximum delivery reliability when browser/app is closed.
+    // Service worker falls back to default title/body when no payload is present.
 
     let successCount = 0;
     let failCount = 0;
 
     for (const sub of subscriptions) {
       try {
-        await sendWebPush(
-          { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-          payload
-        );
+        await sendWebPush({ endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth });
         successCount++;
       } catch (err) {
         const error = err as Error;

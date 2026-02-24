@@ -13,62 +13,110 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
-// Class 9 Complete Curriculum with Units
-const CLASS_9_CURRICULUM = {
-  'English': {
-    'Unit One': ['1.1: Life', '1.2: A Synopsis-The Swiss Family Robinson', '1.3: Have you ever seen...?', '1.4: Have you thought of the verb \'have\'', '1.5: The Necklace'],
-    'Unit Two': ['2.1: Invictus', '2.2: A True Story of Sea Turtles', '2.3: Somebody\'s Mother', '2.4: The Fall of Troy', '2.5: Autumn', '2.6: The Past in the Present'],
-    'Unit Three': ['3.1: Silver', '3.2: Reading Works of Art', '3.3: The Road Not Taken', '3.4: How the First Letter was Written'],
-    'Unit Four': ['4.1: Please Listen!', '4.2: The Storyteller', '4.3: Intellectual Rubbish', '4.4: My Financial Career', '4.5: Tansen'],
-    'Grammar & Writing Skills': ['Grammar', 'Writing Skills']
+// Class-wise curriculum with units/chapters
+const CURRICULUM_BY_CLASS = {
+  'Class 9': {
+    'English': {
+      'Unit One': ['1.1: Life', '1.2: A Synopsis-The Swiss Family Robinson', '1.3: Have you ever seen...?', '1.4: Have you thought of the verb \'have\'', '1.5: The Necklace'],
+      'Unit Two': ['2.1: Invictus', '2.2: A True Story of Sea Turtles', '2.3: Somebody\'s Mother', '2.4: The Fall of Troy', '2.5: Autumn', '2.6: The Past in the Present'],
+      'Unit Three': ['3.1: Silver', '3.2: Reading Works of Art', '3.3: The Road Not Taken', '3.4: How the First Letter was Written'],
+      'Unit Four': ['4.1: Please Listen!', '4.2: The Storyteller', '4.3: Intellectual Rubbish', '4.4: My Financial Career', '4.5: Tansen'],
+      'Grammar & Writing Skills': ['Grammar', 'Writing Skills']
+    },
+    'Hindi (हिंदी)': {
+      'पहली इकाई': ['१: नदी की पुकार', '२: झुमका', '३: निज भाषा', '४: मान जा मेरे मन'],
+      'दूसरी इकाई': ['१: गागर में सागर', '२: मैं बरतन माँजूँगा', '३: ग्रामदेवता', '४: साहित्य की निष्कपट विधा है - डायरी']
+    },
+    'Sanskrit (संस्कृत)': {
+      'गद्यात्मकम्': ['संस्कृतम्', 'विद्यावन्तः', 'समयः'],
+      'पद्यात्मकम्': ['सुभाषिते खरे', 'कालमहत्त्वम्', 'किं कर्तव्यम्? किं न कर्तव्यम्?'],
+      'व्याकरणम्': ['वाक्य संरचना', 'विभक्तयः', 'सन्धयः']
+    },
+    'Marathi (मराठी)': {
+      'भाग – १': ['संतवाणीचे संदर्भ', 'दलितांचे आंबेडकर', 'कालचक्र'],
+      'भाग – २': ['ध्यानातले पहाट', 'ओळखीचा वेडाचा गाव', 'हरवलेलं मूल'],
+      'भाग – ३': ['उजाड उघडे माळरान', 'छपर', 'होमी'],
+      'भाग – ४': ['जीवनातला आनंद', 'उपयोजित लेखन']
+    },
+    'Math 1 - Algebra': {
+      'Unit 1': ['Sets', 'Real Numbers', 'Polynomials', 'Ratio and Proportion'],
+      'Unit 2': ['Linear Equations in Two Variables', 'Financial Planning', 'Statistics']
+    },
+    'Math 2 - Geometry': {
+      'Unit 1': ['Basic Concepts in Geometry', 'Parallel Lines', 'Triangles', 'Constructions of Triangles'],
+      'Unit 2': ['Quadrilaterals', 'Circle', 'Co-ordinate Geometry', 'Trigonometry', 'Surface Area and Volume']
+    },
+    'Science 1': {
+      'Unit 1': ['1: Laws of Motion', '2: Work and Energy', '3: Current Electricity', '4: Measurement of Matter', '5: Acids, Bases and Salts'],
+      'Unit 2': ['6: Classification of Plants', '7: Energy Flow in an Ecosystem', '8: Useful and Harmful Microbes', '9: Environmental Management', '10: Information Communication Technology']
+    },
+    'Science 2': {
+      'Unit 1': ['11: Reflection of Light', '12: Study of Sound', '13: Carbon: An important element'],
+      'Unit 2': ['14: Substances in Common Use', '15: Life Processes in Living Organisms', '16: Heredity and Variation', '17: Introduction to Biotechnology', '18: Observing Space: Telescopes']
+    },
+    'History & Political Science': {
+      'Unit 1': ['History: Sources of History', 'History: India : Events after 1960', 'Political Science: Post World War Political Developments'],
+      'Unit 2': ['History: Economic Development', 'History: Education', 'Political Science: India\'s Foreign Policy', 'Political Science: The United Nations']
+    },
+    'Geography': {
+      'Unit 1': ['1: Distributional Maps', '2: Endogenetic Movements', '3: Exogenetic Movements Part-1', '4: Exogenetic Movements Part-2', '5: Precipitation', '6: Properties of sea water'],
+      'Unit 2': ['7: International Date Line', '8: Introduction to Economics', '9: Trade', '10: Urbanisation', '11: Transport and Communication', '12: Tourism']
+    }
   },
-  'Hindi (हिंदी)': {
-    'पहली इकाई': ['१: नदी की पुकार', '२: झुमका', '३: निज भाषा', '४: मान जा मेरे मन', '५: किताबें कुछ कहना चाहती हैं', '६: \'इत्यादि\' की आत्मकहानी', '७: छोटा जादुगर', '८: जिंदगी की बड़ी जरुरत है हार...!'],
-    'दूसरी इकाई': ['१: गागर में सागर', '२: मैं बरतन माँजूँगा', '३: ग्रामदेवता', '४: साहित्य की निष्कपट विधा है - डायरी', '५: उम्मीद', '६: सागर और मेघ', '७: लघुकथाएँ', '८: झंडा ऊँचा सदा रहेगा', '९: रचना विभाग एवं व्याकरण विभाग']
-  },
-  'Sanskrit (संस्कृत)': {
-    'गद्यात्मकम्': ['संस्कृतम्', 'विद्यावन्तः', 'समयः'],
-    'पद्यात्मकम्': ['सुभाषिते खरे', 'कालमहत्त्वम्', 'किं कर्तव्यम्? किं न कर्तव्यम्?', 'विद्याधनम्', 'वैराग्यस्य महत्त्वम्', 'नभसि विद्युतः, मनुजाः संस्कृताः'],
-    'व्याकरणम्': ['कः कदा? किं कुत्र?', 'वाक्य संरचना', 'क्रिया कर्ता च', 'विभक्तयः', 'कालाः', 'उपसर्गाः', 'समासाः', 'सन्धयः', 'शब्दरूपाणि', 'धातुरूपाणि']
-  },
-  'Marathi (मराठी)': {
-    'भाग – १': ['संतवाणीचे संदर्भ', 'दलितांचे आंबेडकर', 'डॉ. आ. पां. रेगे', 'कालचक्र'],
-    'भाग – २': ['ध्यानातले पहाट', 'ओळखीचा वेडाचा गाव', 'विज्ञान यात्रेची दिवस', 'सूत्र आणि', 'हरवलेलं मूल'],
-    'भाग – ३': ['उजाड उघडे माळरान', 'छपर', 'आमच्यातल्या पाखराला', 'मुला एकदा', 'होमी'],
-    'भाग – ४': ['निष्पन्न', 'जीवनातला आनंद', 'माझी हिरवळ संस्कार', 'स्वतंत्र लेख', 'विज्ञापन', 'उपयोजित लेखन']
-  },
-  'Math 1 - Algebra': {
-    'All Chapters': ['Sets', 'Real Numbers', 'Polynomials', 'Ratio and Proportion', 'Linear Equations in Two Variables', 'Financial Planning', 'Statistics']
-  },
-  'Math 2 - Geometry': {
-    'All Chapters': ['Basic Concepts in Geometry', 'Parallel Lines', 'Triangles', 'Constructions of Triangles', 'Quadrilaterals', 'Circle', 'Co-ordinate Geometry', 'Trigonometry', 'Surface Area and Volume']
-  },
-  'Science 1': {
-    'Unit 1': ['1: Laws of Motion', '2: Work and Energy', '3: Current Electricity', '4: Measurement of Matter', '5: Acids, Bases and Salts', '6: Classification of Plants', '7: Energy Flow in an Ecosystem', '8: Useful and Harmful Microbes', '9: Environmental Management', '10: Information Communication Technology']
-  },
-  'Science 2': {
-    'Unit 2': ['11: Reflection of Light', '12: Study of Sound', '13: Carbon: An important element', '14: Substances in Common Use', '15: Life Processes in Living Organisms', '16: Heredity and Variation', '17: Introduction to Biotechnology', '18: Observing Space: Telescopes']
-  },
-  'History & Political Science': {
-    'History': ['1: Sources of History', '2: India : Events after 1960', '3: India\'s Internal Challenges', '4: Economic Development', '5: Education', '6: Empowerment of Women and other Weaker Sections', '7: Science and Technology', '8: Industry and Trade', '9: Changing Life: 1', '10: Changing Life: 2'],
-    'Political Science': ['1: Post World War Political Developments', '2: India\'s Foreign Policy', '3: India\'s Defence System', '4: The United Nations', '5: India and Other Countries', '6: International Problems']
-  },
-  'Geography': {
-    'Unit 1': ['1: Distributional Maps', '2: Endogenetic Movements', '3: Exogenetic Movements Part-1', '4: Exogenetic Movements Part-2', '5: Precipitation', '6: Properties of sea water'],
-    'Unit 2': ['7: International Date Line', '8: Introduction to Economics', '9: Trade', '10: Urbanisation', '11: Transport and Communication', '12: Tourism']
+  'Class 10': {
+    'English': {
+      'Unit 1': ['Where the Mind is Without Fear', 'The Thief\'s Story', 'Animals', 'The Twins'],
+      'Unit 2': ['The Night I Met Einstein', 'The Half-yearly Exam', 'Basketful of Moonlight', 'The Elevator'],
+      'Grammar & Writing Skills': ['Grammar', 'Writing Skills']
+    },
+    'Marathi (मराठी)': {
+      'भाग १': ['कविता विभाग', 'गद्य विभाग'],
+      'भाग २': ['उपयोजित लेखन', 'व्याकरण']
+    },
+    'Hindi (हिंदी)': {
+      'इकाई 1': ['पद्यांश', 'गद्यांश'],
+      'इकाई 2': ['रचना विभाग', 'व्याकरण विभाग']
+    },
+    'Math 1 - Algebra': {
+      'Unit 1': ['Linear Equations', 'Quadratic Equations', 'Progressions'],
+      'Unit 2': ['Financial Planning', 'Probability', 'Statistics']
+    },
+    'Math 2 - Geometry': {
+      'Unit 1': ['Similarity', 'Pythagoras Theorem', 'Coordinate Geometry'],
+      'Unit 2': ['Trigonometry', 'Mensuration', 'Circle']
+    },
+    'Science 1': {
+      'Unit 1': ['Gravitation', 'Periodic Classification', 'Chemical Reactions'],
+      'Unit 2': ['Effects of Electric Current', 'Heat', 'Light']
+    },
+    'Science 2': {
+      'Unit 1': ['Life Processes', 'Heredity', 'Environment Management'],
+      'Unit 2': ['Social Health', 'Disaster Management', 'Applied Biology']
+    },
+    'History & Political Science': {
+      'Unit 1': ['Historiography', 'Applied History', 'Democracy'],
+      'Unit 2': ['India\'s Democratic Government', 'Political Parties', 'Social and Political Movements']
+    },
+    'Geography': {
+      'Unit 1': ['Field Visit', 'Location and Extent', 'Physiography and Drainage'],
+      'Unit 2': ['Natural Vegetation and Wildlife', 'Population', 'Economy and Occupation']
+    }
   }
-};
+} as const;
 
 const MARKS_OPTIONS = ['20', '40', '80', '100'];
-const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard'];
+const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard', 'Very Difficult (Unsolvable)'];
+const TERM_OPTIONS = ['Term 1', 'Term 2', 'Full Syllabus'];
 
 export function TestGenerator() {
+  const [selectedClass, setSelectedClass] = useState<'Class 9' | 'Class 10'>('Class 9');
   const [subject, setSubject] = useState<string>('');
   const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  const [selectedUnitTerms, setSelectedUnitTerms] = useState<Record<string, string>>({});
   const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
   const [totalMarks, setTotalMarks] = useState<string>('40');
   const [difficulty, setDifficulty] = useState<string>('Medium');
-  const [testTitle, setTestTitle] = useState<string>('');
+  const [testTitle, setTestTitle] = useState('');
   const [includeGrammar, setIncludeGrammar] = useState(true);
   const [includeWriting, setIncludeWriting] = useState(true);
   const [includePassage, setIncludePassage] = useState(true);
@@ -80,37 +128,59 @@ export function TestGenerator() {
   const [customPrompt, setCustomPrompt] = useState('');
   const { toast } = useToast();
 
-  const subjects = Object.keys(CLASS_9_CURRICULUM);
-  const units = subject ? Object.keys(CLASS_9_CURRICULUM[subject as keyof typeof CLASS_9_CURRICULUM]) : [];
-  
+  const currentCurriculum = CURRICULUM_BY_CLASS[selectedClass] as unknown as Record<string, Record<string, readonly string[]>>;
+  const subjects = Object.keys(currentCurriculum);
+  const units = subject ? Object.keys(currentCurriculum[subject] || {}) : [];
+
   const getChaptersForUnits = () => {
     if (!subject) return [];
-    const subjectData = CLASS_9_CURRICULUM[subject as keyof typeof CLASS_9_CURRICULUM];
+    const subjectData = currentCurriculum[subject] || {};
     let chapters: string[] = [];
-    selectedUnits.forEach(unit => {
-      if (subjectData[unit as keyof typeof subjectData]) {
-        chapters = [...chapters, ...(subjectData[unit as keyof typeof subjectData] as string[])];
+    selectedUnits.forEach((unit) => {
+      if (subjectData[unit]) {
+        chapters = [...chapters, ...subjectData[unit]];
       }
     });
     return chapters;
   };
 
+  const getDefaultTermForUnit = (unit: string) => {
+    const lower = unit.toLowerCase();
+    if (lower.includes('unit 1') || lower.includes('unit one') || lower.includes('पहली')) return 'Term 1';
+    if (lower.includes('unit 2') || lower.includes('unit two') || lower.includes('दूसरी')) return 'Term 2';
+    return 'Full Syllabus';
+  };
+
   const toggleUnit = (unit: string) => {
     if (selectedUnits.includes(unit)) {
-      setSelectedUnits(selectedUnits.filter(u => u !== unit));
-      const subjectData = CLASS_9_CURRICULUM[subject as keyof typeof CLASS_9_CURRICULUM];
-      const unitChapters = subjectData[unit as keyof typeof subjectData] as string[];
-      setSelectedChapters(selectedChapters.filter(c => !unitChapters.includes(c)));
-    } else {
-      setSelectedUnits([...selectedUnits, unit]);
+      const nextUnits = selectedUnits.filter((u) => u !== unit);
+      setSelectedUnits(nextUnits);
+
+      setSelectedUnitTerms((prev) => {
+        const { [unit]: _, ...rest } = prev;
+        return rest;
+      });
+
+      const subjectData = currentCurriculum[subject] || {};
+      const unitChapters = subjectData[unit] || [];
+      setSelectedChapters((prev) => prev.filter((c) => !unitChapters.includes(c)));
+      return;
     }
+
+    setSelectedUnits((prev) => [...prev, unit]);
+    setSelectedUnitTerms((prev) => ({
+      ...prev,
+      [unit]: prev[unit] || getDefaultTermForUnit(unit),
+    }));
+  };
+
+  const updateUnitTerm = (unit: string, term: string) => {
+    setSelectedUnitTerms((prev) => ({ ...prev, [unit]: term }));
   };
 
   const toggleChapter = (chapter: string) => {
-    setSelectedChapters(prev =>
-      prev.includes(chapter)
-        ? prev.filter(c => c !== chapter)
-        : [...prev, chapter]
+    setSelectedChapters((prev) =>
+      prev.includes(chapter) ? prev.filter((c) => c !== chapter) : [...prev, chapter]
     );
   };
 
@@ -122,9 +192,15 @@ export function TestGenerator() {
   const selectAllUnits = () => {
     if (selectedUnits.length === units.length) {
       setSelectedUnits([]);
+      setSelectedUnitTerms({});
       setSelectedChapters([]);
     } else {
       setSelectedUnits([...units]);
+      const terms: Record<string, string> = {};
+      units.forEach((unit) => {
+        terms[unit] = selectedUnitTerms[unit] || getDefaultTermForUnit(unit);
+      });
+      setSelectedUnitTerms(terms);
     }
   };
 
@@ -148,12 +224,26 @@ export function TestGenerator() {
 
       const marksNum = parseInt(totalMarks);
       const timeAllotted = marksNum === 20 ? '45 Minutes' : marksNum === 40 ? '1.5 Hours' : marksNum === 80 ? '2.5 Hours' : '3 Hours';
-      
-      const difficultyNote = difficulty === 'Easy' 
-        ? 'Focus on basic understanding, definitions, and simple recall questions.' 
-        : difficulty === 'Hard' 
-        ? 'Include challenging HOTS questions, application-based problems, case studies, and multi-step reasoning.'
-        : 'Balanced mix of basic and application-based questions.';
+
+      const marksBlueprint = marksNum === 20
+        ? 'Section A: 6 MCQ/1-mark, Section B: 4 short/2-mark, Section C: 2 long/3-mark'
+        : marksNum === 40
+        ? 'Section A: 10 MCQ/1-mark, Section B: 6 short/3-mark, Section C: 3 long/4-mark, Section D: 1 HOTS/4-mark'
+        : marksNum === 80
+        ? 'Section A: 16 MCQ/1-mark, Section B: 8 short/3-mark, Section C: 6 long/5-mark, Section D: 2 HOTS/case-study/5-mark'
+        : 'Section A: 20 MCQ/1-mark, Section B: 10 short/3-mark, Section C: 8 long/5-mark, Section D: 4 HOTS/case-study/5-mark';
+
+      const difficultyNote = difficulty === 'Easy'
+        ? 'Keep questions direct and concept-check oriented. Mostly recall and basic application.'
+        : difficulty === 'Hard'
+        ? 'Include challenging HOTS, multi-concept linkage, and application-heavy items.'
+        : difficulty === 'Very Difficult (Unsolvable)'
+        ? 'Create olympiad-style, exceptionally difficult, tricky, multi-step questions with deep reasoning and non-routine framing.'
+        : 'Balanced mix of concept, application, and moderate reasoning.';
+
+      const selectedUnitTermPlan = selectedUnits
+        .map((unit) => `- ${unit}: ${selectedUnitTerms[unit] || 'Full Syllabus'}`)
+        .join('\n');
 
       const passageSection = (subject === 'English' && includePassage) ? `
 
@@ -162,13 +252,17 @@ The passage should be around 150-200 words on a general topic (nature, technolog
 
       const customInstructions = customPrompt.trim() ? `\n\n**ADDITIONAL INSTRUCTIONS FROM USER:**\n${customPrompt.trim()}\n` : '';
 
-      const prompt = `Create a ${totalMarks} marks ${subject} question paper for Class 9 Maharashtra State Board.
+      const prompt = `Create a ${totalMarks} marks ${subject} question paper for ${selectedClass} Maharashtra State Board.
 
 **FORMAT REQUIREMENTS:**
 - Time: ${timeAllotted}
 - Difficulty: ${difficulty} - ${difficultyNote}
 - Pattern: Follow shala.com, balbharti.com, and maharastrastudy.com exam pattern exactly
-- Include AI-type questions: creative thinking, image-based reasoning, real-life application, or innovation questions (at least 1-2 per paper)
+- STRICT SCALING RULE: More marks must always produce significantly more total questions
+- Marks blueprint to follow exactly: ${marksBlueprint}
+
+**UNIT + TERM PLAN (must respect this mapping):**
+${selectedUnitTermPlan || '- Full syllabus coverage'}
 
 **CHAPTERS TO COVER (distribute questions proportionally):**
 ${selectedChapters.join(', ')}
@@ -185,15 +279,10 @@ ${customInstructions}
 - Number all questions: Q.1, Q.2, Q.3, etc.
 - Add proper sub-question numbering: a), b), c) or i), ii), iii)
 
-**STRUCTURE:**
-- Section A: Objective/MCQ (if applicable)
-- Section B: Short Answer Questions (2-3 marks each)
-- Section C: Long Answer Questions (5-6 marks each)
-- Section D: Application/HOTS (for Hard difficulty)
-
-**IMPORTANT:**
+**QUALITY RULES:**
 - Generate UNIQUE questions each time
-- Questions must be exam-standard and appropriate for Class 9
+- Questions must be exam-standard and appropriate for ${selectedClass}
+- Improve conceptual quality, clarity, and logic in every difficulty mode
 - End with: ✱✱✱ Best of Luck! ✱✱✱
 
 Generate the complete question paper now:`;
@@ -279,7 +368,7 @@ Generate the modified question paper now:`;
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${testTitle || `Class 9 - ${subject} Test`}</title>
+  <title>${testTitle || `${selectedClass} - ${subject} Test`}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -321,7 +410,7 @@ Generate the modified question paper now:`;
     
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${testTitle || `Class-9-${subject}-${difficulty}-Test`}.html`;
+    link.download = `${testTitle || `${selectedClass.replace(' ', '-')}-${subject}-${difficulty}-Test`}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -338,7 +427,7 @@ Generate the modified question paper now:`;
     
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${testTitle || `Class-9-${subject}-${difficulty}-Test`}.txt`;
+    link.download = `${testTitle || `${selectedClass.replace(' ', '-')}-${subject}-${difficulty}-Test`}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -356,7 +445,7 @@ Generate the modified question paper now:`;
         <div className="flex items-center justify-center gap-2">
           <GraduationCap className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Class 9 Test Generator
+            {selectedClass} Test Generator
           </h1>
         </div>
         <p className="text-muted-foreground">Maharashtra State Board - AI Powered Question Papers</p>
@@ -392,24 +481,47 @@ Generate the modified question paper now:`;
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <BookOpen className="h-5 w-5" />
-                  Subject
+                  Class & Subject
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Select value={subject} onValueChange={(val) => {
-                  setSubject(val);
-                  setSelectedUnits([]);
-                  setSelectedChapters([]);
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Class</Label>
+                  <Select value={selectedClass} onValueChange={(val) => {
+                    setSelectedClass(val as 'Class 9' | 'Class 10');
+                    setSubject('');
+                    setSelectedUnits([]);
+                    setSelectedUnitTerms({});
+                    setSelectedChapters([]);
+                  }}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Class 9">Class 9</SelectItem>
+                      <SelectItem value="Class 10">Class 10</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Subject</Label>
+                  <Select value={subject} onValueChange={(val) => {
+                    setSubject(val);
+                    setSelectedUnits([]);
+                    setSelectedUnitTerms({});
+                    setSelectedChapters([]);
+                  }}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
 
@@ -464,9 +576,9 @@ Generate the modified question paper now:`;
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
-                  {units.map(unit => (
+                  {units.map((unit) => (
                     <Button
                       key={unit}
                       variant={selectedUnits.includes(unit) ? 'default' : 'outline'}
@@ -477,6 +589,30 @@ Generate the modified question paper now:`;
                     </Button>
                   ))}
                 </div>
+
+                {selectedUnits.length > 0 && (
+                  <div className="space-y-3 border rounded-md p-3">
+                    <Label>Unit ↔ Term mapping</Label>
+                    {selectedUnits.map((unit) => (
+                      <div key={`${unit}-term`} className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
+                        <span className="text-sm text-muted-foreground">{unit}</span>
+                        <Select
+                          value={selectedUnitTerms[unit] || 'Full Syllabus'}
+                          onValueChange={(val) => updateUnitTerm(unit, val)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Term" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TERM_OPTIONS.map((term) => (
+                              <SelectItem key={`${unit}-${term}`} value={term}>{term}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
