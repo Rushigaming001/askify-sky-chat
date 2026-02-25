@@ -82,30 +82,29 @@ const Auth = () => {
 
   const sendOTP = async (emailAddr: string, purpose: string) => {
     console.log('Sending OTP to:', emailAddr, 'purpose:', purpose);
-    
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { email: emailAddr, purpose },
-      });
 
-      clearTimeout(timeout);
+    const invokePromise = supabase.functions.invoke('send-otp', {
+      body: { email: emailAddr.trim().toLowerCase(), purpose },
+    });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timed out. Please try again.')), 12000);
+    });
+
+    try {
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
       console.log('OTP response:', { data, error });
 
       if (error) {
         console.error('OTP invoke error:', error);
-        throw new Error(typeof error === 'object' && error.message ? error.message : 'Failed to send verification code');
+        throw new Error(typeof error === 'object' && error?.message ? error.message : 'Failed to send verification code');
       }
+
       if (data?.error) throw new Error(data.error);
       return data;
     } catch (err: any) {
       console.error('OTP send failed:', err);
-      if (err.name === 'AbortError') {
-        throw new Error('Request timed out. Please try again.');
-      }
-      throw err;
+      throw new Error(err?.message || 'Failed to send verification code');
     }
   };
 
