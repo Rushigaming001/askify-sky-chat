@@ -81,13 +81,32 @@ const Auth = () => {
   }, [password]);
 
   const sendOTP = async (emailAddr: string, purpose: string) => {
-    const { data, error } = await supabase.functions.invoke('send-otp', {
-      body: { email: emailAddr, purpose },
-    });
+    console.log('Sending OTP to:', emailAddr, 'purpose:', purpose);
+    
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { email: emailAddr, purpose },
+      });
 
-    if (error) throw new Error(error.message || 'Failed to send verification code');
-    if (data?.error) throw new Error(data.error);
-    return data;
+      clearTimeout(timeout);
+      console.log('OTP response:', { data, error });
+
+      if (error) {
+        console.error('OTP invoke error:', error);
+        throw new Error(typeof error === 'object' && error.message ? error.message : 'Failed to send verification code');
+      }
+      if (data?.error) throw new Error(data.error);
+      return data;
+    } catch (err: any) {
+      console.error('OTP send failed:', err);
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw err;
+    }
   };
 
   const verifyOTP = async (emailAddr: string, code: string, purpose: string) => {
@@ -117,18 +136,21 @@ const Auth = () => {
     }
 
     setIsLoading(true);
+    console.log('handleSubmit: sending OTP...', { email, isLogin });
     try {
-      // Send OTP before proceeding
       const purpose = isLogin ? 'login' : 'register';
       await sendOTP(email, purpose);
       
+      console.log('handleSubmit: OTP sent successfully');
       setPendingCredentials({ email, password, name: isLogin ? undefined : name });
       setAuthStep('otp');
       setResendCooldown(60);
       toast({ title: 'Code Sent', description: 'A 6-digit verification code has been sent to your email.' });
     } catch (error: any) {
+      console.error('handleSubmit error:', error);
       toast({ title: 'Error', description: error.message || 'Failed to send verification code', variant: 'destructive' });
     } finally {
+      console.log('handleSubmit: done, resetting isLoading');
       setIsLoading(false);
     }
   };
