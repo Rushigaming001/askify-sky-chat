@@ -1,13 +1,32 @@
-// Service Worker for Push Notifications
+// Service Worker for Push Notifications + Offline Support
+
+const CACHE_NAME = 'askify-offline-v1';
+const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker installed');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.add(OFFLINE_URL))
+  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activated');
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => clients.claim())
+  );
+});
+
+// Serve offline page for navigation requests when offline
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+    );
+  }
 });
 
 // Handle push notifications

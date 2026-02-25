@@ -1,74 +1,59 @@
-import { useEffect, useState } from 'react';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+import { useState, useEffect, useCallback } from 'react';
+import { getDeferredPrompt, clearDeferredPrompt, BeforeInstallPromptEvent } from '@/registerSW';
 
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('PWA is already installed');
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true) {
       setIsInstalled(true);
       return;
     }
 
-    const handler = (e: Event) => {
-      console.log('beforeinstallprompt event fired');
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    // Check if prompt is already captured
+    if (getDeferredPrompt()) {
       setIsInstallable(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // Log the status after a delay
-    setTimeout(() => {
-      console.log('PWA Install Status:', {
-        isInstallable,
-        hasDeferredPrompt: !!deferredPrompt,
-        isStandalone: window.matchMedia('(display-mode: standalone)').matches,
-        userAgent: navigator.userAgent
-      });
-    }, 1000);
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const installPWA = async () => {
-    console.log('installPWA called', { deferredPrompt, isInstalled });
-    
-    if (isInstalled) {
-      return 'already-installed';
     }
 
-    if (!deferredPrompt) {
-      console.log('No deferred prompt available');
+    const onAvailable = () => setIsInstallable(true);
+    window.addEventListener('pwa-install-available', onAvailable);
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+    });
+
+    return () => {
+      window.removeEventListener('pwa-install-available', onAvailable);
+    };
+  }, []);
+
+  const installPWA = useCallback(async () => {
+    if (isInstalled) return 'already-installed';
+
+    const prompt = getDeferredPrompt();
+    if (!prompt) {
+      console.log('No install prompt available');
       return false;
     }
 
     try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log('Install prompt outcome:', outcome);
-      
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
       if (outcome === 'accepted') {
-        setDeferredPrompt(null);
+        clearDeferredPrompt();
         setIsInstallable(false);
         setIsInstalled(true);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Error during PWA installation:', error);
+      console.error('PWA install error:', error);
       return false;
     }
-  };
+  }, [isInstalled]);
 
   return { isInstallable, installPWA, isInstalled };
 }
