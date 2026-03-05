@@ -186,6 +186,36 @@ export type Database = {
           },
         ]
       }
+      coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          from_user_id: string | null
+          id: string
+          to_user_id: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          from_user_id?: string | null
+          id?: string
+          to_user_id: string
+          transaction_type?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          from_user_id?: string | null
+          id?: string
+          to_user_id?: string
+          transaction_type?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           content: string
@@ -523,6 +553,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          message_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          message_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          message_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       model_permissions: {
         Row: {
@@ -1175,6 +1232,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_coins: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          last_daily_claim: string | null
+          unlimited: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          last_daily_claim?: string | null
+          unlimited?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          last_daily_claim?: string | null
+          unlimited?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_memories: {
         Row: {
           content: string
@@ -1332,6 +1419,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_give_coins: {
+        Args: {
+          _admin_user_id: string
+          _amount: number
+          _set_unlimited?: boolean
+          _to_user_id: string
+        }
+        Returns: boolean
+      }
       can_access_model: {
         Args: { _model_id: string; _user_id: string }
         Returns: boolean
@@ -1344,6 +1440,10 @@ export type Database = {
           _user_id: string
           _window_seconds: number
         }
+        Returns: boolean
+      }
+      claim_daily_coins: {
+        Args: { _amount?: number; _user_id: string }
         Returns: boolean
       }
       cleanup_expired_otps: { Args: never; Returns: undefined }
@@ -1373,6 +1473,10 @@ export type Database = {
       record_rate_limit: {
         Args: { _action_type: string; _user_id: string }
         Returns: undefined
+      }
+      transfer_coins: {
+        Args: { _amount: number; _from_user_id: string; _to_user_id: string }
+        Returns: boolean
       }
       user_has_restriction: {
         Args: { _restriction_type: string; _user_id: string }

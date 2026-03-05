@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy, Camera, Clapperboard, CircleDot } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy, Camera, Clapperboard, CircleDot, Coins } from 'lucide-react';
 import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
 import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay, MusicBotPanel } from '@/components/chat';
 import { WebRTCCall } from '@/components/WebRTCCall';
@@ -42,6 +42,8 @@ import { DirectMessageChat } from '@/components/DirectMessageChat';
 import { UserProfileDialog } from '@/components/UserProfileDialog';
 import { StoriesViewer } from '@/components/StoriesViewer';
 import { SnapSender } from '@/components/SnapSender';
+import { CoinBalance, SendCoinsDialog, CoinLeaderboard } from '@/components/CoinSystem';
+import { MessageReactions } from '@/components/MessageReactions';
 
 interface PublicMessage {
   id: string;
@@ -95,6 +97,9 @@ const PublicChat = () => {
   const [showSnapSender, setShowSnapSender] = useState(false);
   const [snapRecipient, setSnapRecipient] = useState<{ id: string; name: string; avatar?: string } | null>(null);
   const [showStoriesSection, setShowStoriesSection] = useState(true);
+  const [showSendCoins, setShowSendCoins] = useState(false);
+  const [coinRecipient, setCoinRecipient] = useState<{ id: string; name: string } | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Typing indicator
@@ -679,6 +684,16 @@ const PublicChat = () => {
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <CoinBalance compact onClick={() => setShowLeaderboard(true)} />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSendCoins(true)}
+                title="Send Coins"
+                className="h-7 w-7 sm:h-8 sm:w-8"
+              >
+                <Coins className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -919,6 +934,7 @@ const PublicChat = () => {
                               </p>
                             )}
                           </div>
+                          <MessageReactions messageId={message.id} messageType="public" />
                           {isDeleted && isAdmin && (
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDismissDeletedMessage(message.id)} title="Remove permanently">
                               <X className="h-3 w-3" />
@@ -938,6 +954,11 @@ const PublicChat = () => {
                                 <DropdownMenuItem onClick={() => setReplyingTo(message)}>
                                   <Reply className="h-4 w-4 mr-2" />Reply
                                 </DropdownMenuItem>
+                                {!isOwnMessage && (
+                                  <DropdownMenuItem onClick={() => { setCoinRecipient({ id: message.user_id, name: message.profiles?.name || 'User' }); setShowSendCoins(true); }}>
+                                    <Coins className="h-4 w-4 mr-2 text-amber-500" />Tip Coins
+                                  </DropdownMenuItem>
+                                )}
                                 {(isOwnMessage || isAdmin) && (
                                   <>
                                     <DropdownMenuSeparator />
@@ -1136,6 +1157,30 @@ const PublicChat = () => {
             recipientAvatar={snapRecipient.avatar}
           />
         )}
+
+        {/* Send Coins Dialog */}
+        <SendCoinsDialog
+          isOpen={showSendCoins}
+          onClose={() => { setShowSendCoins(false); setCoinRecipient(null); }}
+          recipientId={coinRecipient?.id}
+          recipientName={coinRecipient?.name}
+        />
+
+        {/* Coin Leaderboard Sheet */}
+        <Sheet open={showLeaderboard} onOpenChange={setShowLeaderboard}>
+          <SheetContent side="right" className="w-80 p-4">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-amber-500" />
+                Askify Coins
+              </SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 space-y-4">
+              <CoinBalance />
+              <CoinLeaderboard />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
