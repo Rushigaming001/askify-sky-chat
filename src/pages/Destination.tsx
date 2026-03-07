@@ -16,6 +16,7 @@ const destinations = [
   { title: 'YouTube', description: 'Browse & watch', icon: Video, path: '/youtube', gradient: 'from-red-500 to-rose-600' },
   { title: 'Games', description: 'Skribbl, Chess & more', icon: Gamepad2, path: '/games', gradient: 'from-violet-500 to-fuchsia-500' },
   { title: 'AQI', description: 'Air quality index', icon: Wind, path: '/aqi', gradient: 'from-emerald-500 to-green-600' },
+  { title: 'Reels', description: 'Watch & share reels', icon: Clapperboard, path: '/reels', gradient: 'from-pink-500 to-rose-600' },
   { title: 'Status', description: 'System uptime', icon: Activity, path: '/status', gradient: 'from-green-500 to-teal-500' },
 ];
 

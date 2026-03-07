@@ -77,6 +77,7 @@ const App = () => {
                   <Route path="/install" element={<Install />} />
                   <Route path="/installation" element={<Install />} />
                   <Route path="/app" element={<Install />} />
+                  <Route path="/reels" element={<Reels />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ChatProvider>
