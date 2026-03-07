@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles, Construction, Blocks } from 'lucide-react';
+import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles, Construction, Blocks, Coins, Crown } from 'lucide-react';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import RolePermissionsManager from '@/components/RolePermissionsManager';
 import RoleAbilitiesManager from '@/components/RoleAbilitiesManager';
@@ -20,6 +20,8 @@ import OwnerAccountSwitcher from '@/components/OwnerAccountSwitcher';
 import ModelLimitsManager from '@/components/ModelLimitsManager';
 import MaintenanceManager from '@/components/admin/MaintenanceManager';
 import FeatureManager from '@/components/admin/FeatureManager';
+import CoinManager from '@/components/admin/CoinManager';
+import PlanManager from '@/components/admin/PlanManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -373,6 +375,18 @@ export default function AdminPanel() {
                 Features
               </TabsTrigger>
             )}
+            {isOwner && (
+              <TabsTrigger value="coins" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <Coins className="h-3 w-3" />
+                Coins
+              </TabsTrigger>
+            )}
+            {isOwner && (
+              <TabsTrigger value="plans" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <Crown className="h-3 w-3" />
+                Plans
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="users">
@@ -510,6 +524,18 @@ export default function AdminPanel() {
           {isOwner && (
             <TabsContent value="features">
               <FeatureManager />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="coins">
+              <CoinManager />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="plans">
+              <PlanManager />
             </TabsContent>
           )}
         </Tabs>
