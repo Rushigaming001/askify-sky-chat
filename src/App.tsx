@@ -26,6 +26,7 @@ import Ludo from "./pages/Ludo";
 import Games from "./pages/Games";
 import Status from "./pages/Status";
 import Install from "./pages/Install";
+import Reels from "./pages/Reels";
 
 const queryClient = new QueryClient(); // v2
 
