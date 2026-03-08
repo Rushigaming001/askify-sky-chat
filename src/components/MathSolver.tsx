@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera, AlertCircle, Download, Copy, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRestrictions } from '@/hooks/useUserRestrictions';
@@ -405,9 +405,62 @@ Guidelines:
 
       {solution && (
         <div className="animate-fade-in-up p-5 rounded-xl bg-card border border-border shadow-soft space-y-3">
-          <div className="flex items-center gap-2 text-primary font-semibold">
-            <BookOpen className="h-5 w-5" />
-            Solution (Maharashtra Board Format)
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <BookOpen className="h-5 w-5" />
+              Solution (Maharashtra Board Format)
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                navigator.clipboard.writeText(solution);
+                toast({ title: 'Copied!', description: 'Solution copied to clipboard' });
+              }}
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Copy
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                const blob = new Blob([solution], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `math-solution-${Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: 'Downloaded!', description: 'Solution saved as text file' });
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Save as Text
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Math Solution</title><style>body{font-family:serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.8;white-space:pre-wrap;}</style></head><body>${solution.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</body></html>`;
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `math-solution-${Date.now()}.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: 'Downloaded!', description: 'Open the HTML file and print as PDF' });
+              }}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Save as PDF
+            </Button>
           </div>
           <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed overflow-x-auto">
             {solution}
