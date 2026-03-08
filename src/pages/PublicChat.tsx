@@ -100,7 +100,9 @@ const PublicChat = () => {
   const [showSendCoins, setShowSendCoins] = useState(false);
   const [coinRecipient, setCoinRecipient] = useState<{ id: string; name: string } | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showSocialPanel, setShowSocialPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   
   // Typing indicator
   const { sendTyping } = useTypingIndicator('public-chat', user?.id, user?.name);
