@@ -540,7 +540,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                   <TooltipContent side="right">Settings</TooltipContent>
                 </Tooltip>
 
-                {isAdmin && (
+                {isOwner && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button 
@@ -552,7 +552,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                         <Shield className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Admin Panel</TooltipContent>
+                    <TooltipContent side="right">Control Panel</TooltipContent>
                   </Tooltip>
                 )}
 
