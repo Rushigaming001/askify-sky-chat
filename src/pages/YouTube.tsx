@@ -803,7 +803,7 @@ const YouTube = () => {
           </div>
           
           {/* Video Details */}
-          <ScrollArea className={`flex-1 ${ytDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
+          <ScrollArea className="flex-1 bg-white dark:bg-[#0f0f0f]">
             <div className="p-3">
               <h2 className="text-[15px] font-semibold leading-tight">{selectedVideo?.title}</h2>
               <p className="text-[12px] text-muted-foreground mt-1.5">
