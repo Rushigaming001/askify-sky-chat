@@ -8,7 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import {
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, Monitor,
-  Send, ArrowLeft, MessageSquare, SwitchCamera, Crown, Shield
+  Send, ArrowLeft, MessageSquare, SwitchCamera, Crown, Shield,
+  Sparkles, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
