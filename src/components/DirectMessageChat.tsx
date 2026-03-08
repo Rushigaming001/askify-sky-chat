@@ -60,7 +60,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [showSnapSender, setShowSnapSender] = useState(false);
-  const [showStatusBar, setShowStatusBar] = useState(false);
   const [replyingTo, setReplyingTo] = useState<DirectMessage | null>(null);
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');

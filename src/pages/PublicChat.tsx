@@ -783,6 +783,29 @@ const PublicChat = () => {
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              {/* Mention notification badge */}
+              {mentionNotifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 relative"
+                  title="Jump to mention"
+                  onClick={() => {
+                    const lastMention = mentionNotifications[mentionNotifications.length - 1];
+                    const el = document.getElementById(`msg-${lastMention}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      el.classList.add('animate-pulse');
+                      setTimeout(() => el.classList.remove('animate-pulse'), 2000);
+                    }
+                  }}
+                >
+                  <span className="text-lg">@</span>
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-[9px] text-destructive-foreground flex items-center justify-center font-bold">
+                    {mentionNotifications.length}
+                  </span>
+                </Button>
+              )}
               <CoinBalance compact onClick={() => setShowLeaderboard(true)} />
               <Button
                 variant="ghost"
