@@ -34,6 +34,7 @@ const Games = lazy(() => import("./pages/Games"));
 const Status = lazy(() => import("./pages/Status"));
 const Install = lazy(() => import("./pages/Install"));
 const Reels = lazy(() => import("./pages/Reels"));
+const StaffMeeting = lazy(() => import("./pages/StaffMeeting"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
