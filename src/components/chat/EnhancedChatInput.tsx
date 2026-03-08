@@ -40,7 +40,8 @@ export function EnhancedChatInput({
   userId,
   chatType = 'public',
   chatId,
-  maxFileSize = 200
+  maxFileSize = 200,
+  profiles = []
 }: EnhancedChatInputProps) {
   const [message, setMessage] = useState('');
   const [filePreview, setFilePreview] = useState<string | null>(null);
