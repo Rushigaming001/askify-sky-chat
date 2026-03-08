@@ -203,11 +203,21 @@ const PublicChat = () => {
               .sort((a, b) => (ROLE_PRI[a.role] ?? 99) - (ROLE_PRI[b.role] ?? 99))[0];
 
             if (profile) {
-              setMessages(prev => [...prev, {
+              const newMsg = {
                 ...payload.new as any,
                 profiles: profile,
                 user_role: bestRole?.role || 'user'
-              }]);
+              };
+              setMessages(prev => [...prev, newMsg]);
+              
+              // Play ping sound if current user is mentioned
+              if (user && payload.new.user_id !== user.id) {
+                const content = (payload.new as any).content?.toLowerCase() || '';
+                const userName = user.name?.toLowerCase().replace(/\s+/g, '') || '';
+                if (content.includes(`@${userName}`) || content.includes('@everyone')) {
+                  playPingSound();
+                }
+              }
             }
           } else if (payload.eventType === 'UPDATE') {
             setMessages(prev => prev.map(msg => 
