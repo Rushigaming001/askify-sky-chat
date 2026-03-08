@@ -606,8 +606,20 @@ const Chat = () => {
                   </DialogContent>
                 )}
               </Dialog>
-              
+
               <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start gap-2 text-sm">
+                    <WifiOff className="h-4 w-4 text-emerald-500" />
+                    Offline Math
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogHeader><DialogTitle>Offline Math Solver</DialogTitle></DialogHeader>
+                  <OfflineMathSolver />
+                </DialogContent>
+              </Dialog>
+              
                 <DialogTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start gap-2 text-sm" disabled={restrictions.live_video_call_disabled}>
                     <Video className="h-4 w-4 text-green-500" />
