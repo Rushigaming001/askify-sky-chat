@@ -509,6 +509,7 @@ const Reels = () => {
         </SheetContent>
       </Sheet>
     </div>
+    </div>
   );
 };
 
