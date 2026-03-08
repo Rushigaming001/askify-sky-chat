@@ -583,6 +583,10 @@ export function WebRTCCall({
   };
 
   const cleanup = () => {
+    // Stop bandwidth monitors
+    bandwidthMonitorsRef.current.forEach(id => clearInterval(id));
+    bandwidthMonitorsRef.current = [];
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
     }
