@@ -860,7 +860,9 @@ const PublicChat = () => {
                       <DateSeparator date={message.created_at} />
                     )}
                     <div
-                      className={`flex gap-2.5 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0.5' : 'mt-3'}`}
+                      className={`flex gap-2.5 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0.5' : 'mt-3'} ${
+                        !isDeleted && user && message.content.toLowerCase().includes(`@${user.name?.toLowerCase().replace(/\s+/g, '')}`) ? 'bg-amber-500/10 -mx-2 px-2 py-1 rounded-lg border-l-2 border-amber-500' : ''
+                      }`}
                     >
                       {/* Avatar - only show for first in group */}
                       {!isGrouped ? (
