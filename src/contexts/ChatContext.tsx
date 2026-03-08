@@ -182,6 +182,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteAllChats = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('ai_chats')
+        .delete()
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setChats([]);
+      setCurrentChat(null);
+    } catch (error) {
+      console.error('Error deleting all chats:', error);
+    }
+  };
+
   const renameChat = async (chatId: string, newTitle: string) => {
     try {
       const { error } = await supabase
