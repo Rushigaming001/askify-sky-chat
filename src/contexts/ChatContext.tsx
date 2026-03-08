@@ -27,6 +27,7 @@ interface ChatContextType {
   createNewChat: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  deleteAllChats: () => Promise<void>;
   renameChat: (chatId: string, newTitle: string) => Promise<void>;
   togglePinChat: (chatId: string) => Promise<void>;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
@@ -339,6 +340,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       createNewChat,
       selectChat,
       deleteChat,
+      deleteAllChats,
       renameChat,
       togglePinChat,
       addMessage,
