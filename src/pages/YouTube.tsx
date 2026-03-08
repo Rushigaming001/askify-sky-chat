@@ -384,15 +384,13 @@ const YouTube = () => {
           </div>
         )}
       </div>
-      </div>
     );
   }
 
   // ─── Channel Page ───
   if (selectedChannel) {
     return (
-      <div className={ytDarkMode ? 'dark' : ''}>
-      <div className={`flex flex-col h-screen ${ytDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-white text-[#0f0f0f]'}`}>
+      <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f] dark:text-white">
         <div className="flex items-center gap-1 px-1 py-2 border-b border-border/30">
           <Button variant="ghost" size="icon" onClick={() => setSelectedChannel(null)}>
             <ArrowLeft className="h-5 w-5" />
