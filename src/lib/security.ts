@@ -36,13 +36,13 @@ export async function logSecurityEvent(event: SecurityEvent, userId?: string) {
   if (!canLog()) return;
   
   try {
-    await supabase.from('security_logs').insert({
+    await supabase.from('security_logs').insert([{
       user_id: userId || null,
       event_type: event.event_type,
       details: event.details || {},
       severity: event.severity || 'info',
       user_agent: navigator.userAgent,
-    });
+    }]);
   } catch {
     // Silently fail - don't expose security logging to attackers
   }
