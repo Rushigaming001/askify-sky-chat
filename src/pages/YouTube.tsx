@@ -13,7 +13,8 @@ import {
   Smartphone, Film, Music, Gamepad2, Newspaper, Trophy, Lightbulb, X, 
   Loader2, ArrowLeft, Bell, Cast, MoreVertical, Share, MessageSquare,
   ChevronUp, ChevronDown, User, Send, Mic, History, TrendingUp,
-  Maximize, Minimize, Plus, Radio, Bookmark, Download, Flag, Scissors
+  Maximize, Minimize, Plus, Radio, Bookmark, Download, Flag, Scissors,
+  Moon, Sun
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
