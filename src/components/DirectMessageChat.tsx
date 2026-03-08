@@ -11,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay } from './chat';
 import { SnapSender } from './SnapSender';
-import { StoriesViewer } from './StoriesViewer';
 import { MessageReactions } from './MessageReactions';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
