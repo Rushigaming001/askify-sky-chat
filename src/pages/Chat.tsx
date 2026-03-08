@@ -538,8 +538,8 @@ const Chat = () => {
                 </div>
               )}
             </div>
-          )}
-        </ScrollArea>
+          </ScrollArea>
+        )}
 
         {/* Bottom ChatInput - never disabled so user can type while AI responds */}
         {!showWelcome && (
