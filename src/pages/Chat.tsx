@@ -619,7 +619,8 @@ const Chat = () => {
                   <OfflineMathSolver />
                 </DialogContent>
               </Dialog>
-              
+
+              <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start gap-2 text-sm" disabled={restrictions.live_video_call_disabled}>
                     <Video className="h-4 w-4 text-green-500" />
