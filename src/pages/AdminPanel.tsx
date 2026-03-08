@@ -394,6 +394,11 @@ export default function AdminPanel() {
                 Purchases
               </TabsTrigger>
             )}
+            {isOwner && (
+              <TabsTrigger value="feedback" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                📬 Feedback
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="users">
@@ -549,6 +554,12 @@ export default function AdminPanel() {
           {isOwner && (
             <TabsContent value="purchases">
               <PurchaseHistory />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="feedback">
+              <FeedbackViewer />
             </TabsContent>
           )}
         </Tabs>
