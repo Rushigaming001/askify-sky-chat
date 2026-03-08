@@ -45,6 +45,25 @@ import { SnapSender } from '@/components/SnapSender';
 import { CoinBalance, SendCoinsDialog, CoinLeaderboard } from '@/components/CoinSystem';
 import { MessageReactions } from '@/components/MessageReactions';
 
+// Ping notification sound using Web Audio API
+const playPingSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+    oscillator.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.3);
+  } catch (e) {
+    // Audio not supported
+  }
+};
+
 interface PublicMessage {
   id: string;
   user_id: string;
@@ -184,11 +203,21 @@ const PublicChat = () => {
               .sort((a, b) => (ROLE_PRI[a.role] ?? 99) - (ROLE_PRI[b.role] ?? 99))[0];
 
             if (profile) {
-              setMessages(prev => [...prev, {
+              const newMsg = {
                 ...payload.new as any,
                 profiles: profile,
                 user_role: bestRole?.role || 'user'
-              }]);
+              };
+              setMessages(prev => [...prev, newMsg]);
+              
+              // Play ping sound if current user is mentioned
+              if (user && payload.new.user_id !== user.id) {
+                const content = (payload.new as any).content?.toLowerCase() || '';
+                const userName = user.name?.toLowerCase().replace(/\s+/g, '') || '';
+                if (content.includes(`@${userName}`) || content.includes('@everyone')) {
+                  playPingSound();
+                }
+              }
             }
           } else if (payload.eventType === 'UPDATE') {
             setMessages(prev => prev.map(msg => 
@@ -841,12 +870,14 @@ const PublicChat = () => {
                       <DateSeparator date={message.created_at} />
                     )}
                     <div
-                      className={`flex gap-2.5 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0.5' : 'mt-3'}`}
+                      className={`flex gap-2.5 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0.5' : 'mt-3'} ${
+                        !isDeleted && user && message.content.toLowerCase().includes(`@${user.name?.toLowerCase().replace(/\s+/g, '')}`) ? 'bg-amber-500/10 -mx-2 px-2 py-1 rounded-lg border-l-2 border-amber-500' : ''
+                      }`}
                     >
                       {/* Avatar - only show for first in group */}
                       {!isGrouped ? (
                         <Avatar 
-                          className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                          className="h-9 w-9 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                           onClick={() => setViewingProfile({ userId: message.user_id, userName: message.profiles?.name || 'User' })}
                         >
                           {message.profiles?.avatar_url ? (
@@ -857,7 +888,7 @@ const PublicChat = () => {
                           </AvatarFallback>
                         </Avatar>
                       ) : (
-                        <div className="w-8 flex-shrink-0" />
+                        <div className="w-9 flex-shrink-0" />
                       )}
                       <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
                         {!isGrouped && (
@@ -1004,6 +1035,7 @@ const PublicChat = () => {
             userId={user?.id}
             chatType="public"
             maxFileSize={200}
+            profiles={allProfiles}
           />
         </div>
 

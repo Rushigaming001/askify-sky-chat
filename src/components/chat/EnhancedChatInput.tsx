@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MentionInput } from '@/components/MentionInput';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
@@ -21,6 +22,7 @@ interface EnhancedChatInputProps {
   chatType?: 'public' | 'friends' | 'dm' | 'group';
   chatId?: string;
   maxFileSize?: number; // in MB, default 200MB
+  profiles?: { id: string; name: string }[];
 }
 
 // Popular GIF categories
@@ -39,7 +41,8 @@ export function EnhancedChatInput({
   userId,
   chatType = 'public',
   chatId,
-  maxFileSize = 200
+  maxFileSize = 200,
+  profiles = []
 }: EnhancedChatInputProps) {
   const [message, setMessage] = useState('');
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -314,14 +317,26 @@ export function EnhancedChatInput({
         </Popover>
 
         {/* Message Input */}
-        <Input
-          value={message}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled || isUploading}
-          className="flex-1"
-        />
+        {profiles.length > 0 ? (
+          <MentionInput
+            value={message}
+            onChange={(val) => { setMessage(val); onTyping?.(); }}
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            placeholder={placeholder}
+            disabled={disabled || isUploading}
+            profiles={profiles}
+            className="flex-1"
+          />
+        ) : (
+          <Input
+            value={message}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled || isUploading}
+            className="flex-1"
+          />
+        )}
 
         {/* Emoji Picker */}
         <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>

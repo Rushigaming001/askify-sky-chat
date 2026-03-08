@@ -31,12 +31,12 @@ export function DateSeparator({ date }: DateSeparatorProps) {
   }, [date]);
 
   return (
-    <div className="flex items-center gap-4 py-4">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-muted rounded-full">
+    <div className="flex items-center gap-3 py-5">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      <span className="text-[11px] font-semibold text-muted-foreground/80 px-3 py-1 bg-muted/60 rounded-full border border-border/50 uppercase tracking-wider">
         {formattedDate}
       </span>
-      <div className="flex-1 h-px bg-border" />
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }
