@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, Calculator, BookOpen, GraduationCap, Camera, SwitchCamera, AlertCircle, Download, Copy, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRestrictions } from '@/hooks/useUserRestrictions';
