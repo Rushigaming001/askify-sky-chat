@@ -39,7 +39,7 @@ export function WebRTCCall({
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [callReady, setCallReady] = useState(false); // NEW: user must click to start
+  const [callReady, setCallReady] = useState(false);
   const [participants, setParticipants] = useState<Array<{ user_id: string; name: string }>>([]);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
@@ -47,6 +47,18 @@ export function WebRTCCall({
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMobile] = useState(() => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  
+  // Call recording (owner only)
+  const [isRecording, setIsRecording] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  
+  // In-call chat
+  const [showCallChat, setShowCallChat] = useState(false);
+  const [callChatMessages, setCallChatMessages] = useState<Array<{ id: string; name: string; text: string; time: string }>>([]);
+  const [callChatInput, setCallChatInput] = useState('');
+  const callChatEndRef = useRef<HTMLDivElement>(null);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
