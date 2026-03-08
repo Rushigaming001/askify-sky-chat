@@ -558,7 +558,7 @@ const YouTube = () => {
       </header>
 
       {/* Category Chips */}
-      <div className="px-2 py-1.5 overflow-x-auto flex-shrink-0 border-b border-border/20">
+      <div className="px-2 py-1.5 overflow-x-auto flex-shrink-0">
         <div className="flex gap-2 items-center">
           <button className="flex-shrink-0 p-2 rounded-lg hover:bg-muted/60 transition-colors">
             <Menu className="h-5 w-5" />
