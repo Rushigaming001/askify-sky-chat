@@ -918,7 +918,6 @@ const YouTube = () => {
         </DialogContent>
       </Dialog>
     </div>
-    </div>
   );
 };
 
