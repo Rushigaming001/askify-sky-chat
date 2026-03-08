@@ -663,9 +663,34 @@ const PublicChat = () => {
     return labels[role] || role.toUpperCase();
   };
 
+  // Swipe handlers for social panel
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartRef.current.y);
+    touchStartRef.current = null;
+    
+    // Only trigger if horizontal swipe is dominant and significant
+    if (Math.abs(deltaX) > 60 && deltaY < 100) {
+      if (deltaX < 0 && !showSocialPanel) {
+        setShowSocialPanel(true); // Swipe left → open
+      } else if (deltaX > 0 && showSocialPanel) {
+        setShowSocialPanel(false); // Swipe right → close
+      }
+    }
+  }, [showSocialPanel]);
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <div className="flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border">
+      <div 
+        className={`flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border transition-transform duration-300 ease-out ${showSocialPanel ? '-translate-x-full' : 'translate-x-0'}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
