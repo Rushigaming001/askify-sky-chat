@@ -280,6 +280,30 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -841,6 +865,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "reel_comments_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reel_earnings: {
+        Row: {
+          coins_awarded: number
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+          views_milestone: number
+        }
+        Insert: {
+          coins_awarded?: number
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+          views_milestone: number
+        }
+        Update: {
+          coins_awarded?: number
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+          views_milestone?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reel_earnings_story_id_fkey"
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
