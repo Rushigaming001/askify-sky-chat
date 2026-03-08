@@ -277,8 +277,16 @@ const Chat = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background/95 backdrop-blur-sm max-h-[400px]">
+                {/* Offline AI - Top */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Offline</div>
+                <SelectItem value="offline-ai">
+                  <div className="flex items-center gap-2">
+                    <span>🧠 Offline AI</span>
+                  </div>
+                </SelectItem>
+
                 {/* Core Models */}
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Core</div>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1">Core</div>
                 <SelectItem value="grok" disabled={!modelAccess.grok}>
                   <div className="flex items-center gap-2">
                     {!modelAccess.grok && <Lock className="h-3 w-3 text-muted-foreground" />}
