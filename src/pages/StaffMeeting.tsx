@@ -477,6 +477,42 @@ const StaffMeeting = () => {
           <Button size="lg" variant={isScreenSharing ? 'default' : 'secondary'} className="rounded-full h-12 w-12" onClick={toggleScreenShare}>
             <Monitor className="h-5 w-5" />
           </Button>
+          <Button 
+            size="lg" 
+            variant="secondary" 
+            className="rounded-full h-12 w-12" 
+            onClick={async () => {
+              if (chatMessages.length === 0) {
+                toast.error('No chat messages to summarize');
+                return;
+              }
+              setIsSummarizing(true);
+              try {
+                const chatText = chatMessages.map(m => `${m.name}: ${m.content}`).join('\n');
+                const { data, error } = await supabase.functions.invoke('askify-chat', {
+                  body: { 
+                    messages: [
+                      { role: 'system', content: 'You are a meeting assistant. Summarize the following staff meeting chat into clear action items, decisions, and key discussion points. Be concise.' },
+                      { role: 'user', content: `Summarize this staff meeting chat:\n\n${chatText}` }
+                    ],
+                    model: 'google/gemini-2.5-flash'
+                  }
+                });
+                if (error) throw error;
+                setAiSummary(data?.response || data?.content || 'No summary generated.');
+                setShowChat(true);
+                toast.success('Meeting summary generated!');
+              } catch {
+                toast.error('Failed to generate summary');
+              } finally {
+                setIsSummarizing(false);
+              }
+            }}
+            disabled={isSummarizing}
+            title="AI Summary"
+          >
+            {isSummarizing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+          </Button>
           <Button size="lg" variant="destructive" className="rounded-full h-14 w-14" onClick={leaveMeeting}>
             <PhoneOff className="h-6 w-6" />
           </Button>
