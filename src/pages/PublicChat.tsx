@@ -1031,11 +1031,12 @@ const PublicChat = () => {
           <EnhancedChatInput
             onSend={(content, fileUrl) => handleSendMediaMessage(content, fileUrl)}
             onTyping={sendTyping}
-            placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message..."}
+            placeholder={replyingTo ? `Reply to ${replyingTo.profiles?.name}...` : "Type a message... (@ to mention)"}
             disabled={isLoading}
             userId={user?.id}
             chatType="public"
             maxFileSize={200}
+            mentionProfiles={allProfiles}
           />
         </div>
 
