@@ -899,14 +899,16 @@ const PublicChat = () => {
                   message.image_url.includes('giphy.com')
                 );
 
-                return (
-                  <div key={message.id}>
-                    {showDateSep && (
-                      <DateSeparator date={message.created_at} />
-                    )}
-                    <div
-                      className={`flex gap-3 group px-2 py-0.5 rounded-lg hover:bg-muted/30 transition-colors ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0' : 'mt-4'}`}
-                    >
+                // Check if this message mentions the current user
+                const isMentioningMe = (() => {
+                  if (!user || isOwnMessage) return false;
+                  const content = message.content.toLowerCase();
+                  const userName = (user.name || '').toLowerCase();
+                  return content.includes(`@${userName.replace(/\s+/g, '')}`) ||
+                         content.includes(`@${userName.split(' ')[0]}`) ||
+                         content.includes('@everyone');
+                })();
+                const hasMentionNotif = mentionNotifications.includes(message.id);
                       {/* Avatar - only show for first in group */}
                       {!isGrouped ? (
                         <Avatar 
