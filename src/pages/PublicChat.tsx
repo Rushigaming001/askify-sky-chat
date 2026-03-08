@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,7 +100,9 @@ const PublicChat = () => {
   const [showSendCoins, setShowSendCoins] = useState(false);
   const [coinRecipient, setCoinRecipient] = useState<{ id: string; name: string } | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showSocialPanel, setShowSocialPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   
   // Typing indicator
   const { sendTyping } = useTypingIndicator('public-chat', user?.id, user?.name);
@@ -661,9 +663,34 @@ const PublicChat = () => {
     return labels[role] || role.toUpperCase();
   };
 
+  // Swipe handlers for social panel
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartRef.current.y);
+    touchStartRef.current = null;
+    
+    // Only trigger if horizontal swipe is dominant and significant
+    if (Math.abs(deltaX) > 60 && deltaY < 100) {
+      if (deltaX < 0 && !showSocialPanel) {
+        setShowSocialPanel(true); // Swipe left → open
+      } else if (deltaX > 0 && showSocialPanel) {
+        setShowSocialPanel(false); // Swipe right → close
+      }
+    }
+  }, [showSocialPanel]);
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <div className="flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border">
+      <div 
+        className={`flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border transition-transform duration-300 ease-out ${showSocialPanel ? '-translate-x-full' : 'translate-x-0'}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
@@ -758,71 +785,9 @@ const PublicChat = () => {
           </div>
         </header>
 
-        {/* Stories / Status / Reel / Snap Section */}
-        <div className="border-b border-border bg-background/50">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
-            <Button
-              variant={showStoriesSection ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowStoriesSection(!showStoriesSection)}
-              className="h-8 gap-1.5 text-xs rounded-full"
-            >
-              <CircleDot className="h-3.5 w-3.5" />
-              Status
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowUsersList(true)}
-              className="h-8 gap-1.5 text-xs rounded-full border-yellow-500/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10"
-            >
-              <Camera className="h-3.5 w-3.5" />
-              Snap
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'video/*';
-                input.onchange = async (e) => {
-                  const file = (e.target as HTMLInputElement).files?.[0];
-                  if (!file || !user) return;
-                  if (file.size > 15 * 1024 * 1024) {
-                    toast({ title: 'File too large', description: 'Maximum 15MB for reels', variant: 'destructive' });
-                    return;
-                  }
-                  try {
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-                    const { error: uploadError } = await supabase.storage.from('stories').upload(fileName, file);
-                    if (uploadError) throw uploadError;
-                    const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(fileName);
-                    await supabase.from('stories').insert({ user_id: user.id, media_url: publicUrl, media_type: 'video' });
-                    toast({ title: 'Reel posted! 🎬' });
-                  } catch (err: any) {
-                    toast({ title: 'Failed to post reel', description: err.message, variant: 'destructive' });
-                  }
-                };
-                input.click();
-              }}
-              className="h-8 gap-1.5 text-xs rounded-full border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
-            >
-              <Clapperboard className="h-3.5 w-3.5" />
-              Reel
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/reels')}
-              className="h-8 gap-1.5 text-xs rounded-full border-pink-500/30 text-pink-600 dark:text-pink-400 hover:bg-pink-500/10"
-            >
-              <Clapperboard className="h-3.5 w-3.5" />
-              View Reels
-            </Button>
-          </div>
-          {showStoriesSection && <StoriesViewer />}
+        {/* Swipe hint indicator */}
+        <div className="flex items-center justify-center py-1 text-[10px] text-muted-foreground/50">
+          <span>← Swipe left for Social</span>
         </div>
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
@@ -1190,6 +1155,131 @@ const PublicChat = () => {
             </div>
           </SheetContent>
         </Sheet>
+      </div>
+
+      {/* Social Panel - Swipeable from right */}
+      <div 
+        className={`absolute inset-0 bg-background flex flex-col transition-transform duration-300 ease-out ${showSocialPanel ? 'translate-x-0' : 'translate-x-full'}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <header className="border-b border-border p-3 bg-background sticky top-0 z-50">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowSocialPanel(false)}
+              className="h-8 w-8"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold">Social</h1>
+          </div>
+        </header>
+
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-6">
+            {/* Stories / Status */}
+            <div>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Stories & Status</h2>
+              <StoriesViewer />
+            </div>
+
+            {/* Action Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setShowUsersList(true); setShowSocialPanel(false); }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all"
+              >
+                <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                  <Camera className="h-6 w-6 text-amber-500" />
+                </div>
+                <span className="text-sm font-medium">Send Snap</span>
+                <span className="text-[10px] text-muted-foreground">Disappearing photos</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'video/*';
+                  input.onchange = async (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (!file || !user) return;
+                    if (file.size > 15 * 1024 * 1024) {
+                      toast({ title: 'File too large', description: 'Maximum 15MB for reels', variant: 'destructive' });
+                      return;
+                    }
+                    try {
+                      const fileExt = file.name.split('.').pop();
+                      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+                      const { error: uploadError } = await supabase.storage.from('stories').upload(fileName, file);
+                      if (uploadError) throw uploadError;
+                      const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(fileName);
+                      await supabase.from('stories').insert({ user_id: user.id, media_url: publicUrl, media_type: 'video' });
+                      toast({ title: 'Reel posted! 🎬' });
+                    } catch (err: any) {
+                      toast({ title: 'Failed to post reel', description: err.message, variant: 'destructive' });
+                    }
+                  };
+                  input.click();
+                }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all"
+              >
+                <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Clapperboard className="h-6 w-6 text-purple-500" />
+                </div>
+                <span className="text-sm font-medium">Post Reel</span>
+                <span className="text-[10px] text-muted-foreground">Share videos</span>
+              </button>
+
+              <button
+                onClick={() => { navigate('/reels'); }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all"
+              >
+                <div className="h-12 w-12 rounded-full bg-pink-500/10 flex items-center justify-center">
+                  <Clapperboard className="h-6 w-6 text-pink-500" />
+                </div>
+                <span className="text-sm font-medium">View Reels</span>
+                <span className="text-[10px] text-muted-foreground">Watch content</span>
+              </button>
+
+              <button
+                onClick={() => { setShowSendCoins(true); setShowSocialPanel(false); }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all"
+              >
+                <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                  <Coins className="h-6 w-6 text-amber-500" />
+                </div>
+                <span className="text-sm font-medium">Send Coins</span>
+                <span className="text-[10px] text-muted-foreground">Gift to friends</span>
+              </button>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Links</h2>
+              <div className="space-y-1">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-11" onClick={() => { navigate('/friends-chat'); }}>
+                  <Lock className="h-4 w-4 text-primary" />
+                  Friends Chat
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 h-11" onClick={() => { setShowLeaderboard(true); setShowSocialPanel(false); }}>
+                  <Coins className="h-4 w-4 text-amber-500" />
+                  Coin Leaderboard
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 h-11" onClick={() => { setShowUsersList(true); setShowSocialPanel(false); }}>
+                  <UserCircle className="h-4 w-4 text-muted-foreground" />
+                  View All Users
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 h-11" onClick={() => { setShowGroupsList(true); setShowSocialPanel(false); }}>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  View Groups
+                </Button>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );
