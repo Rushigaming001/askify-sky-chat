@@ -112,13 +112,54 @@ const Reels = () => {
     });
   }, [activeIndex, muted]);
 
-  // Track views
+  // Track views & check monetization milestones
   useEffect(() => {
     const reel = reels[activeIndex];
     if (!reel || !user) return;
+    // Don't count own views
+    if (reel.user_id === user.id) return;
     const timer = setTimeout(async () => {
-      await supabase.from('stories').update({ view_count: reel.view_count + 1 }).eq('id', reel.id);
-    }, 3000); // Count as view after 3 seconds
+      const newCount = reel.view_count + 1;
+      await supabase.from('stories').update({ view_count: newCount }).eq('id', reel.id);
+      
+      // Check if hit a 100-view milestone for coin reward
+      const milestone = Math.floor(newCount / 100) * 100;
+      if (milestone > 0 && newCount >= milestone && newCount < milestone + 1) {
+        // Try to award coins to the creator
+        const { error: earningError } = await supabase.from('reel_earnings').insert({
+          story_id: reel.id,
+          user_id: reel.user_id,
+          views_milestone: milestone,
+          coins_awarded: 5
+        });
+        // If insert succeeded (not duplicate), give coins
+        if (!earningError) {
+          // Give coins via direct update
+          const { data: existing } = await supabase
+            .from('user_coins')
+            .select('balance')
+            .eq('user_id', reel.user_id)
+            .maybeSingle();
+          
+          if (existing) {
+            await supabase.from('user_coins')
+              .update({ balance: existing.balance + 5, updated_at: new Date().toISOString() })
+              .eq('user_id', reel.user_id);
+          } else {
+            await supabase.from('user_coins')
+              .insert({ user_id: reel.user_id, balance: 5 });
+          }
+          
+          // Log transaction
+          await supabase.from('coin_transactions').insert({
+            to_user_id: reel.user_id,
+            amount: 5,
+            transaction_type: 'reel_earnings',
+            description: `Reel reached ${milestone} views`
+          });
+        }
+      }
+    }, 3000);
     return () => clearTimeout(timer);
   }, [activeIndex, reels, user]);
 
@@ -381,9 +422,23 @@ const Reels = () => {
                 {reel.caption && (
                   <p className="text-white text-sm drop-shadow-lg line-clamp-2">{reel.caption}</p>
                 )}
-                <div className="flex items-center gap-2 mt-1">
-                  <Eye className="h-3.5 w-3.5 text-white/60" />
-                  <span className="text-white/60 text-xs">{reel.view_count} views</span>
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5 text-white/60" />
+                    <span className="text-white/60 text-xs">{reel.view_count} views</span>
+                  </div>
+                  {reel.user_id === user?.id && reel.view_count >= 100 && (
+                    <div className="flex items-center gap-1 bg-amber-500/30 rounded-full px-2 py-0.5">
+                      <span className="text-amber-300 text-xs font-medium">
+                        💰 {Math.floor(reel.view_count / 100) * 5} coins earned
+                      </span>
+                    </div>
+                  )}
+                  {reel.user_id === user?.id && reel.view_count < 100 && (
+                    <span className="text-white/40 text-xs">
+                      {100 - reel.view_count} views to earn 5 coins
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

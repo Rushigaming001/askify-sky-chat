@@ -52,6 +52,52 @@ interface UserRole {
   role: string;
 }
 
+function FeedbackViewer() {
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      setFeedbacks(data || []);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) return <div className="p-6 text-center text-muted-foreground">Loading feedback...</div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>User Feedback</CardTitle>
+        <CardDescription>{feedbacks.length} feedback submissions</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {feedbacks.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">No feedback yet</p>
+        ) : (
+          <div className="space-y-3">
+            {feedbacks.map(fb => (
+              <div key={fb.id} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium">{fb.email || 'Anonymous'}</span>
+                  <span className="text-xs text-muted-foreground">{new Date(fb.created_at).toLocaleDateString()}</span>
+                </div>
+                <p className="text-sm whitespace-pre-wrap">{fb.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminPanel() {
   const { user, session, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -394,6 +440,11 @@ export default function AdminPanel() {
                 Purchases
               </TabsTrigger>
             )}
+            {isOwner && (
+              <TabsTrigger value="feedback" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                📬 Feedback
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="users">
@@ -549,6 +600,12 @@ export default function AdminPanel() {
           {isOwner && (
             <TabsContent value="purchases">
               <PurchaseHistory />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="feedback">
+              <FeedbackViewer />
             </TabsContent>
           )}
         </Tabs>
