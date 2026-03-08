@@ -749,6 +749,16 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                     Staff Meeting
                   </Button>
                 )}
+
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start hover:bg-accent transition-all duration-200" 
+                  size="sm"
+                  onClick={() => navigate('/offline-ai')}
+                >
+                  <Brain className="h-4 w-4 mr-2" />
+                  Offline AI
+                </Button>
                 
                 <Button 
                   variant="ghost" 
