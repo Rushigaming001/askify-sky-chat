@@ -13,7 +13,8 @@ import {
   Smartphone, Film, Music, Gamepad2, Newspaper, Trophy, Lightbulb, X, 
   Loader2, ArrowLeft, Bell, Cast, MoreVertical, Share, MessageSquare,
   ChevronUp, ChevronDown, User, Send, Mic, History, TrendingUp,
-  Maximize, Minimize, Plus, Radio, Bookmark, Download, Flag, Scissors
+  Maximize, Minimize, Plus, Radio, Bookmark, Download, Flag, Scissors,
+  Moon, Sun
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,6 +93,37 @@ const YouTube = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showSearch, setShowSearch] = useState(false);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
+  const [ytDarkMode, setYtDarkMode] = useState(() => {
+    const saved = localStorage.getItem('yt-dark-mode');
+    return saved ? saved === 'true' : true;
+  });
+
+  // Apply dark mode to document root for YouTube page
+  useEffect(() => {
+    const root = document.documentElement;
+    const prevHadDark = root.classList.contains('dark');
+    
+    if (ytDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    
+    // Restore previous theme on unmount
+    return () => {
+      const storedTheme = localStorage.getItem('theme') || 'system';
+      root.classList.remove('dark', 'light');
+      if (storedTheme === 'dark') {
+        root.classList.add('dark');
+      } else if (storedTheme === 'light') {
+        root.classList.add('light');
+      } else {
+        // system
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.classList.add(systemDark ? 'dark' : 'light');
+      }
+    };
+  }, [ytDarkMode]);
   
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -118,6 +150,12 @@ const YouTube = () => {
   const videoPlayerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastVideoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('yt-dark-mode', String(ytDarkMode));
+  }, [ytDarkMode]);
+
+  const toggleYtDarkMode = () => setYtDarkMode(prev => !prev);
 
   useEffect(() => {
     fetchTrendingVideos();
@@ -308,7 +346,7 @@ const YouTube = () => {
   // ─── Search Screen ───
   if (showSearch) {
     return (
-      <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f]">
+      <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f] dark:text-white">
         <div className="flex items-center gap-2 px-2 py-2.5 border-b border-border/30">
           <Button variant="ghost" size="icon" onClick={() => setShowSearch(false)} className="text-foreground">
             <ArrowLeft className="h-5 w-5" />
@@ -352,7 +390,7 @@ const YouTube = () => {
   // ─── Channel Page ───
   if (selectedChannel) {
     return (
-      <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f]">
+      <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f] dark:text-white">
         <div className="flex items-center gap-1 px-1 py-2 border-b border-border/30">
           <Button variant="ghost" size="icon" onClick={() => setSelectedChannel(null)}>
             <ArrowLeft className="h-5 w-5" />
@@ -531,7 +569,7 @@ const YouTube = () => {
 
   // ─── Main Layout ───
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f]">
+    <div className="flex flex-col h-screen bg-white dark:bg-[#0f0f0f] dark:text-white">
       {/* YouTube Header */}
       <header className="px-2 py-1.5 flex items-center gap-1 bg-white dark:bg-[#0f0f0f] sticky top-0 z-40">
         <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="h-10 w-10">
@@ -547,6 +585,9 @@ const YouTube = () => {
 
         <div className="flex-1" />
         
+        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={toggleYtDarkMode}>
+          {ytDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
         <Button variant="ghost" size="icon" className="h-10 w-10"><Cast className="h-5 w-5" /></Button>
         <Button variant="ghost" size="icon" className="h-10 w-10 relative">
           <Bell className="h-5 w-5" />
