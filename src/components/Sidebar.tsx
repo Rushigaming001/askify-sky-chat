@@ -38,7 +38,7 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
   const { restrictions } = useUserRestrictions();
   const [renameDialog, setRenameDialog] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [unreadPublicCount, setUnreadPublicCount] = useState(0);
 
