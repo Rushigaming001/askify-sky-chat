@@ -35,6 +35,7 @@ const Status = lazy(() => import("./pages/Status"));
 const Install = lazy(() => import("./pages/Install"));
 const Reels = lazy(() => import("./pages/Reels"));
 const StaffMeeting = lazy(() => import("./pages/StaffMeeting"));
+const OfflineAI = lazy(() => import("./pages/OfflineAI"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
