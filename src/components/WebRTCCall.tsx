@@ -426,6 +426,14 @@ export function WebRTCCall({
           await handleIceCandidate(payload);
         }
       })
+      .on('broadcast', { event: 'call-chat' }, ({ payload }) => {
+        if (payload && payload.name) {
+          setCallChatMessages(prev => {
+            if (prev.some(m => m.id === payload.id)) return prev;
+            return [...prev, payload];
+          });
+        }
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED' && isInitiator) {
           createOfferForPeer(recipientId);
