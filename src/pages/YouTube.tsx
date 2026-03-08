@@ -563,6 +563,9 @@ const YouTube = () => {
 
         <div className="flex-1" />
         
+        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={toggleYtDarkMode}>
+          {ytDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
         <Button variant="ghost" size="icon" className="h-10 w-10"><Cast className="h-5 w-5" /></Button>
         <Button variant="ghost" size="icon" className="h-10 w-10 relative">
           <Bell className="h-5 w-5" />
