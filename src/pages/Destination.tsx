@@ -44,11 +44,6 @@ const Destination = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Subtle background accents */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/[0.03] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/[0.03] rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
-      </div>
 
       <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 sm:py-12 min-h-screen flex flex-col">
         {/* Header */}
