@@ -24,6 +24,7 @@ import { VideoGenerator } from '@/components/VideoGenerator';
 import MinecraftPluginMaker from '@/components/MinecraftPluginMaker';
 import CapCutPro from '@/components/CapCutPro';
 import { ExpensiveModelWarning, isExpensiveModel, getModelDisplayName } from '@/components/ExpensiveModelWarning';
+import { OfflineMathSolver } from '@/components/OfflineMathSolver';
 
 const Chat = () => {
   const { user, session, isLoading: authLoading } = useAuth();
