@@ -192,11 +192,37 @@ const PublicChat = () => {
               .sort((a, b) => (ROLE_PRI[a.role] ?? 99) - (ROLE_PRI[b.role] ?? 99))[0];
 
             if (profile) {
-              setMessages(prev => [...prev, {
+              const newMsg = {
                 ...payload.new as any,
                 profiles: profile,
                 user_role: bestRole?.role || 'user'
-              }]);
+              };
+              setMessages(prev => [...prev, newMsg]);
+
+              // Check if current user is mentioned
+              const content = (payload.new as any).content || '';
+              const senderUserId = (payload.new as any).user_id;
+              if (user && senderUserId !== user.id) {
+                const userName = user.name || '';
+                const mentionVariants = [
+                  `@${userName.toLowerCase().replace(/\s+/g, '')}`,
+                  `@${userName.toLowerCase().split(' ')[0]}`,
+                  '@everyone'
+                ];
+                const contentLower = content.toLowerCase();
+                const isMentioned = mentionVariants.some(v => contentLower.includes(v));
+                if (isMentioned) {
+                  // Play ping sound
+                  pingAudioRef.current?.play().catch(() => {});
+                  // Add to mention notifications
+                  setMentionNotifications(prev => [...prev, (payload.new as any).id]);
+                  // Show toast
+                  toast({
+                    title: `${profile.name} mentioned you`,
+                    description: content.length > 80 ? content.substring(0, 80) + '...' : content,
+                  });
+                }
+              }
             }
           } else if (payload.eventType === 'UPDATE') {
             setMessages(prev => prev.map(msg => 
