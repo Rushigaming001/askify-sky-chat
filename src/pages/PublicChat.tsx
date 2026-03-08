@@ -723,13 +723,13 @@ const PublicChat = () => {
   }, [showSocialPanel]);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-[hsl(var(--background))] overflow-hidden justify-center">
       <div 
-        className={`flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border transition-transform duration-300 ease-out ${showSocialPanel ? '-translate-x-full' : 'translate-x-0'}`}
+        className={`flex flex-col w-full max-w-[1000px] relative bg-card transition-transform duration-300 ease-out ${showSocialPanel ? '-translate-x-full' : 'translate-x-0'}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
+        <header className="border-b border-border/50 px-3 py-2.5 sm:px-4 sm:py-3 bg-card/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
               variant="ghost" 
