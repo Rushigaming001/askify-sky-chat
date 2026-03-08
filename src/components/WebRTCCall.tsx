@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor, Music, Minimize2, Maximize2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, SwitchCamera, Monitor, Music, Minimize2, Maximize2, Circle, MessageSquare, X, Send } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
