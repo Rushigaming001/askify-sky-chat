@@ -37,6 +37,7 @@ export function WebRTCCall({
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [callReady, setCallReady] = useState(false); // NEW: user must click to start
   const [participants, setParticipants] = useState<Array<{ user_id: string; name: string }>>([]);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
@@ -53,14 +54,19 @@ export function WebRTCCall({
   const audioContextRef = useRef<AudioContext | null>(null);
   const [callId] = useState(() => `call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
+  // CRITICAL: Only cleanup on unmount/close — do NOT auto-call getUserMedia here
   useEffect(() => {
-    if (isOpen) {
-      initializeCall();
-    }
-
     return () => {
       cleanup();
     };
+  }, []);
+
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCallReady(false);
+      setIsConnecting(true);
+    }
   }, [isOpen]);
 
   // Adaptive bandwidth control - maintains quality while reducing network usage
