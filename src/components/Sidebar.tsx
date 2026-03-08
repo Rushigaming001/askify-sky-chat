@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play, BookOpen, Crown, PanelLeftClose, PanelLeft, Calculator, Video, Film, Box, Clapperboard, Home } from 'lucide-react';
+import { Plus, MessageSquare, MoreVertical, Edit2, Trash2, Share2, Menu, Settings, LogOut, User, Download, Mail, Pin, Shield, Users as UsersIcon, MessageCircle, Sparkles, Gamepad2, Pencil, Wind, BarChart3, Play, BookOpen, Crown, PanelLeftClose, PanelLeft, Calculator, Video, Film, Box, Clapperboard, Home, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -749,6 +749,16 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
                     Staff Meeting
                   </Button>
                 )}
+
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start hover:bg-accent transition-all duration-200" 
+                  size="sm"
+                  onClick={() => navigate('/offline-ai')}
+                >
+                  <Brain className="h-4 w-4 mr-2" />
+                  Offline AI
+                </Button>
                 
                 <Button 
                   variant="ghost" 
@@ -1146,7 +1156,17 @@ export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = fals
             <Download className="h-4 w-4 mr-2" />
             Download Mobile App
           </Button>
-          
+
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
+            size="sm"
+            onClick={() => navigate('/offline-ai')}
+          >
+            <Brain className="h-4 w-4 mr-2" />
+            Offline AI
+          </Button>
+
           <Button 
             variant="ghost" 
             className="w-full justify-start hover:bg-accent transition-all duration-200 hover:scale-[1.02]" 
