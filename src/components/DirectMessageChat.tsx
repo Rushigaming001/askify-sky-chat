@@ -90,7 +90,23 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
             const msg = payload.new as DirectMessage;
             if ((msg.sender_id === recipientId && msg.receiver_id === user.id) ||
                 (msg.sender_id === user.id && msg.receiver_id === recipientId)) {
-              setMessages(prev => [...prev, msg]);
+              // Deduplicate: replace optimistic or skip if already exists
+              setMessages(prev => {
+                const exists = prev.some(m => m.id === msg.id);
+                if (exists) return prev;
+                // If this is our own message, it was already added optimistically - replace by matching content+timestamp proximity
+                if (msg.sender_id === user.id) {
+                  const optimistic = prev.find(m => 
+                    m.sender_id === user.id && 
+                    m.content === msg.content && 
+                    Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000
+                  );
+                  if (optimistic && optimistic.id !== msg.id) {
+                    return prev.map(m => m.id === optimistic.id ? msg : m);
+                  }
+                }
+                return [...prev, msg];
+              });
               if (msg.sender_id === recipientId) markAsRead(msg.id);
             }
           } else if (payload.eventType === 'UPDATE') {
