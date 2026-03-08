@@ -30,7 +30,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onToggle, alwaysOpen = false, collapsed = false, onCollapse }: SidebarProps) {
-  const { chats, currentChat, createNewChat, selectChat, deleteChat, renameChat, togglePinChat } = useChat();
+  const { chats, currentChat, createNewChat, selectChat, deleteChat, deleteAllChats, renameChat, togglePinChat } = useChat();
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
