@@ -6,10 +6,47 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// In-memory rate limiter for DDoS protection
+const ipRequestCounts = new Map<string, { count: number; resetAt: number }>();
+const IP_RATE_LIMIT = 30; // max requests per window
+const IP_RATE_WINDOW = 60_000; // 1 minute
+
+function checkDDoS(req: Request): Response | null {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+             req.headers.get('cf-connecting-ip') ||
+             req.headers.get('x-real-ip') || 'unknown';
+  const now = Date.now();
+  const entry = ipRequestCounts.get(ip);
+
+  if (entry && now < entry.resetAt) {
+    entry.count++;
+    if (entry.count > IP_RATE_LIMIT) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+  } else {
+    ipRequestCounts.set(ip, { count: 1, resetAt: now + IP_RATE_WINDOW });
+  }
+
+  // Cleanup old entries periodically
+  if (ipRequestCounts.size > 1000) {
+    for (const [key, val] of ipRequestCounts) {
+      if (now > val.resetAt) ipRequestCounts.delete(key);
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // DDoS / rate limit check
+  const ddosBlock = checkDDoS(req);
+  if (ddosBlock) return ddosBlock;
 
   try {
     // Get user from auth header first
