@@ -629,24 +629,22 @@ const PublicChat = () => {
   // Role badge helper function
   const getRoleBadgeStyle = (role: string) => {
     const styles: Record<string, string> = {
-      owner: 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500 text-black border-yellow-400/50 shadow-[0_0_8px_rgba(255,215,0,0.4)]',
-      founder: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-amber-300/50 shadow-[0_0_6px_rgba(245,158,11,0.3)]',
-      co_founder: 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-300/50',
-      ceo: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300/50 shadow-[0_0_6px_rgba(168,85,247,0.3)]',
-      admin: 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-400/50 shadow-[0_0_6px_rgba(239,68,68,0.3)]',
-      sr_admin: 'bg-gradient-to-r from-red-600 to-rose-700 text-white border-red-400/50',
-      moderator: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300/50',
-      sr_moderator: 'bg-gradient-to-r from-orange-600 to-amber-700 text-white border-orange-400/50',
-      friend: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-pink-300/50',
-      vip: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300/50 shadow-[0_0_6px_rgba(52,211,153,0.3)]',
-      premium: 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-fuchsia-300/50',
-      platinum: 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-cyan-200/50',
-      gold: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black border-yellow-300/50',
-      silver: 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-slate-200/50',
-      elite: 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-violet-400/50',
-      pro: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-300/50',
-      plus: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-cyan-300/50',
-      basic: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300/50',
+      owner: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30',
+      founder: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white border-amber-300 shadow-amber-500/30',
+      co_founder: 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-300 shadow-orange-500/30',
+      ceo: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300 shadow-purple-500/30',
+      admin: 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300 shadow-red-500/30',
+      moderator: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 shadow-orange-500/30',
+      friend: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white border-pink-300 shadow-pink-500/30',
+      vip: 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-black border-yellow-200 shadow-yellow-500/40',
+      premium: 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white border-fuchsia-300 shadow-fuchsia-500/30',
+      platinum: 'bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-400 text-slate-800 border-cyan-200 shadow-cyan-500/30',
+      gold: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-300 shadow-yellow-500/30',
+      silver: 'bg-gradient-to-r from-slate-300 to-gray-400 text-slate-700 border-slate-200 shadow-slate-500/20',
+      elite: 'bg-gradient-to-r from-violet-600 to-purple-700 text-white border-violet-400 shadow-violet-500/30',
+      pro: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-300 shadow-blue-500/30',
+      plus: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-cyan-300 shadow-cyan-500/30',
+      basic: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white border-emerald-300 shadow-emerald-500/30',
     };
     return styles[role] || 'bg-muted text-muted-foreground border-border';
   };
@@ -658,9 +656,7 @@ const PublicChat = () => {
       co_founder: '✦ CO-FOUNDER',
       ceo: '💎 CEO',
       admin: '🛡️ ADMIN',
-      sr_admin: '🛡️ SR.ADMIN',
       moderator: '⚔️ MOD',
-      sr_moderator: '⚔️ SR.MOD',
       friend: '💖 FRIEND',
       vip: '✨ VIP',
       premium: '💫 PREMIUM',
@@ -673,32 +669,6 @@ const PublicChat = () => {
       basic: '✓ BASIC',
     };
     return labels[role] || role.toUpperCase();
-  };
-
-  // Get username color based on role (Minecraft-style)
-  const getRoleNameColor = (role?: string) => {
-    if (!role || role === 'user') return '';
-    const colors: Record<string, string> = {
-      owner: 'text-yellow-500',
-      founder: 'text-amber-500',
-      co_founder: 'text-orange-500',
-      ceo: 'text-purple-500',
-      admin: 'text-red-500',
-      sr_admin: 'text-red-600',
-      moderator: 'text-orange-500',
-      sr_moderator: 'text-orange-600',
-      vip: 'text-emerald-500',
-      premium: 'text-fuchsia-500',
-      platinum: 'text-cyan-400',
-      gold: 'text-yellow-500',
-      silver: 'text-slate-400',
-      elite: 'text-violet-500',
-      pro: 'text-blue-500',
-      plus: 'text-cyan-500',
-      friend: 'text-pink-500',
-      basic: 'text-green-500',
-    };
-    return colors[role] || '';
   };
 
   // Swipe handlers for social panel
@@ -723,13 +693,13 @@ const PublicChat = () => {
   }, [showSocialPanel]);
 
   return (
-    <div className="flex h-screen bg-[hsl(var(--background))] overflow-hidden justify-center">
+    <div className="flex h-screen bg-background overflow-hidden">
       <div 
-        className={`flex flex-col w-full max-w-[1000px] relative bg-card transition-transform duration-300 ease-out ${showSocialPanel ? '-translate-x-full' : 'translate-x-0'}`}
+        className={`flex-1 flex flex-col w-full relative bg-card border-0 md:border-x border-border transition-transform duration-300 ease-out ${showSocialPanel ? '-translate-x-full' : 'translate-x-0'}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <header className="border-b border-border/50 px-3 py-2.5 sm:px-4 sm:py-3 bg-card/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <header className="border-b border-border p-2 sm:p-3 md:p-4 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-50">
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
               variant="ghost" 
@@ -739,13 +709,13 @@ const PublicChat = () => {
             >
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Users className="h-4.5 w-4.5 text-primary" />
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-bold truncate">Public Chat</h1>
-                <p className="text-[10px] sm:text-xs text-muted-foreground/60 truncate">{messages.length} messages</p>
+                <h1 className="text-base sm:text-lg md:text-xl font-semibold truncate">Public Chat</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Chat with everyone</p>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -824,12 +794,12 @@ const PublicChat = () => {
         </header>
 
         {/* Swipe hint indicator */}
-        <div className="flex items-center justify-center py-0.5 text-[9px] text-muted-foreground/40 select-none md:hidden">
-          <span>← Swipe for Social</span>
+        <div className="flex items-center justify-center py-1 text-[10px] text-muted-foreground/50">
+          <span>← Swipe left for Social</span>
         </div>
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
-          <div className="px-3 sm:px-6 py-3 space-y-0.5">
+          <div className="p-4 space-y-1">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
                 <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -871,61 +841,59 @@ const PublicChat = () => {
                       <DateSeparator date={message.created_at} />
                     )}
                     <div
-                      className={`flex gap-3 group px-2 py-0.5 rounded-lg hover:bg-muted/30 transition-colors ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0' : 'mt-4'}`}
+                      className={`flex gap-2.5 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${isDeleted ? 'opacity-50' : ''} ${isGrouped ? 'mt-0.5' : 'mt-3'}`}
                     >
                       {/* Avatar - only show for first in group */}
                       {!isGrouped ? (
                         <Avatar 
-                          className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all shadow-sm"
+                          className="h-8 w-8 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                           onClick={() => setViewingProfile({ userId: message.user_id, userName: message.profiles?.name || 'User' })}
                         >
                           {message.profiles?.avatar_url ? (
                             <AvatarImage src={message.profiles.avatar_url} alt={message.profiles.name} />
                           ) : null}
-                          <AvatarFallback className="text-xs bg-muted font-semibold">
+                          <AvatarFallback className="text-xs bg-muted">
                             {message.profiles ? getInitials(message.profiles.name) : '??'}
                           </AvatarFallback>
                         </Avatar>
                       ) : (
-                        <div className="w-9 sm:w-10 flex-shrink-0" />
+                        <div className="w-8 flex-shrink-0" />
                       )}
-                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[80%] sm:max-w-[70%]`}>
+                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
                         {!isGrouped && (
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className={`text-sm font-bold ${getRoleNameColor(message.user_role)}`}>
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className="text-sm font-semibold">
                               {isOwnMessage ? 'You' : (message.profiles?.name || 'Anonymous')}
                             </span>
                             {message.user_role && message.user_role !== 'user' && (
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider border shadow-sm ${getRoleBadgeStyle(message.user_role)}`}>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border shadow-sm ${getRoleBadgeStyle(message.user_role)}`}>
                                 {getRoleLabel(message.user_role)}
                               </span>
                             )}
-                            <span className="text-[10px] text-muted-foreground/60">
+                            <span className="text-[11px] text-muted-foreground">
                               {formatTime(message.created_at)}
                             </span>
                             {message.edited_at && (
-                              <span className="text-[10px] text-muted-foreground/50 italic">(edited)</span>
+                              <span className="text-[11px] text-muted-foreground italic">(edited)</span>
                             )}
                           </div>
                         )}
                         {/* Reply indicator */}
                         {replyMessage && (
-                          <div className="text-xs text-muted-foreground mb-1.5 px-3 py-1.5 rounded-lg bg-muted/40 border-l-2 border-primary/60 max-w-full">
-                            <span className="font-semibold">↩ {replyMessage.profiles?.name}: </span>
-                            <span className="truncate opacity-80">{replyMessage.content.substring(0, 50)}{replyMessage.content.length > 50 ? '...' : ''}</span>
+                          <div className={`text-xs text-muted-foreground mb-1 px-2 py-1 rounded bg-muted/50 border-l-2 border-primary max-w-full`}>
+                            <span className="font-medium">↩ {replyMessage.profiles?.name}: </span>
+                            <span className="truncate">{replyMessage.content.substring(0, 50)}{replyMessage.content.length > 50 ? '...' : ''}</span>
                           </div>
                         )}
                         <div className="flex items-start gap-1">
                           <div
-                            className={`rounded-[14px] ${isGif ? 'p-0 bg-transparent' : 'px-3.5 py-2'} ${
+                            className={`rounded-2xl ${isGif ? 'p-0 bg-transparent' : 'px-3 py-1.5'} ${
                               isDeleted 
-                                ? 'bg-destructive/10 text-destructive px-3.5 py-2 border border-destructive/20'
+                                ? 'bg-destructive/20 text-destructive px-3 py-1.5'
                                 : isGif ? '' 
-                                : message.user_role === 'owner'
-                                ? 'bg-gradient-to-br from-yellow-500/20 via-amber-500/15 to-orange-500/10 text-foreground border border-yellow-500/30 shadow-[0_2px_8px_rgba(255,215,0,0.15)]'
                                 : isOwnMessage
-                                ? 'bg-primary text-primary-foreground shadow-sm'
-                                : 'bg-muted/80 text-foreground shadow-sm border border-border/30'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-foreground'
                             }`}
                           >
                             {message.image_url && !isDeleted && (
@@ -1005,19 +973,19 @@ const PublicChat = () => {
           </div>
         </ScrollArea>
 
-        <div className="border-t border-border/50 px-3 sm:px-6 py-3 bg-card/95 backdrop-blur-md">
+        <div className="border-t border-border p-4 bg-background">
           {replyingTo && (
-            <div className="mb-2 flex items-center gap-2 text-xs bg-muted/40 p-2.5 rounded-lg border-l-2 border-primary/60">
-              <Reply className="h-3 w-3 text-primary" />
+            <div className="mb-2 flex items-center gap-2 text-xs bg-muted/50 p-2 rounded border-l-2 border-primary">
+              <Reply className="h-3 w-3" />
               <span className="text-muted-foreground">Replying to</span>
-              <span className="font-semibold">{replyingTo.profiles?.name}</span>
-              <span className="text-muted-foreground/70 truncate max-w-[200px]">
+              <span className="font-medium">{replyingTo.profiles?.name}</span>
+              <span className="text-muted-foreground truncate max-w-[200px]">
                 {replyingTo.content.substring(0, 30)}{replyingTo.content.length > 30 ? '...' : ''}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 ml-auto hover:bg-destructive/10 hover:text-destructive"
+                className="h-4 w-4 ml-auto"
                 onClick={() => setReplyingTo(null)}
               >
                 <X className="h-3 w-3" />
@@ -1025,8 +993,8 @@ const PublicChat = () => {
             </div>
           )}
           <TypingIndicator channelId="public-chat" currentUserId={user?.id} />
-          <div className="mb-1.5 text-[10px] text-muted-foreground/50">
-            /play [song] to play music • /askify [question] for AI help • @ to mention
+          <div className="mb-2 text-xs text-muted-foreground">
+            Tip: /play [song] to play music • /askify [question] for AI help • Type @ to mention users
           </div>
           <EnhancedChatInput
             onSend={(content, fileUrl) => handleSendMediaMessage(content, fileUrl)}

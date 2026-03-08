@@ -41,8 +41,9 @@ export function ClearAllMessagesButton({ chatType, onCleared }: ClearAllMessages
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive" title="Clear All Messages">
+        <Button variant="destructive" size="sm" className="gap-2">
           <Trash2 className="h-4 w-4" />
+          Clear All Messages
         </Button>
       </DialogTrigger>
       <DialogContent>
