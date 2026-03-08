@@ -103,6 +103,7 @@ const App = () => {
                     <Route path="/app" element={<Install />} />
                     <Route path="/reels" element={<Reels />} />
                     <Route path="/staff-meeting" element={<StaffMeeting />} />
+                    <Route path="/offline-ai" element={<OfflineAI />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ChatProvider>
