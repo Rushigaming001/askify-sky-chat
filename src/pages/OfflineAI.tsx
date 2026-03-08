@@ -46,7 +46,8 @@ const OfflineAI = () => {
       setDownloadProgress(0);
       setDownloadLabel('Loading AI model...');
 
-      const webllm = await import('@mlc-ai/web-llm');
+      const cdnUrl = 'https://esm.sh/@mlc-ai/web-llm@0.2.81';
+      const webllm: any = await import(/* @vite-ignore */ cdnUrl);
 
       const engine = await webllm.CreateMLCEngine(MODEL_ID, {
         initProgressCallback: (info: any) => {
