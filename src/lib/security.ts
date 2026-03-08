@@ -39,7 +39,7 @@ export async function logSecurityEvent(event: SecurityEvent, userId?: string) {
     await supabase.from('security_logs').insert([{
       user_id: userId || null,
       event_type: event.event_type,
-      details: event.details || {},
+      details: (event.details || {}) as Record<string, string>,
       severity: event.severity || 'info',
       user_agent: navigator.userAgent,
     }]);
