@@ -34,6 +34,7 @@ const Games = lazy(() => import("./pages/Games"));
 const Status = lazy(() => import("./pages/Status"));
 const Install = lazy(() => import("./pages/Install"));
 const Reels = lazy(() => import("./pages/Reels"));
+const StaffMeeting = lazy(() => import("./pages/StaffMeeting"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +101,7 @@ const App = () => {
                     <Route path="/installation" element={<Install />} />
                     <Route path="/app" element={<Install />} />
                     <Route path="/reels" element={<Reels />} />
+                    <Route path="/staff-meeting" element={<StaffMeeting />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ChatProvider>
