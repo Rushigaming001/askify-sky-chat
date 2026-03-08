@@ -487,26 +487,26 @@ const Chat = () => {
           </Alert>
         )}
 
-        <ScrollArea className="flex-1 min-h-0 chat-scroll" ref={scrollRef}>
-          {showWelcome ? (
-            <div className="h-full flex flex-col items-center justify-center p-3 sm:p-6 animate-fade-in">
-              <div className="flex flex-col items-center justify-center max-w-2xl w-full">
-                <p className="text-muted-foreground text-sm mb-2 text-center">
-                  What can I help you with today?
-                </p>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-medium mb-4 sm:mb-6 text-foreground text-center animate-scale-in">
-                  Ready when you are.
-                </h1>
-                <ChatInput
-                  onSendMessage={handleSendMessage}
-                  onModeChange={handleModeChange}
-                  mode={currentChat?.mode || 'normal'}
-                  disabled={false}
-                  centered={true}
-                />
-              </div>
+        {showWelcome ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 animate-fade-in">
+            <div className="flex flex-col items-center justify-center max-w-2xl w-full">
+              <p className="text-muted-foreground text-sm mb-2 text-center">
+                What can I help you with today?
+              </p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-medium mb-4 sm:mb-6 text-foreground text-center animate-scale-in">
+                Ready when you are.
+              </h1>
+              <ChatInput
+                onSendMessage={handleSendMessage}
+                onModeChange={handleModeChange}
+                mode={currentChat?.mode || 'normal'}
+                disabled={false}
+                centered={true}
+              />
             </div>
-          ) : (
+          </div>
+        ) : (
+          <ScrollArea className="flex-1 min-h-0 chat-scroll" ref={scrollRef}>
             <div className="animate-fade-in">
               {currentChat?.messages.map((message, index) => (
                 <div 
@@ -538,8 +538,8 @@ const Chat = () => {
                 </div>
               )}
             </div>
-          )}
-        </ScrollArea>
+          </ScrollArea>
+        )}
 
         {/* Bottom ChatInput - never disabled so user can type while AI responds */}
         {!showWelcome && (
