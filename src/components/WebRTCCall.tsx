@@ -822,29 +822,60 @@ export function WebRTCCall({
         {!callReady ? (
           /* PRE-CALL SCREEN — getUserMedia is triggered by button click (user gesture) */
           <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
-            <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
-              {callType === 'video' ? (
-                <Video className="h-12 w-12 text-primary" />
-              ) : (
-                <Mic className="h-12 w-12 text-primary" />
-              )}
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">{callType === 'video' ? 'Video' : 'Voice'} Call</h2>
-              <p className="text-muted-foreground">with {recipientName}</p>
-            </div>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Tap the button below to allow camera and microphone access and join the call.
-            </p>
-            <div className="flex gap-3">
-              <Button variant="outline" size="lg" onClick={handleEndCall}>
-                Cancel
-              </Button>
-              <Button size="lg" className="gap-2 px-8" onClick={initializeCall}>
-                {callType === 'video' ? <Video className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                Join Call
-              </Button>
-            </div>
+            {permissionError ? (
+              <>
+                <div className="h-24 w-24 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <VideoOff className="h-12 w-12 text-destructive" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h2 className="text-xl font-bold">Camera/Mic Access Blocked</h2>
+                  <p className="text-muted-foreground text-sm">Your browser has blocked camera and microphone access for this site.</p>
+                </div>
+                <div className="bg-muted/50 border border-border rounded-lg p-4 text-sm space-y-2 max-w-sm">
+                  <p className="font-semibold">How to fix:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <li>Tap the <strong>lock icon 🔒</strong> in your browser's address bar</li>
+                    <li>Find <strong>Camera</strong> and <strong>Microphone</strong> permissions</li>
+                    <li>Change both to <strong>Allow</strong></li>
+                    <li>Reload the page and try again</li>
+                  </ol>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" size="lg" onClick={handleEndCall}>
+                    Close
+                  </Button>
+                  <Button size="lg" className="gap-2" onClick={() => { setPermissionError(false); initializeCall(); }}>
+                    Try Again
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
+                  {callType === 'video' ? (
+                    <Video className="h-12 w-12 text-primary" />
+                  ) : (
+                    <Mic className="h-12 w-12 text-primary" />
+                  )}
+                </div>
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-bold">{callType === 'video' ? 'Video' : 'Voice'} Call</h2>
+                  <p className="text-muted-foreground">with {recipientName}</p>
+                </div>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">
+                  Tap the button below to allow camera and microphone access and join the call.
+                </p>
+                <div className="flex gap-3">
+                  <Button variant="outline" size="lg" onClick={handleEndCall}>
+                    Cancel
+                  </Button>
+                  <Button size="lg" className="gap-2 px-8" onClick={initializeCall}>
+                    {callType === 'video' ? <Video className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    Join Call
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
         <>
