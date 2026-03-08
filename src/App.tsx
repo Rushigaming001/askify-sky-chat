@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -52,6 +53,7 @@ const App = () => {
             // Main app with authentication
             <AuthProvider>
               <ChatProvider>
+                <PushNotificationPrompt />
                 <Toaster />
                 <Sonner />
                 <Routes>

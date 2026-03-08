@@ -90,7 +90,23 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
             const msg = payload.new as DirectMessage;
             if ((msg.sender_id === recipientId && msg.receiver_id === user.id) ||
                 (msg.sender_id === user.id && msg.receiver_id === recipientId)) {
-              setMessages(prev => [...prev, msg]);
+              // Deduplicate: replace optimistic or skip if already exists
+              setMessages(prev => {
+                const exists = prev.some(m => m.id === msg.id);
+                if (exists) return prev;
+                // If this is our own message, it was already added optimistically - replace by matching content+timestamp proximity
+                if (msg.sender_id === user.id) {
+                  const optimistic = prev.find(m => 
+                    m.sender_id === user.id && 
+                    m.content === msg.content && 
+                    Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000
+                  );
+                  if (optimistic && optimistic.id !== msg.id) {
+                    return prev.map(m => m.id === optimistic.id ? msg : m);
+                  }
+                }
+                return [...prev, msg];
+              });
               if (msg.sender_id === recipientId) markAsRead(msg.id);
             }
           } else if (payload.eventType === 'UPDATE') {
@@ -177,23 +193,45 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   };
 
   const handleSendMessage = async (content: string, imageUrl?: string) => {
-    if ((!content.trim() && !imageUrl) || !user || isLoading) return;
-    setIsLoading(true);
+    if ((!content.trim() && !imageUrl) || !user) return;
 
     const messageContent = content.trim();
-    const { error } = await supabase
+    const replyToId = replyingTo?.id || null;
+    
+    // Optimistic update - add message to UI immediately
+    const optimisticId = crypto.randomUUID();
+    const optimisticMsg: DirectMessage = {
+      id: optimisticId,
+      sender_id: user.id,
+      receiver_id: recipientId,
+      content: messageContent || '',
+      image_url: imageUrl,
+      created_at: new Date().toISOString(),
+      reply_to: replyToId || undefined,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    setReplyingTo(null);
+
+    const { data, error } = await supabase
       .from('direct_messages')
       .insert({
         sender_id: user.id,
         receiver_id: recipientId,
         content: messageContent || '',
         image_url: imageUrl,
-      });
+        ...(replyToId ? { reply_to: replyToId } : {}),
+      })
+      .select()
+      .single();
 
     if (error) {
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
       toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
-    } else {
-      setReplyingTo(null);
+    } else if (data) {
+      // Replace optimistic message with real one
+      setMessages(prev => prev.map(m => m.id === optimisticId ? { ...data } as DirectMessage : m));
+      // Send push notification in background (don't await)
       sendNotification(
         recipientId,
         `New message from ${user.name || 'Someone'}`,
@@ -201,7 +239,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
         { type: 'direct_message', senderId: user.id, senderName: user.name }
       );
     }
-    setIsLoading(false);
   };
 
   const handleEditMessage = async () => {
