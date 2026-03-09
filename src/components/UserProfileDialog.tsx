@@ -81,6 +81,9 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
+  const [editingBio, setEditingBio] = useState(false);
+  const [editBioValue, setEditBioValue] = useState('');
+  const [savingBio, setSavingBio] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
