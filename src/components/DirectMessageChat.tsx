@@ -86,6 +86,8 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   const [editContent, setEditContent] = useState('');
   const [recipientAvatar, setRecipientAvatar] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [dmBlocked, setDmBlocked] = useState(false);
+  const [dmBlockReason, setDmBlockReason] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageTimestampRef = useRef<string | null>(null);
