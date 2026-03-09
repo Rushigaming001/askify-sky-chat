@@ -75,6 +75,7 @@ const App = () => {
             ) : (
               <AuthProvider>
                 <ChatProvider>
+                  <PresenceTracker />
                   <PushNotificationPrompt />
                   <PermissionsPrompt />
                   <Toaster />
