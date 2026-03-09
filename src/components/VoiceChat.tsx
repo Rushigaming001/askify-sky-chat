@@ -7,22 +7,23 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MusicPlayer } from '@/components/MusicPlayer';
 
-type VoiceType = 'male' | 'female';
+type VoiceType = 'male' | 'female' | 'deep-male' | 'soft-female' | 'child' | 'narrator';
 
 const VOICE_MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini Flash', description: 'Fast & balanced' },
   { id: 'gemini-2.5-flash-lite', name: 'Gemini Lite', description: 'Fastest response' },
+  { id: 'gemini-2.5-flash', name: 'Gemini Flash', description: 'Fast & balanced' },
   { id: 'gemma-3-4b', name: 'Gemma 3 4B', description: 'Lightweight & quick' },
   { id: 'gemma-3-12b', name: 'Gemma 3 12B', description: 'Better quality' },
   { id: 'gemma-3-27b', name: 'Gemma 3 27B', description: 'Best quality' },
   { id: 'grok', name: 'Core (Groq)', description: 'Ultra fast' },
 ];
 
-// Noise filtering constants
-const MIN_CONFIDENCE = 0.75; // Minimum confidence to accept speech
-const MIN_WORD_COUNT = 2; // Minimum words to process (filters out random noise like "uh", "hmm")
-const SILENCE_TIMEOUT_MS = 2000; // Wait 2s of silence before processing
-const NOISE_WORDS = new Set(['', 'uh', 'um', 'hmm', 'hm', 'ah', 'oh', 'eh', 'mhm', 'the', 'a', 'i']);
+// Noise filtering constants - RELAXED to prevent premature cutoff
+const MIN_CONFIDENCE = 0.5; // Lowered: accept more speech, filter less aggressively
+const MIN_WORD_COUNT = 2; // Minimum words to process
+const SILENCE_TIMEOUT_MS = 3500; // Increased: wait 3.5s of silence before processing (was 2s)
+const FINAL_RESULT_DELAY_MS = 1500; // Wait 1.5s after final result before processing (was 800ms)
+const NOISE_WORDS = new Set(['', 'uh', 'um', 'hmm', 'hm', 'ah', 'oh', 'eh', 'mhm']);
 
 export function VoiceChat() {
   const [isConnected, setIsConnected] = useState(false);
@@ -32,7 +33,7 @@ export function VoiceChat() {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [musicStream, setMusicStream] = useState<MediaStream | null>(null);
   const [voiceType, setVoiceType] = useState<VoiceType>('female');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-lite');
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -69,20 +70,33 @@ export function VoiceChat() {
   }, [voiceType, availableVoices]);
 
   const updateSelectedVoice = (voices: SpeechSynthesisVoice[], type: VoiceType) => {
-    const femaleVoices = ['Google UK English Female', 'Microsoft Zira', 'Samantha', 'Karen', 'Victoria', 'Moira', 'Tessa'];
-    const maleVoices = ['Google UK English Male', 'Microsoft David', 'Daniel', 'Alex', 'Fred', 'Thomas'];
-    const preferredNames = type === 'female' ? femaleVoices : maleVoices;
+    const voicePreferences: Record<VoiceType, string[]> = {
+      'female': ['Google UK English Female', 'Microsoft Zira', 'Samantha', 'Karen', 'Victoria', 'Moira', 'Tessa'],
+      'soft-female': ['Google US English', 'Samantha', 'Karen', 'Moira', 'Microsoft Zira', 'Tessa', 'Fiona'],
+      'male': ['Google UK English Male', 'Microsoft David', 'Daniel', 'Alex', 'Fred', 'Thomas'],
+      'deep-male': ['Microsoft Mark', 'Daniel', 'Fred', 'Thomas', 'Google UK English Male', 'Alex'],
+      'child': ['Microsoft Elsa', 'Samantha', 'Karen', 'Tessa', 'Google UK English Female'],
+      'narrator': ['Microsoft Mark', 'Daniel', 'Google UK English Male', 'Alex', 'Fred'],
+    };
+    
+    const preferredNames = voicePreferences[type] || voicePreferences['female'];
     
     for (const name of preferredNames) {
       const found = voices.find(v => v.name.includes(name));
       if (found) { setSelectedVoice(found); return; }
     }
 
-    const genderHints = type === 'female' 
-      ? ['female', 'woman', 'girl', 'zira', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona']
-      : ['male', 'man', 'david', 'daniel', 'alex', 'fred', 'thomas', 'james'];
+    const genderHints: Record<VoiceType, string[]> = {
+      'female': ['female', 'woman', 'zira', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona'],
+      'soft-female': ['female', 'woman', 'samantha', 'karen', 'moira', 'fiona'],
+      'male': ['male', 'man', 'david', 'daniel', 'alex', 'fred', 'thomas', 'james'],
+      'deep-male': ['male', 'man', 'mark', 'daniel', 'fred', 'thomas'],
+      'child': ['female', 'elsa', 'samantha', 'karen'],
+      'narrator': ['male', 'mark', 'daniel', 'james'],
+    };
     
-    const fallback = voices.find(v => genderHints.some(hint => v.name.toLowerCase().includes(hint)));
+    const hints = genderHints[type] || genderHints['female'];
+    const fallback = voices.find(v => hints.some(hint => v.name.toLowerCase().includes(hint)));
     setSelectedVoice(fallback || voices[0] || null);
   };
 
@@ -103,8 +117,19 @@ export function VoiceChat() {
     currentUtteranceRef.current = utterance;
     
     if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = 1.05; // Slightly faster for call-like feel
-    utterance.pitch = voiceType === 'female' ? 1.1 : 0.9;
+    
+    // Voice-specific rate and pitch settings
+    const voiceSettings: Record<VoiceType, { rate: number; pitch: number }> = {
+      'female': { rate: 1.05, pitch: 1.1 },
+      'soft-female': { rate: 0.95, pitch: 1.2 },
+      'male': { rate: 1.05, pitch: 0.9 },
+      'deep-male': { rate: 0.9, pitch: 0.7 },
+      'child': { rate: 1.15, pitch: 1.4 },
+      'narrator': { rate: 0.85, pitch: 0.85 },
+    };
+    const settings = voiceSettings[voiceType] || { rate: 1.0, pitch: 1.0 };
+    utterance.rate = settings.rate;
+    utterance.pitch = settings.pitch;
     utterance.volume = 1.0;
     
     utterance.onend = () => {
@@ -378,7 +403,7 @@ export function VoiceChat() {
         setLiveTranscript(finalTranscript + interimTranscript);
 
         if (finalTranscript.trim()) {
-          // Process final transcript after short silence
+          // Wait longer before processing - let user finish their thought
           silenceTimeout = setTimeout(() => {
             if (finalTranscript.trim() && isConnectedRef.current && !isSpeakingRef.current) {
               const toProcess = finalTranscript.trim();
@@ -387,13 +412,12 @@ export function VoiceChat() {
               recognitionRef.current?.stop();
               processUserSpeech(toProcess);
             }
-          }, 800); // Short pause after final result
+          }, FINAL_RESULT_DELAY_MS); // Use the constant (1.5s)
         } else if (interimTranscript.trim()) {
-          // For interim results, use longer silence timeout and check confidence
+          // For interim results, use longer silence timeout
           silenceTimeout = setTimeout(() => {
             if (interimTranscript.trim() && isConnectedRef.current && !isSpeakingRef.current) {
-              // Only process interim if it looks like real speech
-              if (isMeaningfulSpeech(interimTranscript, maxConfidence > 0 ? maxConfidence : 0.8)) {
+              if (isMeaningfulSpeech(interimTranscript, maxConfidence > 0 ? maxConfidence : 0.6)) {
                 const toProcess = interimTranscript.trim();
                 finalTranscript = '';
                 setLiveTranscript('');
@@ -401,7 +425,7 @@ export function VoiceChat() {
                 processUserSpeech(toProcess);
               }
             }
-          }, SILENCE_TIMEOUT_MS);
+          }, SILENCE_TIMEOUT_MS); // 3.5s for interim
         }
       };
 
@@ -492,12 +516,16 @@ export function VoiceChat() {
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Voice:</span>
           <Select value={voiceType} onValueChange={(v) => setVoiceType(v as VoiceType)} disabled={isConnected}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="female">Female</SelectItem>
+              <SelectItem value="soft-female">Soft Female</SelectItem>
               <SelectItem value="male">Male</SelectItem>
+              <SelectItem value="deep-male">Deep Male</SelectItem>
+              <SelectItem value="child">Child</SelectItem>
+              <SelectItem value="narrator">Narrator</SelectItem>
             </SelectContent>
           </Select>
         </div>
