@@ -70,20 +70,33 @@ export function VoiceChat() {
   }, [voiceType, availableVoices]);
 
   const updateSelectedVoice = (voices: SpeechSynthesisVoice[], type: VoiceType) => {
-    const femaleVoices = ['Google UK English Female', 'Microsoft Zira', 'Samantha', 'Karen', 'Victoria', 'Moira', 'Tessa'];
-    const maleVoices = ['Google UK English Male', 'Microsoft David', 'Daniel', 'Alex', 'Fred', 'Thomas'];
-    const preferredNames = type === 'female' ? femaleVoices : maleVoices;
+    const voicePreferences: Record<VoiceType, string[]> = {
+      'female': ['Google UK English Female', 'Microsoft Zira', 'Samantha', 'Karen', 'Victoria', 'Moira', 'Tessa'],
+      'soft-female': ['Google US English', 'Samantha', 'Karen', 'Moira', 'Microsoft Zira', 'Tessa', 'Fiona'],
+      'male': ['Google UK English Male', 'Microsoft David', 'Daniel', 'Alex', 'Fred', 'Thomas'],
+      'deep-male': ['Microsoft Mark', 'Daniel', 'Fred', 'Thomas', 'Google UK English Male', 'Alex'],
+      'child': ['Microsoft Elsa', 'Samantha', 'Karen', 'Tessa', 'Google UK English Female'],
+      'narrator': ['Microsoft Mark', 'Daniel', 'Google UK English Male', 'Alex', 'Fred'],
+    };
+    
+    const preferredNames = voicePreferences[type] || voicePreferences['female'];
     
     for (const name of preferredNames) {
       const found = voices.find(v => v.name.includes(name));
       if (found) { setSelectedVoice(found); return; }
     }
 
-    const genderHints = type === 'female' 
-      ? ['female', 'woman', 'girl', 'zira', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona']
-      : ['male', 'man', 'david', 'daniel', 'alex', 'fred', 'thomas', 'james'];
+    const genderHints: Record<VoiceType, string[]> = {
+      'female': ['female', 'woman', 'zira', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona'],
+      'soft-female': ['female', 'woman', 'samantha', 'karen', 'moira', 'fiona'],
+      'male': ['male', 'man', 'david', 'daniel', 'alex', 'fred', 'thomas', 'james'],
+      'deep-male': ['male', 'man', 'mark', 'daniel', 'fred', 'thomas'],
+      'child': ['female', 'elsa', 'samantha', 'karen'],
+      'narrator': ['male', 'mark', 'daniel', 'james'],
+    };
     
-    const fallback = voices.find(v => genderHints.some(hint => v.name.toLowerCase().includes(hint)));
+    const hints = genderHints[type] || genderHints['female'];
+    const fallback = voices.find(v => hints.some(hint => v.name.toLowerCase().includes(hint)));
     setSelectedVoice(fallback || voices[0] || null);
   };
 
