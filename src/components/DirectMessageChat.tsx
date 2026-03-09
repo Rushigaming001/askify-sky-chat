@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { X, Video, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Camera, CircleDot, MoreVertical, Edit2, Trash2, Reply, Copy, Coins } from 'lucide-react';
+import { X, Video, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Camera, CircleDot, MoreVertical, Edit2, Trash2, Reply, Copy, Volume2, VolumeX } from 'lucide-react';
 import { WebRTCCall } from './WebRTCCall';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -50,6 +50,26 @@ interface DirectMessageChatProps {
   onClose: () => void;
 }
 
+// Play a soft notification sound using Web Audio API
+function playNotificationSound() {
+  try {
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+  } catch (e) {
+    // Audio not available
+  }
+}
+
 export function DirectMessageChat({ recipientId, recipientName, onClose }: DirectMessageChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,94 +85,49 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [recipientAvatar, setRecipientAvatar] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageTimestampRef = useRef<string | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isActiveRef = useRef(true);
+  const messagesRef = useRef<DirectMessage[]>([]);
 
   const { sendTyping } = useTypingIndicator(`dm-${recipientId}`, user?.id, user?.name);
 
+  // Keep ref in sync for use in callbacks
   useEffect(() => {
-    if (!user) return;
+    messagesRef.current = messages;
+  }, [messages]);
 
-    loadMessages();
-    loadCallEvents();
-    loadRecipientProfile();
-
-    const channel = supabase
-      .channel(`dm-${user.id}-${recipientId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const msg = payload.new as DirectMessage;
-            if ((msg.sender_id === recipientId && msg.receiver_id === user.id) ||
-                (msg.sender_id === user.id && msg.receiver_id === recipientId)) {
-              // Deduplicate: replace optimistic or skip if already exists
-              setMessages(prev => {
-                const exists = prev.some(m => m.id === msg.id);
-                if (exists) return prev;
-                // If this is our own message, it was already added optimistically - replace by matching content+timestamp proximity
-                if (msg.sender_id === user.id) {
-                  const optimistic = prev.find(m => 
-                    m.sender_id === user.id && 
-                    m.content === msg.content && 
-                    Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000
-                  );
-                  if (optimistic && optimistic.id !== msg.id) {
-                    return prev.map(m => m.id === optimistic.id ? msg : m);
-                  }
-                }
-                return [...prev, msg];
-              });
-              if (msg.sender_id === recipientId) markAsRead(msg.id);
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new as any } : m));
-          } else if (payload.eventType === 'DELETE') {
-            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'call_events' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const event = payload.new as CallEvent;
-            if ((event.caller_id === user.id && event.receiver_id === recipientId) ||
-                (event.receiver_id === user.id && event.caller_id === recipientId)) {
-              setCallEvents(prev => [...prev, event]);
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            setCallEvents(prev => prev.map(e => e.id === payload.new.id ? payload.new as CallEvent : e));
-          }
-        }
-      )
-      .subscribe();
-
-    markUnreadMessages();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, recipientId]);
-
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     const scrollContainer = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (scrollContainer) {
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages, callEvents]);
 
-  const loadRecipientProfile = async () => {
-    const { data } = await supabase.from('profiles').select('avatar_url').eq('id', recipientId).single();
-    if (data) setRecipientAvatar(data.avatar_url);
-  };
+  const mergeMessages = useCallback((newMsgs: DirectMessage[]) => {
+    setMessages(prev => {
+      const map = new Map(prev.map(m => [m.id, m]));
+      newMsgs.forEach(m => map.set(m.id, m));
+      return Array.from(map.values()).sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    });
+    if (newMsgs.length > 0) {
+      const latest = newMsgs[newMsgs.length - 1].created_at;
+      if (!lastMessageTimestampRef.current || latest > lastMessageTimestampRef.current) {
+        lastMessageTimestampRef.current = latest;
+      }
+    }
+  }, []);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from('direct_messages')
@@ -164,8 +139,159 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     if (error) {
       toast({ title: 'Error', description: 'Failed to load messages', variant: 'destructive' });
     } else {
-      setMessages(data || []);
+      const msgs = data || [];
+      setMessages(msgs);
+      if (msgs.length > 0) {
+        lastMessageTimestampRef.current = msgs[msgs.length - 1].created_at;
+      }
     }
+  }, [user, recipientId, toast]);
+
+  // Polling fallback — runs every 3s, fetches only new messages since last known
+  const startPolling = useCallback(() => {
+    const poll = async () => {
+      if (!isActiveRef.current || !user) return;
+      try {
+        const since = lastMessageTimestampRef.current || new Date(0).toISOString();
+        const { data } = await supabase
+          .from('direct_messages')
+          .select('*')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`)
+          .is('deleted_at', null)
+          .gt('created_at', since)
+          .order('created_at', { ascending: true });
+
+        if (data && data.length > 0) {
+          const incoming = data.filter(m => m.sender_id === recipientId);
+          if (incoming.length > 0 && soundEnabled) {
+            playNotificationSound();
+          }
+          mergeMessages(data as DirectMessage[]);
+          incoming.forEach(m => markAsRead(m.id));
+        }
+      } catch (e) {
+        // silently continue
+      }
+      if (isActiveRef.current) {
+        pollIntervalRef.current = setTimeout(poll, 3000);
+      }
+    };
+    pollIntervalRef.current = setTimeout(poll, 3000);
+  }, [user, recipientId, soundEnabled, mergeMessages]);
+
+  useEffect(() => {
+    if (!user) return;
+    isActiveRef.current = true;
+
+    loadMessages();
+    loadCallEvents();
+    loadRecipientProfile();
+
+    // Primary: Realtime subscription with proper channel per conversation
+    const channelName = [user.id, recipientId].sort().join('-dm-');
+    const channel = supabase
+      .channel(channelName, { config: { broadcast: { self: false } } })
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const msg = payload.new as DirectMessage;
+          if (
+            (msg.sender_id === recipientId && msg.receiver_id === user.id) ||
+            (msg.sender_id === user.id && msg.receiver_id === recipientId)
+          ) {
+            setMessages(prev => {
+              const exists = prev.some(m => m.id === msg.id);
+              if (exists) return prev;
+              // Replace optimistic message if our own
+              if (msg.sender_id === user.id) {
+                const optimistic = prev.find(m =>
+                  m.sender_id === user.id &&
+                  m.content === msg.content &&
+                  Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000
+                );
+                if (optimistic && optimistic.id !== msg.id) {
+                  return prev.map(m => m.id === optimistic.id ? msg : m);
+                }
+              }
+              if (msg.sender_id === recipientId && soundEnabled) {
+                playNotificationSound();
+              }
+              return [...prev, msg];
+            });
+            if (msg.sender_id === recipientId) markAsRead(msg.id);
+            if (msg.created_at > (lastMessageTimestampRef.current || '')) {
+              lastMessageTimestampRef.current = msg.created_at;
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'direct_messages' },
+        (payload) => {
+          const msg = payload.new as DirectMessage;
+          if (
+            (msg.sender_id === recipientId && msg.receiver_id === user.id) ||
+            (msg.sender_id === user.id && msg.receiver_id === recipientId)
+          ) {
+            setMessages(prev =>
+              msg.deleted_at
+                ? prev.filter(m => m.id !== msg.id)
+                : prev.map(m => m.id === msg.id ? { ...m, ...msg } : m)
+            );
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'direct_messages' },
+        (payload) => {
+          setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'call_events' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const event = payload.new as CallEvent;
+            if (
+              (event.caller_id === user.id && event.receiver_id === recipientId) ||
+              (event.receiver_id === user.id && event.caller_id === recipientId)
+            ) {
+              setCallEvents(prev => [...prev, event]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setCallEvents(prev => prev.map(e => e.id === payload.new.id ? payload.new as CallEvent : e));
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('connected');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+        }
+      });
+
+    markUnreadMessages();
+    startPolling();
+
+    return () => {
+      isActiveRef.current = false;
+      if (pollIntervalRef.current) clearTimeout(pollIntervalRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [user, recipientId]);
+
+  const loadRecipientProfile = async () => {
+    const { data } = await supabase.from('profiles').select('avatar_url').eq('id', recipientId).single();
+    if (data) setRecipientAvatar(data.avatar_url);
   };
 
   const loadCallEvents = async () => {
@@ -197,8 +323,8 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
 
     const messageContent = content.trim();
     const replyToId = replyingTo?.id || null;
-    
-    // Optimistic update - add message to UI immediately
+
+    // Optimistic update
     const optimisticId = crypto.randomUUID();
     const optimisticMsg: DirectMessage = {
       id: optimisticId,
@@ -225,17 +351,16 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
       .single();
 
     if (error) {
-      // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== optimisticId));
       toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
     } else if (data) {
-      // Replace optimistic message with real one
       setMessages(prev => prev.map(m => m.id === optimisticId ? { ...data } as DirectMessage : m));
-      // Send push notification in background (don't await)
+      lastMessageTimestampRef.current = data.created_at;
+      // Send push notification
       sendNotification(
         recipientId,
-        `New message from ${user.name || 'Someone'}`,
-        messageContent.length > 100 ? messageContent.substring(0, 100) + '...' : messageContent,
+        `💬 ${user.name || 'Someone'}`,
+        messageContent.length > 100 ? messageContent.substring(0, 100) + '...' : (messageContent || '📎 Attachment'),
         { type: 'direct_message', senderId: user.id, senderName: user.name }
       );
     }
@@ -302,7 +427,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
   };
 
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
   const getReplyMessage = (replyId: string) => messages.find(m => m.id === replyId);
 
   const renderCallEvent = (event: CallEvent) => {
@@ -322,7 +446,9 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
       colorClass = 'text-destructive';
     } else if (isEnded) {
       icon = <PhoneOff className="h-4 w-4" />;
-      const duration = event.duration_seconds ? `${Math.floor(event.duration_seconds / 60)}:${String(event.duration_seconds % 60).padStart(2, '0')}` : '';
+      const duration = event.duration_seconds
+        ? `${Math.floor(event.duration_seconds / 60)}:${String(event.duration_seconds % 60).padStart(2, '0')}`
+        : '';
       text = `Call ended${duration ? ` (${duration})` : ''}`;
     } else if (event.status === 'answered') {
       text = 'Call in progress';
@@ -350,6 +476,7 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
 
   return (
     <div className="flex flex-col h-full bg-background border-l border-border">
+      {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
@@ -358,10 +485,26 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
           </Avatar>
           <div>
             <h3 className="font-semibold text-sm">{recipientName}</h3>
-            <p className="text-xs text-muted-foreground">Direct Message</p>
+            <div className="flex items-center gap-1">
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                connectionStatus === 'connected' ? 'bg-green-500' :
+                connectionStatus === 'disconnected' ? 'bg-red-500' : 'bg-yellow-500'
+              }`} />
+              <p className="text-xs text-muted-foreground">
+                {connectionStatus === 'connected' ? 'Live' : connectionStatus === 'disconnected' ? 'Reconnecting…' : 'Connecting…'}
+              </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            size="sm" variant="ghost"
+            onClick={() => setSoundEnabled(s => !s)}
+            title={soundEnabled ? 'Mute notifications' : 'Unmute notifications'}
+            className="h-8 w-8 p-0"
+          >
+            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setShowStatusBar(!showStatusBar)} title="Status" className="h-8 w-8 p-0">
             <CircleDot className="h-4 w-4" />
           </Button>
@@ -413,7 +556,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
                 message.image_url.includes('giphy.com')
               );
 
-              // Message grouping
               const prevItem = index > 0 ? allItems[index - 1] : null;
               const isGrouped = prevItem && prevItem.type === 'message' &&
                 (prevItem.data as DirectMessage).sender_id === message.sender_id &&
@@ -423,7 +565,6 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
                 <div key={message.id}>
                   {showDateSeparator && <DateSeparator date={message.created_at} />}
                   <div className={`flex group ${isOwnMessage ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-0.5' : 'mt-3'}`}>
-                    {/* Avatar for recipient messages */}
                     {!isOwnMessage && !isGrouped && (
                       <Avatar className="h-7 w-7 mr-2 flex-shrink-0">
                         {recipientAvatar && <AvatarImage src={recipientAvatar} />}
@@ -431,7 +572,7 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
                       </Avatar>
                     )}
                     {!isOwnMessage && isGrouped && <div className="w-7 mr-2 flex-shrink-0" />}
-                    
+
                     <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
                       {/* Reply indicator */}
                       {message.reply_to && (() => {
@@ -523,7 +664,7 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
         )}
         <EnhancedChatInput
           onSend={handleSendMessage}
-          placeholder={replyingTo ? `Reply...` : "Type a message..."}
+          placeholder={replyingTo ? `Reply…` : `Message ${recipientName}…`}
           disabled={isLoading}
           userId={user?.id}
           onTyping={sendTyping}
@@ -541,9 +682,10 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
           <Input
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            placeholder="Edit your message..."
+            placeholder="Edit your message…"
             className="mt-4"
             onKeyDown={(e) => e.key === 'Enter' && handleEditMessage()}
+            autoFocus
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingMessage(null)}>Cancel</Button>
