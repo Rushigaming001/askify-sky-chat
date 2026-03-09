@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChatInput } from '@/components/ChatInput';
 import { Button } from '@/components/ui/button';
-import { Zap } from 'lucide-react';
+import { Zap, Brain, WifiOff } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
