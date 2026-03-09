@@ -189,6 +189,87 @@ export function DirectMessageChat({ recipientId, recipientName, onClose }: Direc
     loadCallEvents();
     loadRecipientProfile();
 
+    // Check recipient's DM privacy setting
+    const checkDmPrivacy = async () => {
+      try {
+        const { data: privacyData } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', `dm_privacy_${recipientId}`)
+          .maybeSingle();
+        
+        const setting = (privacyData?.value as any)?.setting || 'everyone';
+        
+        if (setting === 'everyone') {
+          setDmBlocked(false);
+          return;
+        }
+        
+        if (setting === 'friends') {
+          // Check if we are friends
+          const { data: friendship } = await supabase
+            .from('friendships')
+            .select('id')
+            .or(`and(user_id.eq.${user.id},friend_id.eq.${recipientId},status.eq.accepted),and(user_id.eq.${recipientId},friend_id.eq.${user.id},status.eq.accepted)`)
+            .maybeSingle();
+          
+          if (!friendship) {
+            setDmBlocked(true);
+            setDmBlockReason('This user only accepts DMs from friends.');
+          }
+          return;
+        }
+        
+        if (setting === 'friends_of_friends') {
+          // Check direct friendship first
+          const { data: directFriend } = await supabase
+            .from('friendships')
+            .select('id')
+            .or(`and(user_id.eq.${user.id},friend_id.eq.${recipientId},status.eq.accepted),and(user_id.eq.${recipientId},friend_id.eq.${user.id},status.eq.accepted)`)
+            .maybeSingle();
+          
+          if (directFriend) {
+            setDmBlocked(false);
+            return;
+          }
+          
+          // Check friends of friends: get my friends, then see if any are friends with recipient
+          const { data: myFriends } = await supabase
+            .from('friendships')
+            .select('user_id, friend_id')
+            .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+            .eq('status', 'accepted');
+          
+          if (myFriends && myFriends.length > 0) {
+            const myFriendIds = myFriends.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
+            
+            const { data: mutualCheck } = await supabase
+              .from('friendships')
+              .select('id')
+              .or(
+                myFriendIds.map(fid => 
+                  `and(user_id.eq.${fid},friend_id.eq.${recipientId},status.eq.accepted),and(user_id.eq.${recipientId},friend_id.eq.${fid},status.eq.accepted)`
+                ).join(',')
+              )
+              .limit(1);
+            
+            if (mutualCheck && mutualCheck.length > 0) {
+              setDmBlocked(false);
+              return;
+            }
+          }
+          
+          setDmBlocked(true);
+          setDmBlockReason('This user only accepts DMs from friends or friends of friends.');
+        }
+      } catch (e) {
+        // On error, allow DM
+        setDmBlocked(false);
+      }
+    };
+    
+    checkDmPrivacy();
+
     // Primary: Realtime subscription with proper channel per conversation
     const channelName = [user.id, recipientId].sort().join('-dm-');
     const channel = supabase
