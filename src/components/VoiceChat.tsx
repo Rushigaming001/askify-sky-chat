@@ -117,8 +117,19 @@ export function VoiceChat() {
     currentUtteranceRef.current = utterance;
     
     if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = 1.05; // Slightly faster for call-like feel
-    utterance.pitch = voiceType === 'female' ? 1.1 : 0.9;
+    
+    // Voice-specific rate and pitch settings
+    const voiceSettings: Record<VoiceType, { rate: number; pitch: number }> = {
+      'female': { rate: 1.05, pitch: 1.1 },
+      'soft-female': { rate: 0.95, pitch: 1.2 },
+      'male': { rate: 1.05, pitch: 0.9 },
+      'deep-male': { rate: 0.9, pitch: 0.7 },
+      'child': { rate: 1.15, pitch: 1.4 },
+      'narrator': { rate: 0.85, pitch: 0.85 },
+    };
+    const settings = voiceSettings[voiceType] || { rate: 1.0, pitch: 1.0 };
+    utterance.rate = settings.rate;
+    utterance.pitch = settings.pitch;
     utterance.volume = 1.0;
     
     utterance.onend = () => {
