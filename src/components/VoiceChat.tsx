@@ -516,12 +516,16 @@ export function VoiceChat() {
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Voice:</span>
           <Select value={voiceType} onValueChange={(v) => setVoiceType(v as VoiceType)} disabled={isConnected}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="female">Female</SelectItem>
+              <SelectItem value="soft-female">Soft Female</SelectItem>
               <SelectItem value="male">Male</SelectItem>
+              <SelectItem value="deep-male">Deep Male</SelectItem>
+              <SelectItem value="child">Child</SelectItem>
+              <SelectItem value="narrator">Narrator</SelectItem>
             </SelectContent>
           </Select>
         </div>
