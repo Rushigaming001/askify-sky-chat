@@ -105,7 +105,7 @@ export function UsersList({ onOpenDM }: UsersListProps) {
 
       return {
         ...profile,
-        status: (presence?.status as 'online' | 'offline' | 'away') || 'offline',
+        status: (!isStale && presence?.status === 'online') ? 'online' : 'offline',
         friendship_status: friendshipStatus,
         friendship_id: friendshipId,
         is_request_receiver: isRequestReceiver

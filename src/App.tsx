@@ -118,4 +118,10 @@ const App = () => {
   );
 };
 
+// Small component to run presence tracking inside AuthProvider context
+function PresenceTracker() {
+  usePresenceTracker();
+  return null;
+}
+
 export default App;
