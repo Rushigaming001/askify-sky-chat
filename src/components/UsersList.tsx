@@ -73,7 +73,7 @@ export function UsersList({ onOpenDM }: UsersListProps) {
     // Load presence data
     const { data: presenceData } = await supabase
       .from('user_presence')
-      .select('user_id, status');
+      .select('user_id, status, last_seen');
 
     // Load friendships
     const { data: friendships } = await supabase
