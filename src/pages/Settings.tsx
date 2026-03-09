@@ -61,8 +61,33 @@ const Settings = () => {
     if (user?.id) {
       loadProfile();
       load2FAStatus();
+      loadDmPrivacy();
     }
   }, [user?.id]);
+
+  const loadDmPrivacy = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', `dm_privacy_${user!.id}`)
+      .maybeSingle();
+    if (data?.value && typeof data.value === 'object' && 'setting' in (data.value as any)) {
+      setDmPrivacy((data.value as any).setting);
+    }
+  };
+
+  const saveDmPrivacy = async (value: 'everyone' | 'friends' | 'friends_of_friends') => {
+    setDmPrivacy(value);
+    const { error } = await supabase.from('app_settings').upsert({
+      key: `dm_privacy_${user!.id}`,
+      value: { setting: value }
+    }, { onConflict: 'key' });
+    if (error) {
+      toast({ title: 'Failed to save', variant: 'destructive' });
+    } else {
+      toast({ title: 'DM privacy updated' });
+    }
+  };
 
   const loadProfile = async () => {
     const { data } = await supabase
