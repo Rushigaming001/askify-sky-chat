@@ -14,8 +14,11 @@ import {
 import { 
   ArrowLeft, User, Zap, Mail, Sun, Moon, Monitor, Palette, 
   Settings as SettingsIcon, Mic, Database, Shield, Info, LogOut, Bell, BellOff, 
-  RefreshCw, Pencil, Camera, Lock, Download, ChevronRight
+  RefreshCw, Pencil, Camera, Lock, Download, ChevronRight, MessageSquare, Users
 } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
