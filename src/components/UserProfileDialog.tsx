@@ -131,6 +131,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, userName }: User
         id: profileData.id,
         name: profileData.name,
         email: profileData.email,
+        bio: profileData.bio || null,
         avatar_url: profileData.avatar_url,
         banner_url: profileData.banner_url,
         created_at: profileData.created_at,
