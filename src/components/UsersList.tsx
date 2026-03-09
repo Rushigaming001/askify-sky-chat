@@ -38,14 +38,8 @@ export function UsersList({ onOpenDM }: UsersListProps) {
       .channel('user-presence')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_presence'
-        },
-        () => {
-          loadUsers();
-        }
+        { event: '*', schema: 'public', table: 'user_presence' },
+        () => { loadUsers(); }
       )
       .subscribe();
 
@@ -54,30 +48,14 @@ export function UsersList({ onOpenDM }: UsersListProps) {
       .channel('friendships-updates')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships'
-        },
-        () => {
-          loadUsers();
-        }
+        { event: '*', schema: 'public', table: 'friendships' },
+        () => { loadUsers(); }
       )
       .subscribe();
 
-    // Update own presence to online
-    updatePresence('online');
-
-    // Update presence periodically
-    const interval = setInterval(() => {
-      updatePresence('online');
-    }, 30000); // Every 30 seconds
-
     return () => {
-      updatePresence('offline');
       supabase.removeChannel(presenceChannel);
       supabase.removeChannel(friendshipChannel);
-      clearInterval(interval);
     };
   }, [user]);
 
