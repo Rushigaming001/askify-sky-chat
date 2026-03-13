@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageSquare, Sparkles, Globe, BookOpen, Video, BarChart3, Gamepad2, Settings, Users, Activity, Wind, Clapperboard, Brain, Download } from 'lucide-react';
+import { MessageSquare, Sparkles, Globe, BookOpen, Video, BarChart3, Gamepad2, Settings, Users, Activity, Wind, Clapperboard, Brain, Download, ShoppingBag, Coins, PlayCircle } from 'lucide-react';
 import askifyLogoNew from '@/assets/askify-logo-new.png';
 
 const destinations = [
