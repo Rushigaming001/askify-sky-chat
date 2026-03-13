@@ -109,6 +109,9 @@ const App = () => {
                     <Route path="/reels" element={<Reels />} />
                     <Route path="/staff-meeting" element={<StaffMeeting />} />
                     <Route path="/offline-ai" element={<OfflineAI />} />
+                    <Route path="/reel-viewer" element={<ReelViewer />} />
+                    <Route path="/cashout" element={<Cashout />} />
+                    <Route path="/shop" element={<Shop />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ChatProvider>
