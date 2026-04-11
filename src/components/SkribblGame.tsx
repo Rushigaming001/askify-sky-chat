@@ -213,8 +213,30 @@ export const SkribblGame = ({ roomId, onLeave }: { roomId: string; onLeave: () =
   };
 
   const loadGameData = async () => {
-    const { data: room } = await supabase.from('skribbl_rooms').select('*').eq('id', roomId).single();
-    setGameState(room);
+    // Fetch room data without current_word to prevent cheating
+    const { data: room } = await supabase
+      .from('skribbl_rooms')
+      .select('id, room_code, host_id, status, current_round, max_rounds, max_players, round_time, current_drawer_id, created_at, updated_at')
+      .eq('id', roomId)
+      .single();
+    
+    if (room) {
+      // Only fetch the word if current user is the drawer
+      let wordForDrawer: string | null = null;
+      if (room.current_drawer_id) {
+        const { data: playerData } = await supabase
+          .from('skribbl_players')
+          .select('user_id')
+          .eq('id', room.current_drawer_id)
+          .single();
+        
+        if (playerData?.user_id === user?.id) {
+          const { data: word } = await supabase.rpc('get_skribbl_word', { _room_id: roomId });
+          wordForDrawer = word;
+        }
+      }
+      setGameState({ ...room, current_word: wordForDrawer });
+    }
     const { data: playerData } = await supabase.from('skribbl_players').select('*').eq('room_id', roomId).order('score', { ascending: false });
     if (playerData) {
       setPlayers(playerData);
