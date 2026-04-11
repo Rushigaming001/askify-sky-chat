@@ -453,12 +453,18 @@ export const SkribblGame = ({ roomId, onLeave }: { roomId: string; onLeave: () =
     const drawer = players.find(p => p.id === gameState?.current_drawer_id);
     if (drawer?.user_id === user?.id) { setGuessInput(''); return; }
     if (currentPlayer?.has_guessed) { setGuessInput(''); return; }
-    const isCorrect = guessInput.toLowerCase().trim() === gameState?.current_word?.toLowerCase();
+    
+    // Use server-side check so the word is never sent to guessers
+    const { data: isCorrect } = await supabase.rpc('check_skribbl_guess', {
+      _room_id: roomId,
+      _guess: guessInput.trim(),
+    });
+    
     await supabase.from('skribbl_guesses').insert({
       room_id: roomId,
       player_id: currentPlayer?.id,
       guess: isCorrect ? '✓ guessed correctly!' : guessInput,
-      is_correct: isCorrect,
+      is_correct: isCorrect || false,
     });
     if (isCorrect) {
       setGuessOrder(prev => [...prev, currentPlayer?.id || '']);
