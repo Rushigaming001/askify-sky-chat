@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles, Construction, Blocks, Coins, Crown, ShoppingCart } from 'lucide-react';
+import { Trash2, Edit2, Shield, ArrowLeft, UserPlus, Lock, Eye, Sparkles, Construction, Blocks, Coins, Crown, ShoppingCart, FileText } from 'lucide-react';
+import PaperGeneratorManager from '@/components/admin/PaperGeneratorManager';
 import ModelPermissionsManager from '@/components/ModelPermissionsManager';
 import RolePermissionsManager from '@/components/RolePermissionsManager';
 import RoleAbilitiesManager from '@/components/RoleAbilitiesManager';
