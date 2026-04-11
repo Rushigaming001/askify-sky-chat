@@ -657,6 +657,196 @@ Generate the new question paper now:`;
 
   const availableChapters = getChaptersForUnits();
 
+  // Paper Predictor - from previous papers
+  const predictFromPapers = async () => {
+    if (!predictorInput.trim() && !predictorImage) {
+      toast({ title: 'Error', description: 'Please paste previous papers or upload an image', variant: 'destructive' });
+      return;
+    }
+
+    setPredictorLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
+        return;
+      }
+
+      let paperContent = predictorInput;
+
+      // If image uploaded, analyze it first
+      if (predictorImage) {
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('image-ai', {
+          body: {
+            action: 'analyze',
+            imageUrl: predictorImage,
+            prompt: `Extract ALL questions, marks, sections, and topics from this exam paper. Output the complete content preserving structure.`
+          }
+        });
+        if (analysisError) throw analysisError;
+        paperContent = (paperContent ? paperContent + '\n\n--- UPLOADED PAPER ---\n\n' : '') + (analysisData?.analysis || '');
+      }
+
+      const prompt = `You are an expert Maharashtra State Board exam paper PREDICTOR. Analyze the following previous year question papers/tests carefully and PREDICT what the NEXT exam paper will look like.
+
+**PREVIOUS PAPERS/TESTS PROVIDED:**
+${paperContent}
+
+**YOUR TASK:**
+1. Analyze the question patterns, topics that appear repeatedly, marks distribution
+2. Identify which topics are most likely to appear in the next exam
+3. Note the difficulty trends and question type distribution
+4. Identify any chapter rotation patterns
+
+**GENERATE A PREDICTED PAPER that:**
+- Covers the topics most likely to appear based on pattern analysis
+- Follows the same format, marks distribution, and structure
+- Includes questions on topics that haven't appeared recently (rotation prediction)
+- Increases focus on high-weightage chapters
+- Maintains the same difficulty level
+- Uses the EXACT exam format (Section A, B, C, D with correct marks)
+
+**PREDICTION CONFIDENCE:**
+- Mark each question with a confidence tag: [HIGH PROBABILITY], [MEDIUM PROBABILITY], [POSSIBLE]
+- Add a brief "Prediction Analysis" section at the top explaining your reasoning
+
+End with: ✱✱✱ Best of Luck! ✱✱✱
+
+Generate the predicted paper now:`;
+
+      const response = await supabase.functions.invoke('test-generator', {
+        body: { prompt },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (response.error) throw response.error;
+      const paper = response.data?.paper;
+      if (!paper) throw new Error('No response generated');
+
+      setGeneratedTest(paper);
+      setActiveTab('result');
+      await logActivity('predict_from_papers');
+      toast({ title: 'Paper Predicted!', description: 'AI analyzed patterns and generated a predicted paper' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to predict paper', variant: 'destructive' });
+    } finally {
+      setPredictorLoading(false);
+    }
+  };
+
+  // Direct Predict - no previous papers needed
+  const directPredict = async () => {
+    if (!directPredictSubject) {
+      toast({ title: 'Error', description: 'Please select a subject', variant: 'destructive' });
+      return;
+    }
+
+    setDirectPredictLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
+        return;
+      }
+
+      const prompt = `You are an expert Maharashtra State Board exam paper PREDICTOR for ${directPredictClass} ${directPredictSubject}.
+
+Based on your knowledge of:
+- Maharashtra State Board exam patterns from 2018-2025
+- shala.com, balbharti.com, maharastrastudy.com previous papers
+- Common chapter weightage and question rotation patterns
+- Important topics that frequently appear in board exams
+- High-scoring and must-prepare chapters
+
+**PREDICT the most likely upcoming board exam paper for ${directPredictClass} ${directPredictSubject}.**
+
+**REQUIREMENTS:**
+- Generate a FULL question paper with proper sections (A, B, C, D)
+- Use ${totalMarks} marks format
+- Mark each question with confidence: [HIGH PROBABILITY], [MEDIUM PROBABILITY], [POSSIBLE]
+- Include a "📊 Prediction Analysis" section at the top with:
+  - Most likely topics (with % probability)
+  - Chapters to focus on
+  - Expected question types
+  - Tips for preparation
+- Focus on chapters that historically appear most frequently
+- Include at least 2-3 "surprise" questions on less common but important topics
+- End with: ✱✱✱ Best of Luck! ✱✱✱
+
+Generate the predicted paper now:`;
+
+      const response = await supabase.functions.invoke('test-generator', {
+        body: { prompt },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (response.error) throw response.error;
+      const paper = response.data?.paper;
+      if (!paper) throw new Error('No response generated');
+
+      setGeneratedTest(paper);
+      setActiveTab('result');
+      await logActivity('direct_predict', { predictedSubject: directPredictSubject });
+      toast({ title: 'Paper Predicted!', description: `AI predicted the most likely ${directPredictSubject} paper` });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to predict paper', variant: 'destructive' });
+    } finally {
+      setDirectPredictLoading(false);
+    }
+  };
+
+  const handlePredictorImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (event) => setPredictorImage(event.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const directPredictSubjects = Object.keys(CURRICULUM_BY_CLASS[directPredictClass] as unknown as Record<string, unknown>);
+
+  // Password gate UI
+  if (accessChecking) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!accessGranted) {
+    return (
+      <div className="max-w-md mx-auto space-y-6 p-6">
+        <div className="text-center space-y-2">
+          <Lock className="h-12 w-12 text-primary mx-auto" />
+          <h2 className="text-xl font-bold">Paper Generator Access</h2>
+          <p className="text-muted-foreground text-sm">
+            This feature requires authorization. Enter the password to continue.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Password</Label>
+              <Input
+                type="password"
+                placeholder="Enter access password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
+              />
+              {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+            </div>
+            <Button onClick={verifyPassword} className="w-full">
+              <Lock className="h-4 w-4 mr-2" />
+              Unlock
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
