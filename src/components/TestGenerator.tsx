@@ -1151,6 +1151,90 @@ Generate the predicted paper now:`;
           </Button>
         </TabsContent>
 
+        {/* Predict Tab */}
+        <TabsContent value="predict" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                Paper Predictor
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Paste previous year papers or upload images — AI will analyze patterns and predict the next paper
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                placeholder="Paste previous year question papers here...&#10;&#10;You can paste multiple papers separated by ---&#10;The more papers you provide, the better the prediction!"
+                value={predictorInput}
+                onChange={(e) => setPredictorInput(e.target.value)}
+                className="min-h-[250px] font-mono text-sm"
+              />
+              <div className="text-center text-sm text-muted-foreground">— OR upload a paper image —</div>
+              <input ref={predictorFileRef} type="file" accept="image/*" onChange={handlePredictorImageSelect} className="hidden" />
+              <Button variant="outline" className="w-full border-dashed border-2" onClick={() => predictorFileRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                {predictorImage ? 'Change Paper Image' : 'Upload Previous Paper Image'}
+              </Button>
+              {predictorImage && (
+                <div className="rounded-xl overflow-hidden border">
+                  <img src={predictorImage} alt="Previous paper" className="w-full h-auto max-h-48 object-contain bg-muted/30" />
+                </div>
+              )}
+              <Button onClick={predictFromPapers} disabled={predictorLoading || (!predictorInput.trim() && !predictorImage)} className="w-full h-12" size="lg">
+                {predictorLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analyzing & Predicting...</> : <><Brain className="mr-2 h-5 w-5" /> Predict Next Paper</>}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Direct Predict Tab */}
+        <TabsContent value="direct-predict" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Direct Paper Prediction
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                AI predicts the most likely upcoming paper based on historical Maharashtra Board patterns — no previous papers needed!
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Class</Label>
+                <Select value={directPredictClass} onValueChange={(v) => { setDirectPredictClass(v as any); setDirectPredictSubject(''); }}>
+                  <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Class 9">Class 9</SelectItem>
+                    <SelectItem value="Class 10">Class 10</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Subject</Label>
+                <Select value={directPredictSubject} onValueChange={setDirectPredictSubject}>
+                  <SelectTrigger className="mt-2"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                  <SelectContent>
+                    {directPredictSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Total Marks</Label>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {MARKS_OPTIONS.map(m => (
+                    <Button key={m} variant={totalMarks === m ? 'default' : 'outline'} size="sm" onClick={() => setTotalMarks(m)}>{m}</Button>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={directPredict} disabled={directPredictLoading || !directPredictSubject} className="w-full h-12" size="lg">
+                {directPredictLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Predicting Paper...</> : <><Zap className="mr-2 h-5 w-5" /> Predict Paper Now</>}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Example Paper Tab */}
         <TabsContent value="example" className="space-y-6 mt-6">
           <Card>
