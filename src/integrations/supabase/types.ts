@@ -1775,6 +1775,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_skribbl_guess: {
+        Args: { _guess: string; _room_id: string }
+        Returns: boolean
+      }
       claim_daily_coins: {
         Args: { _amount?: number; _user_id: string }
         Returns: boolean
