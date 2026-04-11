@@ -427,6 +427,7 @@ Generate the complete question paper now:`;
 
       setGeneratedTest(paper);
       setActiveTab('result');
+      await logActivity('generate', { chapters: selectedChapters });
       toast({ title: 'Test Generated!', description: `${difficulty} difficulty paper ready in seconds!` });
     } catch (error: any) {
       console.error('Error generating test:', error);
