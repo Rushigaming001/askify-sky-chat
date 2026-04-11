@@ -752,6 +752,96 @@ export type Database = {
         }
         Relationships: []
       }
+      paper_generator_activity: {
+        Row: {
+          created_at: string
+          details: Json | null
+          difficulty: string | null
+          generation_type: string
+          id: string
+          paper_class: string
+          subject: string
+          total_marks: string | null
+          user_email: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          difficulty?: string | null
+          generation_type?: string
+          id?: string
+          paper_class: string
+          subject: string
+          total_marks?: string | null
+          user_email?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          difficulty?: string | null
+          generation_type?: string
+          id?: string
+          paper_class?: string
+          subject?: string
+          total_marks?: string | null
+          user_email?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      paper_generator_allowed_users: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      paper_generator_settings: {
+        Row: {
+          created_at: string
+          id: string
+          password_enabled: boolean
+          password_hash: string | null
+          updated_at: string
+          whitelist_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_enabled?: boolean
+          password_hash?: string | null
+          updated_at?: string
+          whitelist_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_enabled?: boolean
+          password_hash?: string | null
+          updated_at?: string
+          whitelist_enabled?: boolean
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string

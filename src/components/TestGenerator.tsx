@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileText, Download, Sparkles, GraduationCap, BookOpen, AlertCircle, Upload, RefreshCw, Camera } from 'lucide-react';
+import { Loader2, FileText, Download, Sparkles, GraduationCap, BookOpen, AlertCircle, Upload, RefreshCw, Camera, Lock, Brain, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
@@ -109,6 +110,7 @@ const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard', 'Very Difficult (Unsolvabl
 const TERM_OPTIONS = ['Term 1', 'Term 2', 'Full Syllabus'];
 
 export function TestGenerator() {
+  const { user } = useAuth();
   const [selectedClass, setSelectedClass] = useState<'Class 9' | 'Class 10'>('Class 9');
   const [subject, setSubject] = useState<string>('');
   const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
@@ -130,6 +132,127 @@ export function TestGenerator() {
   const [exampleLoading, setExampleLoading] = useState(false);
   const exampleFileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Access gate state
+  const [accessGranted, setAccessGranted] = useState(false);
+  const [accessChecking, setAccessChecking] = useState(true);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isOwnerUser, setIsOwnerUser] = useState(false);
+
+  // Predictor state
+  const [predictorInput, setPredictorInput] = useState('');
+  const [predictorLoading, setPredictorLoading] = useState(false);
+  const [predictorImage, setPredictorImage] = useState<string | null>(null);
+  const [predictorImageLoading, setPredictorImageLoading] = useState(false);
+  const predictorFileRef = useRef<HTMLInputElement>(null);
+  const [directPredictLoading, setDirectPredictLoading] = useState(false);
+  const [directPredictClass, setDirectPredictClass] = useState<'Class 9' | 'Class 10'>('Class 10');
+  const [directPredictSubject, setDirectPredictSubject] = useState('');
+
+  // Check access on mount
+  useEffect(() => {
+    checkAccess();
+  }, [user?.id]);
+
+  const checkAccess = async () => {
+    if (!user?.id) {
+      setAccessChecking(false);
+      return;
+    }
+
+    try {
+      // Check if user is owner
+      const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
+      setIsOwnerUser(!!ownerCheck);
+      if (ownerCheck) {
+        setAccessGranted(true);
+        setAccessChecking(false);
+        return;
+      }
+
+      // Load settings
+      const { data: settings } = await supabase
+        .from('paper_generator_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (!settings) {
+        setAccessGranted(true);
+        setAccessChecking(false);
+        return;
+      }
+
+      // Check whitelist
+      if (settings.whitelist_enabled) {
+        const { data: whitelisted } = await supabase
+          .from('paper_generator_allowed_users')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (!whitelisted) {
+          setAccessGranted(false);
+          setAccessChecking(false);
+          return;
+        }
+      }
+
+      // Check password
+      if (settings.password_enabled && settings.password_hash) {
+        setAccessGranted(false);
+        setAccessChecking(false);
+        return;
+      }
+
+      setAccessGranted(true);
+    } catch {
+      setAccessGranted(true);
+    } finally {
+      setAccessChecking(false);
+    }
+  };
+
+  const verifyPassword = async () => {
+    if (!passwordInput.trim()) {
+      setPasswordError('Please enter the password');
+      return;
+    }
+
+    const { data: settings } = await supabase
+      .from('paper_generator_settings')
+      .select('password_hash')
+      .limit(1)
+      .single();
+
+    if (settings && passwordInput === settings.password_hash) {
+      setAccessGranted(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password');
+    }
+  };
+
+  // Activity logging helper
+  const logActivity = async (type: string, extraDetails?: Record<string, unknown>) => {
+    if (!user?.id) return;
+    try {
+      await supabase.from('paper_generator_activity').insert([{
+        user_id: user.id,
+        user_email: user.email || '',
+        user_name: user.name || '',
+        paper_class: selectedClass,
+        subject: subject || directPredictSubject || 'N/A',
+        generation_type: type,
+        total_marks: totalMarks,
+        difficulty: difficulty,
+        details: (extraDetails || {}) as Record<string, string>,
+      }]);
+    } catch {
+      // Silent fail for logging
+    }
+  };
 
   const currentCurriculum = CURRICULUM_BY_CLASS[selectedClass] as unknown as Record<string, Record<string, readonly string[]>>;
   const subjects = Object.keys(currentCurriculum);
@@ -304,6 +427,7 @@ Generate the complete question paper now:`;
 
       setGeneratedTest(paper);
       setActiveTab('result');
+      await logActivity('generate', { chapters: selectedChapters });
       toast({ title: 'Test Generated!', description: `${difficulty} difficulty paper ready in seconds!` });
     } catch (error: any) {
       console.error('Error generating test:', error);
@@ -355,6 +479,7 @@ Generate the modified question paper now:`;
 
       setGeneratedTest(paper);
       setActiveTab('result');
+      await logActivity('remake');
       toast({ title: 'Questions Remade!', description: 'New version ready with different questions' });
     } catch (error: any) {
       console.error('Error remaking questions:', error);
@@ -445,6 +570,7 @@ Generate the new question paper now:`;
 
       setGeneratedTest(paper);
       setActiveTab('result');
+      await logActivity('example_paper');
       toast({ title: 'Paper Generated!', description: 'New paper created matching your example format!' });
     } catch (error: any) {
       console.error('Error generating from example:', error);
@@ -531,6 +657,196 @@ Generate the new question paper now:`;
 
   const availableChapters = getChaptersForUnits();
 
+  // Paper Predictor - from previous papers
+  const predictFromPapers = async () => {
+    if (!predictorInput.trim() && !predictorImage) {
+      toast({ title: 'Error', description: 'Please paste previous papers or upload an image', variant: 'destructive' });
+      return;
+    }
+
+    setPredictorLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
+        return;
+      }
+
+      let paperContent = predictorInput;
+
+      // If image uploaded, analyze it first
+      if (predictorImage) {
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('image-ai', {
+          body: {
+            action: 'analyze',
+            imageUrl: predictorImage,
+            prompt: `Extract ALL questions, marks, sections, and topics from this exam paper. Output the complete content preserving structure.`
+          }
+        });
+        if (analysisError) throw analysisError;
+        paperContent = (paperContent ? paperContent + '\n\n--- UPLOADED PAPER ---\n\n' : '') + (analysisData?.analysis || '');
+      }
+
+      const prompt = `You are an expert Maharashtra State Board exam paper PREDICTOR. Analyze the following previous year question papers/tests carefully and PREDICT what the NEXT exam paper will look like.
+
+**PREVIOUS PAPERS/TESTS PROVIDED:**
+${paperContent}
+
+**YOUR TASK:**
+1. Analyze the question patterns, topics that appear repeatedly, marks distribution
+2. Identify which topics are most likely to appear in the next exam
+3. Note the difficulty trends and question type distribution
+4. Identify any chapter rotation patterns
+
+**GENERATE A PREDICTED PAPER that:**
+- Covers the topics most likely to appear based on pattern analysis
+- Follows the same format, marks distribution, and structure
+- Includes questions on topics that haven't appeared recently (rotation prediction)
+- Increases focus on high-weightage chapters
+- Maintains the same difficulty level
+- Uses the EXACT exam format (Section A, B, C, D with correct marks)
+
+**PREDICTION CONFIDENCE:**
+- Mark each question with a confidence tag: [HIGH PROBABILITY], [MEDIUM PROBABILITY], [POSSIBLE]
+- Add a brief "Prediction Analysis" section at the top explaining your reasoning
+
+End with: ✱✱✱ Best of Luck! ✱✱✱
+
+Generate the predicted paper now:`;
+
+      const response = await supabase.functions.invoke('test-generator', {
+        body: { prompt },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (response.error) throw response.error;
+      const paper = response.data?.paper;
+      if (!paper) throw new Error('No response generated');
+
+      setGeneratedTest(paper);
+      setActiveTab('result');
+      await logActivity('predict_from_papers');
+      toast({ title: 'Paper Predicted!', description: 'AI analyzed patterns and generated a predicted paper' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to predict paper', variant: 'destructive' });
+    } finally {
+      setPredictorLoading(false);
+    }
+  };
+
+  // Direct Predict - no previous papers needed
+  const directPredict = async () => {
+    if (!directPredictSubject) {
+      toast({ title: 'Error', description: 'Please select a subject', variant: 'destructive' });
+      return;
+    }
+
+    setDirectPredictLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
+        return;
+      }
+
+      const prompt = `You are an expert Maharashtra State Board exam paper PREDICTOR for ${directPredictClass} ${directPredictSubject}.
+
+Based on your knowledge of:
+- Maharashtra State Board exam patterns from 2018-2025
+- shala.com, balbharti.com, maharastrastudy.com previous papers
+- Common chapter weightage and question rotation patterns
+- Important topics that frequently appear in board exams
+- High-scoring and must-prepare chapters
+
+**PREDICT the most likely upcoming board exam paper for ${directPredictClass} ${directPredictSubject}.**
+
+**REQUIREMENTS:**
+- Generate a FULL question paper with proper sections (A, B, C, D)
+- Use ${totalMarks} marks format
+- Mark each question with confidence: [HIGH PROBABILITY], [MEDIUM PROBABILITY], [POSSIBLE]
+- Include a "📊 Prediction Analysis" section at the top with:
+  - Most likely topics (with % probability)
+  - Chapters to focus on
+  - Expected question types
+  - Tips for preparation
+- Focus on chapters that historically appear most frequently
+- Include at least 2-3 "surprise" questions on less common but important topics
+- End with: ✱✱✱ Best of Luck! ✱✱✱
+
+Generate the predicted paper now:`;
+
+      const response = await supabase.functions.invoke('test-generator', {
+        body: { prompt },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (response.error) throw response.error;
+      const paper = response.data?.paper;
+      if (!paper) throw new Error('No response generated');
+
+      setGeneratedTest(paper);
+      setActiveTab('result');
+      await logActivity('direct_predict', { predictedSubject: directPredictSubject });
+      toast({ title: 'Paper Predicted!', description: `AI predicted the most likely ${directPredictSubject} paper` });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to predict paper', variant: 'destructive' });
+    } finally {
+      setDirectPredictLoading(false);
+    }
+  };
+
+  const handlePredictorImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (event) => setPredictorImage(event.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const directPredictSubjects = Object.keys(CURRICULUM_BY_CLASS[directPredictClass] as unknown as Record<string, unknown>);
+
+  // Password gate UI
+  if (accessChecking) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!accessGranted) {
+    return (
+      <div className="max-w-md mx-auto space-y-6 p-6">
+        <div className="text-center space-y-2">
+          <Lock className="h-12 w-12 text-primary mx-auto" />
+          <h2 className="text-xl font-bold">Paper Generator Access</h2>
+          <p className="text-muted-foreground text-sm">
+            This feature requires authorization. Enter the password to continue.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Password</Label>
+              <Input
+                type="password"
+                placeholder="Enter access password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
+              />
+              {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+            </div>
+            <Button onClick={verifyPassword} className="w-full">
+              <Lock className="h-4 w-4 mr-2" />
+              Unlock
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -557,9 +873,17 @@ Generate the new question paper now:`;
               <Sparkles className="h-4 w-4 mr-1" />
               Generate
             </TabsTrigger>
+            <TabsTrigger value="predict" className="text-xs sm:text-sm">
+              <Brain className="h-4 w-4 mr-1" />
+              Predict
+            </TabsTrigger>
+            <TabsTrigger value="direct-predict" className="text-xs sm:text-sm">
+              <Zap className="h-4 w-4 mr-1" />
+              Direct Predict
+            </TabsTrigger>
             <TabsTrigger value="example" className="text-xs sm:text-sm">
               <Camera className="h-4 w-4 mr-1" />
-              Example Paper
+              Example
             </TabsTrigger>
             <TabsTrigger value="remake" className="text-xs sm:text-sm">
               <RefreshCw className="h-4 w-4 mr-1" />
@@ -825,6 +1149,90 @@ Generate the new question paper now:`;
               </>
             )}
           </Button>
+        </TabsContent>
+
+        {/* Predict Tab */}
+        <TabsContent value="predict" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                Paper Predictor
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Paste previous year papers or upload images — AI will analyze patterns and predict the next paper
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                placeholder="Paste previous year question papers here...&#10;&#10;You can paste multiple papers separated by ---&#10;The more papers you provide, the better the prediction!"
+                value={predictorInput}
+                onChange={(e) => setPredictorInput(e.target.value)}
+                className="min-h-[250px] font-mono text-sm"
+              />
+              <div className="text-center text-sm text-muted-foreground">— OR upload a paper image —</div>
+              <input ref={predictorFileRef} type="file" accept="image/*" onChange={handlePredictorImageSelect} className="hidden" />
+              <Button variant="outline" className="w-full border-dashed border-2" onClick={() => predictorFileRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                {predictorImage ? 'Change Paper Image' : 'Upload Previous Paper Image'}
+              </Button>
+              {predictorImage && (
+                <div className="rounded-xl overflow-hidden border">
+                  <img src={predictorImage} alt="Previous paper" className="w-full h-auto max-h-48 object-contain bg-muted/30" />
+                </div>
+              )}
+              <Button onClick={predictFromPapers} disabled={predictorLoading || (!predictorInput.trim() && !predictorImage)} className="w-full h-12" size="lg">
+                {predictorLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analyzing & Predicting...</> : <><Brain className="mr-2 h-5 w-5" /> Predict Next Paper</>}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Direct Predict Tab */}
+        <TabsContent value="direct-predict" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Direct Paper Prediction
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                AI predicts the most likely upcoming paper based on historical Maharashtra Board patterns — no previous papers needed!
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Class</Label>
+                <Select value={directPredictClass} onValueChange={(v) => { setDirectPredictClass(v as any); setDirectPredictSubject(''); }}>
+                  <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Class 9">Class 9</SelectItem>
+                    <SelectItem value="Class 10">Class 10</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Subject</Label>
+                <Select value={directPredictSubject} onValueChange={setDirectPredictSubject}>
+                  <SelectTrigger className="mt-2"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                  <SelectContent>
+                    {directPredictSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Total Marks</Label>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {MARKS_OPTIONS.map(m => (
+                    <Button key={m} variant={totalMarks === m ? 'default' : 'outline'} size="sm" onClick={() => setTotalMarks(m)}>{m}</Button>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={directPredict} disabled={directPredictLoading || !directPredictSubject} className="w-full h-12" size="lg">
+                {directPredictLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Predicting Paper...</> : <><Zap className="mr-2 h-5 w-5" /> Predict Paper Now</>}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Example Paper Tab */}
