@@ -479,6 +479,7 @@ Generate the modified question paper now:`;
 
       setGeneratedTest(paper);
       setActiveTab('result');
+      await logActivity('remake');
       toast({ title: 'Questions Remade!', description: 'New version ready with different questions' });
     } catch (error: any) {
       console.error('Error remaking questions:', error);
