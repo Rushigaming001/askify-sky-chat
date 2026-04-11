@@ -1786,6 +1786,10 @@ export type Database = {
       cleanup_expired_otps: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       get_skribbl_word: { Args: { _room_id: string }; Returns: string }
+      get_skribbl_word_for_reveal: {
+        Args: { _room_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
