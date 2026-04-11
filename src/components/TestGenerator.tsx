@@ -238,7 +238,7 @@ export function TestGenerator() {
   const logActivity = async (type: string, extraDetails?: Record<string, unknown>) => {
     if (!user?.id) return;
     try {
-      await supabase.from('paper_generator_activity').insert({
+      await supabase.from('paper_generator_activity').insert([{
         user_id: user.id,
         user_email: user.email || '',
         user_name: user.name || '',
@@ -247,8 +247,8 @@ export function TestGenerator() {
         generation_type: type,
         total_marks: totalMarks,
         difficulty: difficulty,
-        details: extraDetails || {},
-      });
+        details: (extraDetails || {}) as Record<string, string>,
+      }]);
     } catch {
       // Silent fail for logging
     }
