@@ -112,11 +112,10 @@ const Chat = () => {
   }, [currentChat?.messages, isLoading, streamingText]);
 
   const handleSendMessage = async (content: string, images?: string[]) => {
-    let chatToUse = currentChat;
-    if (!chatToUse) {
+    if (!currentChat) {
       await createNewChat();
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return handleSendMessage(content, images);
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     if (restrictions.ai_chat_disabled) {
@@ -140,7 +139,8 @@ const Chat = () => {
     }
 
     const firstImage = images?.[0];
-    const existingMessages = currentChat.messages.map(m => ({ role: m.role, content: m.content }));
+    // Capture messages before adding user message
+    const existingMessages = (currentChat?.messages || []).map(m => ({ role: m.role, content: m.content }));
     
     await addMessage({ role: 'user', content, image: firstImage });
     setIsLoading(true);
@@ -152,7 +152,7 @@ const Chat = () => {
         { role: 'user', content }
       ];
 
-      const response = await callAI(messages, selectedModel, currentChat.mode, firstImage);
+      const response = await callAI(messages, selectedModel, currentChat?.mode || 'normal', firstImage);
       
       // Typing effect - simulate streaming by revealing text progressively
       const words = response.split(' ');
@@ -160,7 +160,6 @@ const Chat = () => {
       for (let i = 0; i < words.length; i++) {
         displayed += (i > 0 ? ' ' : '') + words[i];
         setStreamingText(displayed);
-        // Speed: ~20ms per word for fast typing effect
         await new Promise(r => setTimeout(r, 18));
       }
       

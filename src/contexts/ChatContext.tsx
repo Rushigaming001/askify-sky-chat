@@ -274,14 +274,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   };
 
   const addMessage = async (message: Omit<Message, 'id' | 'timestamp'>) => {
-    if (!currentChat || !user) return;
+    if (!user) return;
+
+    // Use functional state to get the latest currentChat, avoiding stale closures
+    let chatId: string | null = null;
+    let chatTitle: string | null = null;
+    let chatMessageCount = 0;
+
+    setCurrentChat(prev => {
+      if (prev) {
+        chatId = prev.id;
+        chatTitle = prev.title;
+        chatMessageCount = prev.messages.length;
+      }
+      return prev;
+    });
+
+    // Wait a tick for the state read
+    await new Promise(r => setTimeout(r, 0));
+
+    if (!chatId) return;
 
     try {
       // Insert message to database
       const { data: msgData, error: msgError } = await supabase
         .from('ai_chat_messages')
         .insert({
-          chat_id: currentChat.id,
+          chat_id: chatId,
           role: message.role,
           content: message.content,
           image: message.image || null
@@ -300,29 +319,41 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       };
 
       // Auto-rename if first user message
-      let newTitle = currentChat.title;
-      if (currentChat.messages.length === 0 && message.role === 'user') {
+      let newTitle = chatTitle!;
+      if (chatMessageCount === 0 && message.role === 'user') {
         newTitle = generateSmartTitle(message.content);
         await supabase
           .from('ai_chats')
           .update({ title: newTitle, updated_at: new Date().toISOString() })
-          .eq('id', currentChat.id);
+          .eq('id', chatId);
       } else {
-        // Just update timestamp
         await supabase
           .from('ai_chats')
           .update({ updated_at: new Date().toISOString() })
-          .eq('id', currentChat.id);
+          .eq('id', chatId);
       }
 
-      const updatedChat = {
-        ...currentChat,
-        messages: [...currentChat.messages, newMessage],
-        title: newTitle
-      };
+      const finalTitle = newTitle;
+      const finalChatId = chatId;
 
-      setCurrentChat(updatedChat);
-      setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c));
+      // Use functional updaters to avoid stale state
+      setCurrentChat(prev => {
+        if (!prev || prev.id !== finalChatId) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, newMessage],
+          title: finalTitle
+        };
+      });
+
+      setChats(prev => prev.map(c => {
+        if (c.id !== finalChatId) return c;
+        return {
+          ...c,
+          messages: [...c.messages, newMessage],
+          title: finalTitle
+        };
+      }));
     } catch (error) {
       console.error('Error adding message:', error);
     }
