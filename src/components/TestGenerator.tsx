@@ -110,6 +110,7 @@ const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard', 'Very Difficult (Unsolvabl
 const TERM_OPTIONS = ['Term 1', 'Term 2', 'Full Syllabus'];
 
 export function TestGenerator() {
+  const { user } = useAuth();
   const [selectedClass, setSelectedClass] = useState<'Class 9' | 'Class 10'>('Class 9');
   const [subject, setSubject] = useState<string>('');
   const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
@@ -131,6 +132,127 @@ export function TestGenerator() {
   const [exampleLoading, setExampleLoading] = useState(false);
   const exampleFileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Access gate state
+  const [accessGranted, setAccessGranted] = useState(false);
+  const [accessChecking, setAccessChecking] = useState(true);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isOwnerUser, setIsOwnerUser] = useState(false);
+
+  // Predictor state
+  const [predictorInput, setPredictorInput] = useState('');
+  const [predictorLoading, setPredictorLoading] = useState(false);
+  const [predictorImage, setPredictorImage] = useState<string | null>(null);
+  const [predictorImageLoading, setPredictorImageLoading] = useState(false);
+  const predictorFileRef = useRef<HTMLInputElement>(null);
+  const [directPredictLoading, setDirectPredictLoading] = useState(false);
+  const [directPredictClass, setDirectPredictClass] = useState<'Class 9' | 'Class 10'>('Class 10');
+  const [directPredictSubject, setDirectPredictSubject] = useState('');
+
+  // Check access on mount
+  useEffect(() => {
+    checkAccess();
+  }, [user?.id]);
+
+  const checkAccess = async () => {
+    if (!user?.id) {
+      setAccessChecking(false);
+      return;
+    }
+
+    try {
+      // Check if user is owner
+      const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
+      setIsOwnerUser(!!ownerCheck);
+      if (ownerCheck) {
+        setAccessGranted(true);
+        setAccessChecking(false);
+        return;
+      }
+
+      // Load settings
+      const { data: settings } = await supabase
+        .from('paper_generator_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (!settings) {
+        setAccessGranted(true);
+        setAccessChecking(false);
+        return;
+      }
+
+      // Check whitelist
+      if (settings.whitelist_enabled) {
+        const { data: whitelisted } = await supabase
+          .from('paper_generator_allowed_users')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (!whitelisted) {
+          setAccessGranted(false);
+          setAccessChecking(false);
+          return;
+        }
+      }
+
+      // Check password
+      if (settings.password_enabled && settings.password_hash) {
+        setAccessGranted(false);
+        setAccessChecking(false);
+        return;
+      }
+
+      setAccessGranted(true);
+    } catch {
+      setAccessGranted(true);
+    } finally {
+      setAccessChecking(false);
+    }
+  };
+
+  const verifyPassword = async () => {
+    if (!passwordInput.trim()) {
+      setPasswordError('Please enter the password');
+      return;
+    }
+
+    const { data: settings } = await supabase
+      .from('paper_generator_settings')
+      .select('password_hash')
+      .limit(1)
+      .single();
+
+    if (settings && passwordInput === settings.password_hash) {
+      setAccessGranted(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password');
+    }
+  };
+
+  // Activity logging helper
+  const logActivity = async (type: string, extraDetails?: Record<string, unknown>) => {
+    if (!user?.id) return;
+    try {
+      await supabase.from('paper_generator_activity').insert({
+        user_id: user.id,
+        user_email: user.email || '',
+        user_name: user.name || '',
+        paper_class: selectedClass,
+        subject: subject || directPredictSubject || 'N/A',
+        generation_type: type,
+        total_marks: totalMarks,
+        difficulty: difficulty,
+        details: extraDetails || {},
+      });
+    } catch {
+      // Silent fail for logging
+    }
+  };
 
   const currentCurriculum = CURRICULUM_BY_CLASS[selectedClass] as unknown as Record<string, Record<string, readonly string[]>>;
   const subjects = Object.keys(currentCurriculum);
