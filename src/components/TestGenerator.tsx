@@ -570,6 +570,7 @@ Generate the new question paper now:`;
 
       setGeneratedTest(paper);
       setActiveTab('result');
+      await logActivity('example_paper');
       toast({ title: 'Paper Generated!', description: 'New paper created matching your example format!' });
     } catch (error: any) {
       console.error('Error generating from example:', error);
