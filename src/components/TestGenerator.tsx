@@ -873,9 +873,17 @@ Generate the predicted paper now:`;
               <Sparkles className="h-4 w-4 mr-1" />
               Generate
             </TabsTrigger>
+            <TabsTrigger value="predict" className="text-xs sm:text-sm">
+              <Brain className="h-4 w-4 mr-1" />
+              Predict
+            </TabsTrigger>
+            <TabsTrigger value="direct-predict" className="text-xs sm:text-sm">
+              <Zap className="h-4 w-4 mr-1" />
+              Direct Predict
+            </TabsTrigger>
             <TabsTrigger value="example" className="text-xs sm:text-sm">
               <Camera className="h-4 w-4 mr-1" />
-              Example Paper
+              Example
             </TabsTrigger>
             <TabsTrigger value="remake" className="text-xs sm:text-sm">
               <RefreshCw className="h-4 w-4 mr-1" />
