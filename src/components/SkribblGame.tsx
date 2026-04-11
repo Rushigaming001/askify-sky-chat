@@ -165,7 +165,9 @@ export const SkribblGame = ({ roomId, onLeave }: { roomId: string; onLeave: () =
 
   const endRound = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    setRevealedWord(gameState?.current_word || '');
+    // Fetch the word server-side for reveal (drawer already has it, others don't)
+    const { data: revealWord } = await supabase.rpc('get_skribbl_word_for_reveal', { _room_id: roomId });
+    setRevealedWord(revealWord || gameState?.current_word || '');
     
     const pointsMap = [500, 400, 300];
     for (let i = 0; i < guessOrder.length; i++) {
