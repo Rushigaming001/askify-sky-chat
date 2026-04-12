@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy, Camera, Clapperboard, CircleDot, Coins } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy, Camera, Clapperboard, CircleDot, Coins, Megaphone, ChevronDown, ChevronUp } from 'lucide-react';
 import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
 import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay, MusicBotPanel } from '@/components/chat';
 import { WebRTCCall } from '@/components/WebRTCCall';
@@ -44,6 +44,7 @@ import { StoriesViewer } from '@/components/StoriesViewer';
 import { SnapSender } from '@/components/SnapSender';
 import { CoinBalance, SendCoinsDialog, CoinLeaderboard } from '@/components/CoinSystem';
 import { MessageReactions } from '@/components/MessageReactions';
+import { PaperUpdatesChannel } from '@/components/PaperUpdatesChannel';
 
 // Ping notification sound using Web Audio API
 const playPingSound = () => {
@@ -120,6 +121,7 @@ const PublicChat = () => {
   const [coinRecipient, setCoinRecipient] = useState<{ id: string; name: string } | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showSocialPanel, setShowSocialPanel] = useState(false);
+  const [showPaperUpdates, setShowPaperUpdates] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   
