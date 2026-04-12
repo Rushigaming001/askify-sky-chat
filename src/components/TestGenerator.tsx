@@ -1380,6 +1380,11 @@ Generate the predicted paper now:`;
             </>
           )}
         </TabsContent>
+
+        {/* Updates Tab */}
+        <TabsContent value="updates" className="mt-6">
+          <PaperUpdatesChannel />
+        </TabsContent>
       </Tabs>
     </div>
   );
