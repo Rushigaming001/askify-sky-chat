@@ -77,27 +77,21 @@ export function PaperUpdatesChannel({ compact = false }: PaperUpdatesChannelProp
   const loadUpdates = async () => {
     const { data } = await supabase
       .from('paper_updates')
-      .select('*, profiles!paper_updates_user_id_fkey(name, avatar_url)')
+      .select('*')
       .order('created_at', { ascending: true })
       .limit(100);
 
     if (data) {
-      // Fallback: if join fails, load profiles separately
-      const needsProfile = data.filter((d: any) => !d.profiles);
-      if (needsProfile.length > 0) {
-        const userIds = [...new Set(needsProfile.map((d: any) => d.user_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url')
-          .in('id', userIds);
-        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
-        setUpdates(data.map((d: any) => ({
-          ...d,
-          profiles: d.profiles || profileMap.get(d.user_id) || { name: 'Owner' }
-        })));
-      } else {
-        setUpdates(data as PaperUpdate[]);
-      }
+      const userIds = [...new Set(data.map(d => d.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', userIds);
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      setUpdates(data.map(d => ({
+        ...d,
+        profiles: profileMap.get(d.user_id) || { name: 'Owner' }
+      })));
     }
   };
 
