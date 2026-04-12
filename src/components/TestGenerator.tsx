@@ -898,6 +898,10 @@ Generate the predicted paper now:`;
               <FileText className="h-4 w-4 mr-1" />
               Result
             </TabsTrigger>
+            <TabsTrigger value="updates" className="text-xs sm:text-sm">
+              <Megaphone className="h-4 w-4 mr-1" />
+              Updates
+            </TabsTrigger>
           </TabsList>
         </div>
 
