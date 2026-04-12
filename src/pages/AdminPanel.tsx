@@ -437,6 +437,12 @@ export default function AdminPanel() {
               </TabsTrigger>
             )}
             {isOwner && (
+              <TabsTrigger value="paper-generator" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
+                <FileText className="h-3 w-3" />
+                Paper Gen
+              </TabsTrigger>
+            )}
+            {isOwner && (
               <TabsTrigger value="feedback" className="text-xs sm:text-sm px-2 sm:px-3 gap-1">
                 📬 Feedback
               </TabsTrigger>
@@ -596,6 +602,12 @@ export default function AdminPanel() {
           {isOwner && (
             <TabsContent value="purchases">
               <PurchaseHistory />
+            </TabsContent>
+          )}
+
+          {isOwner && (
+            <TabsContent value="paper-generator">
+              <PaperGeneratorManager />
             </TabsContent>
           )}
 
