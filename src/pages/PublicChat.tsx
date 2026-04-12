@@ -838,6 +838,13 @@ const PublicChat = () => {
           <span>← Swipe left for Social</span>
         </div>
 
+        {/* Paper Updates Panel */}
+        {showPaperUpdates && (
+          <div className="border-b border-border">
+            <PaperUpdatesChannel compact />
+          </div>
+        )}
+
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           <div className="p-4 space-y-1">
             {messages.length === 0 ? (
