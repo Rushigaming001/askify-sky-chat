@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy, Camera, Clapperboard, CircleDot, Coins } from 'lucide-react';
+import { ArrowLeft, Send, Users, MoreVertical, Edit2, Trash2, UserCircle, Video, Phone, Reply, X, Music, Shield, Lock, Trash, Copy, Camera, Clapperboard, CircleDot, Coins, Megaphone } from 'lucide-react';
 import { ClearAllMessagesButton } from '@/components/ClearAllMessagesButton';
 import { EnhancedChatInput, TypingIndicator, useTypingIndicator, DateSeparator, isDifferentDay, MusicBotPanel } from '@/components/chat';
 import { WebRTCCall } from '@/components/WebRTCCall';
@@ -44,6 +44,7 @@ import { StoriesViewer } from '@/components/StoriesViewer';
 import { SnapSender } from '@/components/SnapSender';
 import { CoinBalance, SendCoinsDialog, CoinLeaderboard } from '@/components/CoinSystem';
 import { MessageReactions } from '@/components/MessageReactions';
+import { PaperUpdatesChannel } from '@/components/PaperUpdatesChannel';
 
 // Ping notification sound using Web Audio API
 const playPingSound = () => {
@@ -120,6 +121,7 @@ const PublicChat = () => {
   const [coinRecipient, setCoinRecipient] = useState<{ id: string; name: string } | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showSocialPanel, setShowSocialPanel] = useState(false);
+  const [showPaperUpdates, setShowPaperUpdates] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   
@@ -812,6 +814,15 @@ const PublicChat = () => {
               >
                 <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
+              <Button
+                variant={showPaperUpdates ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setShowPaperUpdates(!showPaperUpdates)}
+                title="Paper Updates"
+                className="h-7 w-7 sm:h-8 sm:w-8"
+              >
+                <Megaphone className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
               {isOwner && (
                 <ClearAllMessagesButton 
                   chatType="public" 
@@ -826,6 +837,13 @@ const PublicChat = () => {
         <div className="flex items-center justify-center py-1 text-[10px] text-muted-foreground/50">
           <span>← Swipe left for Social</span>
         </div>
+
+        {/* Paper Updates Panel */}
+        {showPaperUpdates && (
+          <div className="border-b border-border">
+            <PaperUpdatesChannel compact />
+          </div>
+        )}
 
         <ScrollArea className="flex-1 chat-scroll" ref={scrollRef}>
           <div className="p-4 space-y-1">

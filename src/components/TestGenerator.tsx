@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileText, Download, Sparkles, GraduationCap, BookOpen, AlertCircle, Upload, RefreshCw, Camera, Lock, Brain, Zap } from 'lucide-react';
+import { Loader2, FileText, Download, Sparkles, GraduationCap, BookOpen, AlertCircle, Upload, RefreshCw, Camera, Lock, Brain, Zap, Megaphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { PaperUpdatesChannel } from '@/components/PaperUpdatesChannel';
 
 // Class-wise curriculum with units/chapters
 const CURRICULUM_BY_CLASS = {
@@ -162,7 +163,7 @@ export function TestGenerator() {
     }
 
     try {
-      // Check if user is owner
+      // Check if user is owner - only owners bypass password
       const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
       setIsOwnerUser(!!ownerCheck);
       if (ownerCheck) {
@@ -178,13 +179,14 @@ export function TestGenerator() {
         .limit(1)
         .single();
 
+      // If no settings exist, deny access (password required by default)
       if (!settings) {
-        setAccessGranted(true);
+        setAccessGranted(false);
         setAccessChecking(false);
         return;
       }
 
-      // Check whitelist
+      // Check whitelist first - if enabled and user not whitelisted, deny
       if (settings.whitelist_enabled) {
         const { data: whitelisted } = await supabase
           .from('paper_generator_allowed_users')
@@ -199,16 +201,19 @@ export function TestGenerator() {
         }
       }
 
-      // Check password
-      if (settings.password_enabled && settings.password_hash) {
+      // Password is ALWAYS required for non-owner users
+      // Even if password_enabled is false, still require password
+      if (settings.password_hash) {
         setAccessGranted(false);
         setAccessChecking(false);
         return;
       }
 
-      setAccessGranted(true);
+      // No password set yet - deny access until owner sets one
+      setAccessGranted(false);
     } catch {
-      setAccessGranted(true);
+      // On error, deny access (fail-secure)
+      setAccessGranted(false);
     } finally {
       setAccessChecking(false);
     }
@@ -893,6 +898,10 @@ Generate the predicted paper now:`;
               <FileText className="h-4 w-4 mr-1" />
               Result
             </TabsTrigger>
+            <TabsTrigger value="updates" className="text-xs sm:text-sm">
+              <Megaphone className="h-4 w-4 mr-1" />
+              Updates
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -1370,6 +1379,11 @@ Generate the predicted paper now:`;
               </Card>
             </>
           )}
+        </TabsContent>
+
+        {/* Updates Tab */}
+        <TabsContent value="updates" className="mt-6">
+          <PaperUpdatesChannel />
         </TabsContent>
       </Tabs>
     </div>
