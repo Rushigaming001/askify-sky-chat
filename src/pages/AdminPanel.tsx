@@ -606,6 +606,12 @@ export default function AdminPanel() {
           )}
 
           {isOwner && (
+            <TabsContent value="paper-generator">
+              <PaperGeneratorManager />
+            </TabsContent>
+          )}
+
+          {isOwner && (
             <TabsContent value="feedback">
               <FeedbackViewer />
             </TabsContent>
