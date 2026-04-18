@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { checkDDoS } from "../_shared/ddos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+
+  const ddos = checkDDoS(req, corsHeaders, { key: 'chapter-video', limit: 5 });
+  if (ddos) return ddos;
 
   try {
     const authHeader = req.headers.get("Authorization");
