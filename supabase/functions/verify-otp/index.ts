@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkDDoS } from "../_shared/ddos.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Strict limit: prevents OTP brute-force
+  const ddos = checkDDoS(req, corsHeaders, { key: 'verify-otp', limit: 10 });
+  if (ddos) return ddos;
 
   try {
     const { email, code, purpose } = await req.json();
