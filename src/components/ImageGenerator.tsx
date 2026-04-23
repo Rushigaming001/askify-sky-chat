@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Download, Image as ImageIcon, LogIn, Upload, Wand2, AlertCircle, Sparkles, Infinity } from 'lucide-react';
+import { Loader2, Download, Upload, Wand2, AlertCircle, Sparkles, Infinity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { useUserRestrictions } from '@/hooks/useUserRestrictions';
 
 export function ImageGenerator() {
@@ -19,7 +18,6 @@ export function ImageGenerator() {
   const [imageModel, setImageModel] = useState('flux');
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [autoDownload, setAutoDownload] = useState(true);
   
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -29,20 +27,7 @@ export function ImageGenerator() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { restrictions } = useUserRestrictions();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
-    };
-    checkAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setIsLoggedIn(!!session);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const downloadImage = async (imageUrl: string, filename: string) => {
     try {
@@ -78,12 +63,6 @@ export function ImageGenerator() {
       toast({ title: 'Error', description: 'Please enter a prompt', variant: 'destructive' });
       return;
     }
-    if (!isLoggedIn) {
-      toast({ title: 'Login Required', description: 'Please log in to generate images', variant: 'destructive' });
-      navigate('/auth');
-      return;
-    }
-
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('image-ai', {
@@ -99,8 +78,7 @@ export function ImageGenerator() {
       }
     } catch (error: any) {
       const msg = error?.message || 'Failed to generate image';
-      toast({ title: 'Error', description: msg.includes('Unauthorized') ? 'Please log in' : msg, variant: 'destructive' });
-      if (msg.includes('Unauthorized')) navigate('/auth');
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -127,8 +105,6 @@ export function ImageGenerator() {
       toast({ title: 'Error', description: 'Upload an image and enter instructions', variant: 'destructive' });
       return;
     }
-    if (!isLoggedIn) { navigate('/auth'); return; }
-
     setEditLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('image-ai', {
@@ -155,20 +131,6 @@ export function ImageGenerator() {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>You have been restricted from using image generation.</AlertDescription>
       </Alert>
-    );
-  }
-
-  if (isLoggedIn === false) {
-    return (
-      <Card className="w-full border-border/50 shadow-lg">
-        <CardContent className="py-12 text-center space-y-4">
-          <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground/50" />
-          <p className="text-muted-foreground">Log in to generate unlimited images</p>
-          <Button onClick={() => navigate('/auth')} className="gap-2">
-            <LogIn className="h-4 w-4" /> Log In
-          </Button>
-        </CardContent>
-      </Card>
     );
   }
 
