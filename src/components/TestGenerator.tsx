@@ -151,43 +151,57 @@ export function TestGenerator() {
   const [directPredictClass, setDirectPredictClass] = useState<'Class 9' | 'Class 10'>('Class 10');
   const [directPredictSubject, setDirectPredictSubject] = useState('');
 
-  // Check access on mount
+  // Check access on mount and refresh when settings change
   useEffect(() => {
     checkAccess();
+    const channel = supabase
+      .channel('paper-generator-settings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'paper_generator_settings' }, () => {
+        setPasswordError('');
+        checkAccess();
+      })
+      .subscribe();
+
+    const refreshOnFocus = () => checkAccess();
+    window.addEventListener('focus', refreshOnFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', refreshOnFocus);
+    };
   }, [user?.id]);
 
   const checkAccess = async () => {
-    if (!user?.id) {
-      setAccessChecking(false);
-      return;
-    }
-
     try {
       // Check if user is owner - only owners bypass password
-      const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
-      setIsOwnerUser(!!ownerCheck);
-      if (ownerCheck) {
-        setAccessGranted(true);
-        setAccessChecking(false);
-        return;
+      if (user?.id) {
+        const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
+        setIsOwnerUser(!!ownerCheck);
+        if (ownerCheck) {
+          setAccessGranted(true);
+          setAccessChecking(false);
+          return;
+        }
+      } else {
+        setIsOwnerUser(false);
       }
 
       // Load settings
       const { data: settings } = await supabase
         .from('paper_generator_settings')
         .select('*')
+        .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      // If no settings exist, deny access (password required by default)
-      if (!settings) {
+      if (!settings || !settings.password_enabled || !settings.password_hash?.trim()) {
+        setAccessGranted(true);
+      } else {
         setAccessGranted(false);
-        setAccessChecking(false);
-        return;
       }
 
-      // Check whitelist first - if enabled and user not whitelisted, deny
-      if (settings.whitelist_enabled) {
+      // Logged-in whitelist still works as an extra allow path, but guests never need login.
+      if (user?.id && settings?.whitelist_enabled) {
         const { data: whitelisted } = await supabase
           .from('paper_generator_allowed_users')
           .select('id')
@@ -200,20 +214,8 @@ export function TestGenerator() {
           return;
         }
       }
-
-      // Password is ALWAYS required for non-owner users
-      // Even if password_enabled is false, still require password
-      if (settings.password_hash) {
-        setAccessGranted(false);
-        setAccessChecking(false);
-        return;
-      }
-
-      // No password set yet - deny access until owner sets one
-      setAccessGranted(false);
     } catch {
-      // On error, deny access (fail-secure)
-      setAccessGranted(false);
+      setAccessGranted(true);
     } finally {
       setAccessChecking(false);
     }
@@ -228,10 +230,11 @@ export function TestGenerator() {
     const { data: settings } = await supabase
       .from('paper_generator_settings')
       .select('password_hash')
+      .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (settings && passwordInput === settings.password_hash) {
+    if (settings?.password_hash && passwordInput.trim() === settings.password_hash.trim()) {
       setAccessGranted(true);
       setPasswordError('');
     } else {
@@ -347,12 +350,6 @@ export function TestGenerator() {
 
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in to generate tests', variant: 'destructive' });
-        return;
-      }
-
       const marksNum = parseInt(totalMarks);
       const timeAllotted = marksNum === 20 ? '45 Minutes' : marksNum === 40 ? '1.5 Hours' : marksNum === 80 ? '2.5 Hours' : '3 Hours';
 
@@ -420,7 +417,6 @@ Generate the complete question paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -450,12 +446,6 @@ Generate the complete question paper now:`;
 
     setRemakeLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       const prompt = `You are an expert question paper modifier. Take the following question paper and create a NEW version with DIFFERENT questions on the SAME topics and format.
 
 **ORIGINAL PAPER:**
@@ -474,7 +464,6 @@ Generate the modified question paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -516,12 +505,6 @@ Generate the modified question paper now:`;
 
     setExampleLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       // First, analyze the image to extract the paper content
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('image-ai', {
         body: {
@@ -565,7 +548,6 @@ Generate the new question paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -671,12 +653,6 @@ Generate the new question paper now:`;
 
     setPredictorLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       let paperContent = predictorInput;
 
       // If image uploaded, analyze it first
@@ -721,7 +697,6 @@ Generate the predicted paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -748,12 +723,6 @@ Generate the predicted paper now:`;
 
     setDirectPredictLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       const prompt = `You are an expert Maharashtra State Board exam paper PREDICTOR for ${directPredictClass} ${directPredictSubject}.
 
 Based on your knowledge of:
@@ -782,7 +751,6 @@ Generate the predicted paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
