@@ -38,45 +38,28 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: "Unauthorized - missing token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } }
-    });
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized - invalid session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
-      _user_id: user.id,
-      _restriction_type: 'image_generation'
-    });
-
-    if (isRestricted) {
-      return new Response(JSON.stringify({ error: "Image generation is disabled for your account" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : '';
+    const { data: { user } } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
 
     const { action, prompt, imageUrl, style, imageModel } = await req.json();
+
+    if (user?.id) {
+      const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
+        _user_id: user.id,
+        _restriction_type: 'image_generation'
+      });
+
+      if (isRestricted) {
+        return new Response(JSON.stringify({ error: "Image generation is disabled for your account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     // Generate image using Lovable AI Gateway (Nano Banana model)
@@ -191,7 +174,7 @@ serve(async (req) => {
       const data = await response.json();
       const analysis = data.choices?.[0]?.message?.content || "No analysis generated";
 
-      await supabase.from('usage_logs').insert({ user_id: user.id, model_id: 'gemini-vision', mode: 'image-analysis' });
+      if (user?.id) await supabase.from('usage_logs').insert({ user_id: user.id, model_id: 'gemini-vision', mode: 'image-analysis' });
 
       return new Response(JSON.stringify({ analysis }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -231,7 +214,7 @@ serve(async (req) => {
         }
       }
 
-      await supabase.from('usage_logs').insert({ user_id: user.id, model_id: `ai-image-${selectedModel}`, mode: 'image-generation' });
+      if (user?.id) await supabase.from('usage_logs').insert({ user_id: user.id, model_id: `ai-image-${selectedModel}`, mode: 'image-generation' });
 
       return new Response(JSON.stringify({ imageUrl: generatedUrl }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -277,7 +260,7 @@ serve(async (req) => {
           throw new Error("No edited image was generated. Try different instructions.");
         }
 
-        await supabase.from('usage_logs').insert({ user_id: user.id, model_id: 'ai-image-edit', mode: 'image-edit' });
+        if (user?.id) await supabase.from('usage_logs').insert({ user_id: user.id, model_id: 'ai-image-edit', mode: 'image-edit' });
 
         return new Response(JSON.stringify({ imageUrl: editedImageUrl }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
