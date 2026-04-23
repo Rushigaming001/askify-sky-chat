@@ -151,43 +151,57 @@ export function TestGenerator() {
   const [directPredictClass, setDirectPredictClass] = useState<'Class 9' | 'Class 10'>('Class 10');
   const [directPredictSubject, setDirectPredictSubject] = useState('');
 
-  // Check access on mount
+  // Check access on mount and refresh when settings change
   useEffect(() => {
     checkAccess();
+    const channel = supabase
+      .channel('paper-generator-settings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'paper_generator_settings' }, () => {
+        setPasswordError('');
+        checkAccess();
+      })
+      .subscribe();
+
+    const refreshOnFocus = () => checkAccess();
+    window.addEventListener('focus', refreshOnFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', refreshOnFocus);
+    };
   }, [user?.id]);
 
   const checkAccess = async () => {
-    if (!user?.id) {
-      setAccessChecking(false);
-      return;
-    }
-
     try {
       // Check if user is owner - only owners bypass password
-      const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
-      setIsOwnerUser(!!ownerCheck);
-      if (ownerCheck) {
-        setAccessGranted(true);
-        setAccessChecking(false);
-        return;
+      if (user?.id) {
+        const { data: ownerCheck } = await supabase.rpc('is_owner', { _user_id: user.id });
+        setIsOwnerUser(!!ownerCheck);
+        if (ownerCheck) {
+          setAccessGranted(true);
+          setAccessChecking(false);
+          return;
+        }
+      } else {
+        setIsOwnerUser(false);
       }
 
       // Load settings
       const { data: settings } = await supabase
         .from('paper_generator_settings')
         .select('*')
+        .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      // If no settings exist, deny access (password required by default)
-      if (!settings) {
+      if (!settings || !settings.password_enabled || !settings.password_hash?.trim()) {
+        setAccessGranted(true);
+      } else {
         setAccessGranted(false);
-        setAccessChecking(false);
-        return;
       }
 
-      // Check whitelist first - if enabled and user not whitelisted, deny
-      if (settings.whitelist_enabled) {
+      // Logged-in whitelist still works as an extra allow path, but guests never need login.
+      if (user?.id && settings?.whitelist_enabled) {
         const { data: whitelisted } = await supabase
           .from('paper_generator_allowed_users')
           .select('id')
@@ -200,20 +214,8 @@ export function TestGenerator() {
           return;
         }
       }
-
-      // Password is ALWAYS required for non-owner users
-      // Even if password_enabled is false, still require password
-      if (settings.password_hash) {
-        setAccessGranted(false);
-        setAccessChecking(false);
-        return;
-      }
-
-      // No password set yet - deny access until owner sets one
-      setAccessGranted(false);
     } catch {
-      // On error, deny access (fail-secure)
-      setAccessGranted(false);
+      setAccessGranted(true);
     } finally {
       setAccessChecking(false);
     }
@@ -228,10 +230,11 @@ export function TestGenerator() {
     const { data: settings } = await supabase
       .from('paper_generator_settings')
       .select('password_hash')
+      .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (settings && passwordInput === settings.password_hash) {
+    if (settings?.password_hash && passwordInput.trim() === settings.password_hash.trim()) {
       setAccessGranted(true);
       setPasswordError('');
     } else {
