@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -11,23 +9,7 @@ import { TestGenerator } from '@/components/TestGenerator';
 import { ChapterVideoGenerator } from '@/components/ChapterVideoGenerator';
 
 const AIFeatures = () => {
-  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) navigate('/auth', { replace: true });
-  }, [authLoading, user?.id, navigate]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      </div>
-    );
-  }
-
-  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background">
