@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "jsr:@std/http/server"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { encodeBase64 as base64Encode } from "jsr:@std/encoding/base64";
 import { checkDDoS } from "../_shared/ddos.ts";
 
 const corsHeaders = {
