@@ -206,8 +206,7 @@ export function VoiceChat() {
     abortControllerRef.current = new AbortController();
     
     try {
-      // Use streaming for real-time feel
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/askify-chat`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,90 +221,21 @@ export function VoiceChat() {
       });
 
       if (!response.ok) {
-        // Fallback to non-streaming chat endpoint
-        const fallbackResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            messages: [{ role: 'user', content: transcript }],
-            model: selectedModel,
-            mode: 'normal'
-          }),
-          signal: abortControllerRef.current.signal
-        });
-        
-        if (!fallbackResponse.ok) {
-          throw new Error('Failed to get AI response');
-        }
-        
-        const data = await fallbackResponse.json();
-        const fullResponse = data.reply || '';
-        setIsProcessing(false);
-        
-        if (fullResponse) {
-          setAiResponse(fullResponse);
-          // Split into sentences and queue for speaking
-          const sentences = fullResponse.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [fullResponse];
-          // Stop recognition before speaking
-          try { recognitionRef.current?.stop(); } catch {}
-          sentences.forEach((s: string) => queueSentence(s));
-        } else {
-          if (isConnectedRef.current && recognitionRef.current) {
-            setIsListening(true);
-            try { recognitionRef.current.start(); } catch {}
-          }
-        }
-        return;
+        throw new Error('Failed to get AI response');
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No reader');
-      
-      const decoder = new TextDecoder();
-      let fullText = '';
-      let sentenceBuffer = '';
-      
+      const data = await response.json();
+      const fullResponse = data.reply || '';
       setIsProcessing(false);
-      // Stop recognition before speaking
-      try { recognitionRef.current?.stop(); } catch {}
       
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (!line.startsWith('data: ') || line.trim() === '') continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              sentenceBuffer += content;
-              setAiResponse(fullText);
-              
-              // Check for sentence boundaries and queue for immediate speaking
-              const sentenceMatch = sentenceBuffer.match(/^(.*?[.!?])\s*(.*)/s);
-              if (sentenceMatch) {
-                queueSentence(sentenceMatch[1]);
-                sentenceBuffer = sentenceMatch[2] || '';
-              }
-            }
-          } catch {}
-        }
-      }
-      
-      // Speak remaining buffer
-      if (sentenceBuffer.trim()) {
-        queueSentence(sentenceBuffer);
+      if (fullResponse) {
+        setAiResponse(fullResponse);
+        try { recognitionRef.current?.stop(); } catch {}
+        const sentences = fullResponse.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [fullResponse];
+        sentences.forEach((s: string) => queueSentence(s));
+      } else if (isConnectedRef.current && recognitionRef.current) {
+        setIsListening(true);
+        try { recognitionRef.current.start(); } catch {}
       }
       
     } catch (error: any) {
