@@ -350,12 +350,6 @@ export function TestGenerator() {
 
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in to generate tests', variant: 'destructive' });
-        return;
-      }
-
       const marksNum = parseInt(totalMarks);
       const timeAllotted = marksNum === 20 ? '45 Minutes' : marksNum === 40 ? '1.5 Hours' : marksNum === 80 ? '2.5 Hours' : '3 Hours';
 
@@ -423,7 +417,6 @@ Generate the complete question paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -453,12 +446,6 @@ Generate the complete question paper now:`;
 
     setRemakeLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       const prompt = `You are an expert question paper modifier. Take the following question paper and create a NEW version with DIFFERENT questions on the SAME topics and format.
 
 **ORIGINAL PAPER:**
@@ -477,7 +464,6 @@ Generate the modified question paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -519,12 +505,6 @@ Generate the modified question paper now:`;
 
     setExampleLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       // First, analyze the image to extract the paper content
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('image-ai', {
         body: {
@@ -568,7 +548,6 @@ Generate the new question paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
