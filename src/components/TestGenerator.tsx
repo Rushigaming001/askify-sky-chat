@@ -653,12 +653,6 @@ Generate the new question paper now:`;
 
     setPredictorLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       let paperContent = predictorInput;
 
       // If image uploaded, analyze it first
@@ -703,7 +697,6 @@ Generate the predicted paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
@@ -730,12 +723,6 @@ Generate the predicted paper now:`;
 
     setDirectPredictLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({ title: 'Error', description: 'Please log in', variant: 'destructive' });
-        return;
-      }
-
       const prompt = `You are an expert Maharashtra State Board exam paper PREDICTOR for ${directPredictClass} ${directPredictSubject}.
 
 Based on your knowledge of:
@@ -764,7 +751,6 @@ Generate the predicted paper now:`;
 
       const response = await supabase.functions.invoke('test-generator', {
         body: { prompt },
-        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
       if (response.error) throw response.error;
