@@ -49,15 +49,6 @@ serve(async (req) => {
   if (ddosBlock) return ddosBlock;
 
   try {
-    // Get user from auth header first
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Parse and validate input
     let requestBody;
     try {
@@ -142,14 +133,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : '';
+    const { data: { user } } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
     
     // System prompt with staff information
     let systemPrompt = `You are ASKIFY, a helpful AI assistant. 
@@ -573,11 +559,13 @@ Format: Use numbered steps. Be precise. Avoid logical fallacies. Show your work 
     }
 
     // Log usage
-    await supabase.from('usage_logs').insert({
-      user_id: user.id,
-      model_id: useGeminiAPI ? `gemini/${geminiModelName}` : aiModel || model,
-      mode: mode || 'normal'
-    });
+    if (user?.id) {
+      await supabase.from('usage_logs').insert({
+        user_id: user.id,
+        model_id: useGeminiAPI ? `gemini/${geminiModelName}` : aiModel || model,
+        mode: mode || 'normal'
+      });
+    }
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
