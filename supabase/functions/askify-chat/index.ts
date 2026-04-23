@@ -37,33 +37,21 @@ serve(async (req) => {
   if (ddosBlock) return ddosBlock;
 
   try {
-    // Authentication check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : '';
+    const { data: { user } } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
 
     // Check for AI chat restriction
-    const { data: isRestricted } = await supabase.rpc('user_has_restriction', {
-      _user_id: user.id,
-      _restriction_type: 'ai_chat_disabled'
-    });
+    const { data: isRestricted } = user?.id
+      ? await supabase.rpc('user_has_restriction', {
+          _user_id: user.id,
+          _restriction_type: 'ai_chat_disabled'
+        })
+      : { data: false };
 
     if (isRestricted) {
       return new Response(JSON.stringify({ error: "AI chat is disabled for your account" }), {
@@ -80,7 +68,7 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
-    console.log('Processing /askify question from user:', user.id, 'question:', question);
+    console.log('Processing /askify question from user:', user?.id || 'guest', 'question:', question);
 
     // Call Groq AI
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -135,11 +123,13 @@ serve(async (req) => {
     }
 
     // Log usage
-    await supabase.from('usage_logs').insert({
-      user_id: user.id,
-      model_id: 'groq-llama',
-      mode: 'askify-chat'
-    });
+    if (user?.id) {
+      await supabase.from('usage_logs').insert({
+        user_id: user.id,
+        model_id: 'groq-llama',
+        mode: 'askify-chat'
+      });
+    }
 
     return new Response(
       JSON.stringify({ success: true, response: aiResponse }),
