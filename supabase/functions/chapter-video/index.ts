@@ -17,26 +17,12 @@ serve(async (req) => {
   if (ddos) return ddos;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : '';
+    const { data: { user } } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
 
     const body = await req.json();
     const { chapterText, chapterTitle, useLovableAI, language = 'english' } = body;
@@ -52,6 +38,13 @@ serve(async (req) => {
 
     // Check if user wants to use Lovable AI (only for owner)
     if (useLovableAI) {
+      if (!user?.id) {
+        return new Response(JSON.stringify({ error: "Owner mode requires login. Please use the free AI option." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: isOwner } = await supabase.rpc('is_owner', { _user_id: user.id });
       
       if (!isOwner) {
@@ -64,7 +57,7 @@ serve(async (req) => {
       }
     }
 
-    console.log("Generating chapter video for:", chapterTitle, "Language:", language, "User:", user.id);
+    console.log("Generating chapter video for:", chapterTitle, "Language:", language, "User:", user?.id || 'guest');
 
     const POLLINATIONS_API_KEY_1 = Deno.env.get('POLLINATIONS_API_KEY_1');
     const POLLINATIONS_API_KEY_2 = Deno.env.get('POLLINATIONS_API_KEY_2');
@@ -271,11 +264,13 @@ Guidelines:
     }
 
     // Log usage
-    await supabase.from('usage_logs').insert({
-      user_id: user.id,
-      model_id: `chapter-video-${usedModel}`,
-      mode: 'chapter-video'
-    });
+    if (user?.id) {
+      await supabase.from('usage_logs').insert({
+        user_id: user.id,
+        model_id: `chapter-video-${usedModel}`,
+        mode: 'chapter-video'
+      });
+    }
 
     console.log("Successfully generated chapter video content using:", usedModel);
 
