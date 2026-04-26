@@ -84,7 +84,8 @@ const App = () => {
                   <Toaster />
                   <Sonner />
                   <Routes>
-                    <Route path="/" element={<Destination />} />
+                    <Route path="/" element={<Chat />} />
+                    <Route path="/everything" element={<Destination />} />
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/ai-features" element={<AIFeatures />} />
